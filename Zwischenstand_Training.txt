@@ -88,7 +88,7 @@ Training-token.txt im Repo-Ordner (vermutlich GitHub-Token) steht in .gitignore 
 - iPad-Ton: Nutzer hatte am iPad keinen Ton, am iPhone schon. Vermutete Ursachen: Ton-Schalter in der App
   (pro Gerät/Home-Bildschirm-App eigener Speicher), Stumm im Kontrollzentrum, Lautstärke, Bluetooth,
   Home-Bildschirm-App vs. Safari. Nutzer meldet "funktioniert soweit" – Ton am iPad nach dem Fix erneut bestätigen lassen.
-- Commit 8a78dd8 pushen (nach OK).
+- Alles bis 673e368 ist gepusht. Nutzerwunsch: künftig nach Test + Commit sofort pushen (nur dieses Repo, main).
 - README.md kurz ergänzen (Bewertung, Kieser-Regler, excludeAnchored), falls gewünscht.
 - tests/run-selftest.py reparieren (hängender Edge-Aufruf), optional.
 - Ideen (nicht beauftragt): Favoriten, Gewichtsverlauf pro Übung (Platzhalter favorites/weights im Datenmodell),
