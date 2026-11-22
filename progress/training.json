@@ -49,6 +49,25 @@
    "durationSec": 3
   },
   {
+   "id": "s1795375236655zdni",
+   "date": "2026-11-22T19:20:36.655Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "kieser90",
+   "programType": "standard",
+   "exerciseIds": [
+    "liegestuetz",
+    "schulterdruecken",
+    "trx_row",
+    "kurzhantelrudern",
+    "bizeps_curl"
+   ],
+   "completed": false,
+   "durationSec": 153
+  },
+  {
    "id": "s1795376021408ih5x",
    "date": "2026-11-22T19:33:41.408Z",
    "kind": "strength",
