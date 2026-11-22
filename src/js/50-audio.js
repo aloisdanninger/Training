@@ -12,13 +12,19 @@ App.Audio = (function () {
   };
   /** iOS 16.4+: 'ambient' mischt die Pings über laufende Musik/Podcasts (statt sie zu unterbrechen). */
   function mixWithOthers() { try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) { /* optional */ } }
+  mixWithOthers();   // schon beim Laden, damit auch die Home-Bildschirm-App (iPad) laufende Musik nicht unterbricht
+  function fresh() { try { if (ctx) ctx.close(); } catch (e) { /* egal */ } ctx = null; bus = null; ctx = new (window.AudioContext || window.webkitAudioContext)(); }
   function unlock() {
-    try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state !== 'running') ctx.resume(); } catch (e) { ctx = null; }
-    if (enabled) mixWithOthers();
+    mixWithOthers();
+    try { if (!ctx || ctx.state === 'closed') fresh(); if (ctx.state !== 'running') ctx.resume(); } catch (e) { ctx = null; }
   }
   function play(name) {
     if (!enabled || !ctx || !PATTERNS[name]) return;
-    if (ctx.state !== 'running') ctx.resume();
+    mixWithOthers();
+    if (ctx.state !== 'running') {            // iPad: nach Unterbrechung ('interrupted') bleibt der Kontext oft stumm -> neu aufbauen
+      ctx.resume();
+      if (ctx.state !== 'running') { try { fresh(); ctx.resume(); } catch (e) { return; } }
+    }
     if (!bus) {   // Kompressor als Begrenzer, damit die Pings laut und trotzdem unverzerrt sind
       bus = ctx.createDynamicsCompressor(); bus.threshold.value = -6; bus.ratio.value = 12; bus.attack.value = 0.002; bus.release.value = 0.1;
       bus.connect(ctx.destination);

@@ -202,11 +202,11 @@ App.Config = {
   /* Übungen, die Befestigung brauchen (Band/TRX), nicht vorschlagen. Auf false setzen, wenn ein Ankerpunkt vorhanden ist. */
   excludeAnchored: true,
   /* Kieser-Dauer: Standard und Reglerbereich (Sekunden) */
-  kieser: { min: 90, max: 120, step: 5, def: 120 },
+  kieser: { min: 60, max: 120, step: 5, def: 120 },
   /* Klassisch: Sätze und Sekunden pro Satz wählbar, Pause zwischen den Sätzen */
   classic: { sets: { min: 1, max: 6, step: 1, def: 3 }, seconds: { min: 15, max: 90, step: 5, def: 30 }, rest: 10 },
   /* Zirkel: Runden und Sekunden pro Übung wählbar; Wechsel zwischen Übungen, Pause zwischen Runden */
-  circuit: { rounds: { min: 1, max: 6, step: 1, def: 3 }, seconds: { min: 10, max: 60, step: 5, def: 30 }, transition: 5, roundRest: 30 },
+  circuit: { rounds: { min: 1, max: 6, step: 1, def: 3 }, seconds: { min: 10, max: 60, step: 5, def: 30 }, transition: 10, roundRest: 30 },
   /* Schwierigkeitsbewertung: zu leicht = +levelStep s, zu schwer = -levelStep s (je Übung, kumulativ, begrenzt) */
   levelStep: 5, levelMax: 60, minSeconds: 10,
   /* Geometrie der Strichfigur (SVG-Einheiten) */
@@ -576,11 +576,11 @@ App.Data.MODES = (function () {
     return { p: 0, cue: 'Halten' };
   }
 
-  /** Klassisch/Zirkel: kontinuierliche Wiederholungen, eine Wiederholung dauert 3 s. */
-  function loopMotion(t) { const k = (t % 3) / 3; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Los!' }; }
+  /** Klassisch/Zirkel: kontinuierliche Wiederholungen, eine Wiederholung dauert 5 s (langsam, kontrolliert). */
+  function loopMotion(t) { const k = (t % 5) / 5; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Los!' }; }
 
-  /** Dehnung: langsam in die Dehnung gleiten (6 s), dann halten. */
-  function stretchMotion(t) { return { p: ease(clamp01(t / 6)), cue: t < 6 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
+  /** Dehnung: langsam in die Dehnung gleiten (9 s), dann halten. */
+  function stretchMotion(t) { return { p: ease(clamp01(t / 9)), cue: t < 9 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
 
   const prepare = (ex, secs) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
     motion: () => ({ p: 0, cue: 'Gleich geht es los' }) });
@@ -970,13 +970,19 @@ App.Audio = (function () {
   };
   /** iOS 16.4+: 'ambient' mischt die Pings über laufende Musik/Podcasts (statt sie zu unterbrechen). */
   function mixWithOthers() { try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) { /* optional */ } }
+  mixWithOthers();   // schon beim Laden, damit auch die Home-Bildschirm-App (iPad) laufende Musik nicht unterbricht
+  function fresh() { try { if (ctx) ctx.close(); } catch (e) { /* egal */ } ctx = null; bus = null; ctx = new (window.AudioContext || window.webkitAudioContext)(); }
   function unlock() {
-    try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state !== 'running') ctx.resume(); } catch (e) { ctx = null; }
-    if (enabled) mixWithOthers();
+    mixWithOthers();
+    try { if (!ctx || ctx.state === 'closed') fresh(); if (ctx.state !== 'running') ctx.resume(); } catch (e) { ctx = null; }
   }
   function play(name) {
     if (!enabled || !ctx || !PATTERNS[name]) return;
-    if (ctx.state !== 'running') ctx.resume();
+    mixWithOthers();
+    if (ctx.state !== 'running') {            // iPad: nach Unterbrechung ('interrupted') bleibt der Kontext oft stumm -> neu aufbauen
+      ctx.resume();
+      if (ctx.state !== 'running') { try { fresh(); ctx.resume(); } catch (e) { return; } }
+    }
     if (!bus) {   // Kompressor als Begrenzer, damit die Pings laut und trotzdem unverzerrt sind
       bus = ctx.createDynamicsCompressor(); bus.threshold.value = -6; bus.ratio.value = 12; bus.attack.value = 0.002; bus.release.value = 0.1;
       bus.connect(ctx.destination);
@@ -1380,7 +1386,7 @@ App.UI = (function () {
     const t0 = performance.now(), ease = x => x * x * (3 - 2 * x);
     cancelAnimationFrame(ovRaf);
     (function frame(now) {
-      const k = (((now || t0) - t0) / 4000) % 1; ovPlayer.render(k < 0.5 ? ease(k * 2) : ease(2 - k * 2));
+      const k = (((now || t0) - t0) / 6000) % 1; ovPlayer.render(k < 0.5 ? ease(k * 2) : ease(2 - k * 2));
       ovRaf = requestAnimationFrame(frame);
     })(t0);
   }
@@ -1495,9 +1501,9 @@ App.SelfTest = (function () {
     check('Kieser Standard 120 s: 10 s Vorbereitung + 120 s', sum('kieser') === 130 && ks(120) === 130, sum('kieser'));
     check('Klassisch Standard: 10 + 3×30 + 2×10 = 120 s', sum('classic') === 120, sum('classic'));
     check('Klassisch wählbar: 2 Sätze × 20 s = 10 + 40 + 10 = 60 s', sum('classic', { classicSets: 2, classicSeconds: 20 }) === 60, sum('classic', { classicSets: 2, classicSeconds: 20 }));
-    // Zirkel: 3 Übungen, 2 Runden, 20 s: 10 + 6×20 + 2×(2×5) + 30 = 180 s; jede Übung genau einmal "erledigt"
+    // Zirkel: 3 Übungen, 2 Runden, 20 s: 10 + 6×20 + 2×(2×10) + 30 = 200 s; jede Übung genau einmal "erledigt"
     const cm = D.modeById('circuit', { circuitRounds: 2, circuitSeconds: 20 }), cbl = App.Programs.buildBlocks({ exerciseIds: ['plank', 'bird_dog', 'superman'] }, cm);
-    check('Zirkel: Gesamtdauer 180 s', App.Programs.totalSeconds(cbl) === 180, App.Programs.totalSeconds(cbl));
+    check('Zirkel: Gesamtdauer 200 s', App.Programs.totalSeconds(cbl) === 200, App.Programs.totalSeconds(cbl));
     check('Zirkel: 6 Arbeitsblöcke, je Übung ein Abschluss, Reihenfolge stimmt',
       cbl.filter(b => b.type === 'work').length === 6 && cbl.filter(b => b.exerciseEnd).length === 3 &&
       cbl.filter(b => b.type === 'work').map(b => b.exercise.id).join() === 'plank,bird_dog,superman,plank,bird_dog,superman');

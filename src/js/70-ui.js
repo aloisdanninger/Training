@@ -260,7 +260,7 @@ App.UI = (function () {
     const t0 = performance.now(), ease = x => x * x * (3 - 2 * x);
     cancelAnimationFrame(ovRaf);
     (function frame(now) {
-      const k = (((now || t0) - t0) / 4000) % 1; ovPlayer.render(k < 0.5 ? ease(k * 2) : ease(2 - k * 2));
+      const k = (((now || t0) - t0) / 6000) % 1; ovPlayer.render(k < 0.5 ? ease(k * 2) : ease(2 - k * 2));
       ovRaf = requestAnimationFrame(frame);
     })(t0);
   }

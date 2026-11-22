@@ -10,7 +10,7 @@ Einzel-Datei-Web-App (HTML/CSS/Vanilla-JS, offline-fähig) für Mac/iPad/iPhone.
 Ursprünglicher Auftrag: Prompt_Persönlicher_Trainingsgenerator.txt (gleicher Ordner).
 - Krafttraining: Oberkörper, Rumpf, Unterkörper (Mehrfachauswahl)
 - Dehnprogramme: Oberkörper, Unterkörper, Rumpf, Rücken-Nacken-Schulter
-- Stile: Zirkel, Kieser (4 s Belastung, 2 s halten, 4 s zurück, 2 s halten; Dauer 90-120 s, Standard 120 s),
+- Stile: Zirkel, Kieser (4 s Belastung, 2 s halten, 4 s zurück, 2 s halten; Dauer 60-120 s, Standard 120 s),
          Klassisch (Standard 3 Sätze à 30 s, 10 s Pause; wählbar)
 - Programmtypen: Standard (feste Liste) und Zufall (Regel 2/2/1 je Bereich, gewichtet nach Bewertung)
 - Trainingsbildschirm: SVG-Strichfigur mit Animation, Ringtimer, Zahl, Anleitung (Querformat: neben dem Bild,
@@ -65,11 +65,11 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
 - Bewertung 1-5 Sterne (0 = unbewertet) im Katalog, im Overlay und am Trainingsende für die vollständig
   durchgeführten Übungen; erneuter Tipp auf denselben Stern = zurück auf 0.
   Gewichtung im Zufallsmodus: 1=0,25 2=0,6 3(=unbewertet)=1 4=1,8 5=3; kürzlich trainierte zusätzlich x0,25
-- Kieser: Standard 120 s, Schieberegler 90-120 s (5er-Schritte); alte Einstellungen kieser90/120 werden migriert
+- Kieser: Standard 120 s, Schieberegler 60-120 s (5er-Schritte); alte Einstellungen kieser90/120 werden migriert
 - Runde 4: Stile Kieser / Klassisch / Zirkel, je mit Reglern (Config.classic, Config.circuit):
   Klassisch = Sätze (1-6, Std 3) x Sekunden pro Satz (15-90, Std 30), Pause 10 s;
   Zirkel = alle Übungen nacheinander, Runden (1-6, Std 3) x Sekunden pro Übung (10-60, Std 30),
-  5 s Wechsel zwischen Übungen, 30 s Pause zwischen Runden (App.Data.modeById(id, settings), buildAll).
+  10 s Wechsel zwischen Übungen, 30 s Pause zwischen Runden (App.Data.modeById(id, settings), buildAll).
 - Schwierigkeit je Übung (Trainingsende): Zu leicht / Richtig / Zu schwer -> kumulativer Offset +5/0/-5 s
   (Config.levelStep, levelMax 60, minSeconds 10), gespeichert in JSON unter levels {id:{offset,last,t}},
   Merge: jüngerer Zeitstempel je Übung. Wird bei der nächsten Auswahl auf die Dauer angewendet (Übersicht zeigt "± s angepasst").

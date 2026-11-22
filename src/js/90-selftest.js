@@ -53,9 +53,9 @@ App.SelfTest = (function () {
     check('Kieser Standard 120 s: 10 s Vorbereitung + 120 s', sum('kieser') === 130 && ks(120) === 130, sum('kieser'));
     check('Klassisch Standard: 10 + 3×30 + 2×10 = 120 s', sum('classic') === 120, sum('classic'));
     check('Klassisch wählbar: 2 Sätze × 20 s = 10 + 40 + 10 = 60 s', sum('classic', { classicSets: 2, classicSeconds: 20 }) === 60, sum('classic', { classicSets: 2, classicSeconds: 20 }));
-    // Zirkel: 3 Übungen, 2 Runden, 20 s: 10 + 6×20 + 2×(2×5) + 30 = 180 s; jede Übung genau einmal "erledigt"
+    // Zirkel: 3 Übungen, 2 Runden, 20 s: 10 + 6×20 + 2×(2×10) + 30 = 200 s; jede Übung genau einmal "erledigt"
     const cm = D.modeById('circuit', { circuitRounds: 2, circuitSeconds: 20 }), cbl = App.Programs.buildBlocks({ exerciseIds: ['plank', 'bird_dog', 'superman'] }, cm);
-    check('Zirkel: Gesamtdauer 180 s', App.Programs.totalSeconds(cbl) === 180, App.Programs.totalSeconds(cbl));
+    check('Zirkel: Gesamtdauer 200 s', App.Programs.totalSeconds(cbl) === 200, App.Programs.totalSeconds(cbl));
     check('Zirkel: 6 Arbeitsblöcke, je Übung ein Abschluss, Reihenfolge stimmt',
       cbl.filter(b => b.type === 'work').length === 6 && cbl.filter(b => b.exerciseEnd).length === 3 &&
       cbl.filter(b => b.type === 'work').map(b => b.exercise.id).join() === 'plank,bird_dog,superman,plank,bird_dog,superman');

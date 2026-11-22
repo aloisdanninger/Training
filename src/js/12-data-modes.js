@@ -25,11 +25,11 @@ App.Data.MODES = (function () {
     return { p: 0, cue: 'Halten' };
   }
 
-  /** Klassisch/Zirkel: kontinuierliche Wiederholungen, eine Wiederholung dauert 3 s. */
-  function loopMotion(t) { const k = (t % 3) / 3; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Los!' }; }
+  /** Klassisch/Zirkel: kontinuierliche Wiederholungen, eine Wiederholung dauert 5 s (langsam, kontrolliert). */
+  function loopMotion(t) { const k = (t % 5) / 5; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Los!' }; }
 
-  /** Dehnung: langsam in die Dehnung gleiten (6 s), dann halten. */
-  function stretchMotion(t) { return { p: ease(clamp01(t / 6)), cue: t < 6 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
+  /** Dehnung: langsam in die Dehnung gleiten (9 s), dann halten. */
+  function stretchMotion(t) { return { p: ease(clamp01(t / 9)), cue: t < 9 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
 
   const prepare = (ex, secs) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
     motion: () => ({ p: 0, cue: 'Gleich geht es los' }) });
