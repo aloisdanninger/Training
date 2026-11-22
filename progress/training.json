@@ -1,0 +1,52 @@
+{
+ "version": 1,
+ "updatedAt": 1795374489526,
+ "settings": {
+  "areas": [
+   "upper"
+  ],
+  "style": "kieser90",
+  "programType": "standard",
+  "sound": true
+ },
+ "sessions": [
+  {
+   "id": "s1795374445461n100",
+   "date": "2026-11-22T19:07:25.461Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "kieser90",
+   "programType": "standard",
+   "exerciseIds": [
+    "liegestuetz",
+    "schulterdruecken",
+    "trx_row",
+    "kurzhantelrudern",
+    "bizeps_curl"
+   ],
+   "completed": true,
+   "durationSec": 37
+  },
+  {
+   "id": "s1795374486476cc0f",
+   "date": "2026-11-22T19:08:06.476Z",
+   "kind": "stretch",
+   "areaIds": [],
+   "modeId": "stretch",
+   "programType": "stretch",
+   "exerciseIds": [
+    "st_brust",
+    "st_schulter",
+    "st_latissimus",
+    "st_trizeps",
+    "st_bizeps"
+   ],
+   "completed": true,
+   "durationSec": 3
+  }
+ ],
+ "favorites": [],
+ "weights": {}
+}
