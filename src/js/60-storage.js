@@ -42,6 +42,8 @@ App.Store = (function () {
     /* Ton ist geräteabhängig (nicht synchronisiert): iPhone und iPad dürfen unterschiedlich eingestellt sein */
     sound: () => { try { return localStorage.getItem(KEY + '-sound') === '1'; } catch (e) { return false; } },
     setSound: v => { try { localStorage.setItem(KEY + '-sound', v ? '1' : '0'); } catch (e) { /* ignorieren */ } },
+    volume: () => { try { return parseFloat(localStorage.getItem(KEY + '-vol')) || 1; } catch (e) { return 1; } },
+    setVolume: v => { try { localStorage.setItem(KEY + '-vol', String(v)); } catch (e) { /* ignorieren */ } },
     history: () => state.sessions,
     ratings: () => state.ratings,
     rating: id => state.ratings[id] || 0,

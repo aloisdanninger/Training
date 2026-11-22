@@ -236,6 +236,9 @@ App.UI = (function () {
     player = App.Animation.createPlayer($('fig'));
     $('sound').onchange = e => { S.setSound(e.target.checked); App.Audio.setEnabled(e.target.checked); };
     App.Audio.setEnabled(S.sound());
+    $('vol').value = S.volume(); App.Audio.setVolume(S.volume());
+    $('vol').oninput = e => { S.setVolume(e.target.value); App.Audio.setVolume(e.target.value); };
+    $('vol').onchange = () => { App.Audio.unlock(); App.Audio.play('double'); };   // Hörprobe
     $('start').onclick = startStrength;
     $('kieserRange').min = CK.min; $('kieserRange').max = CK.max; $('kieserRange').step = CK.step;
     $('kieserRange').oninput = e => { S.setSettings({ kieserSeconds: +e.target.value }); $('kieserVal').textContent = e.target.value + ' Sekunden'; renderHome(); };
