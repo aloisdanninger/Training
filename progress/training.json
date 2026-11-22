@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795380529812,
+ "updatedAt": 1795380557788,
  "settings": {
   "areas": [
    "upper",
@@ -182,7 +182,17 @@
   "plank": 5,
   "dead_bug": 5,
   "superman": 5,
-  "bird_dog": 5
+  "bird_dog": 5,
+  "st_brust": 5,
+  "st_schulter": 5,
+  "st_latissimus": 4,
+  "st_trizeps": 5,
+  "st_bizeps": 3,
+  "st_catcow": 5,
+  "st_child": 5,
+  "st_cobra": 5,
+  "st_rotation": 5,
+  "st_seitbeuge": 4
  },
  "levels": {
   "liegestuetz": {
