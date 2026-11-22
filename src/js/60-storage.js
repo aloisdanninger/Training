@@ -39,6 +39,9 @@ App.Store = (function () {
     settings: () => state.settings,
     setSettings: function (patch) { Object.assign(state.settings, patch); save(); },
     addSession: function (s) { state.sessions.push(s); save(); },
+    /* Ton ist geräteabhängig (nicht synchronisiert): iPhone und iPad dürfen unterschiedlich eingestellt sein */
+    sound: () => { try { return localStorage.getItem(KEY + '-sound') === '1'; } catch (e) { return false; } },
+    setSound: v => { try { localStorage.setItem(KEY + '-sound', v ? '1' : '0'); } catch (e) { /* ignorieren */ } },
     history: () => state.sessions,
     ratings: () => state.ratings,
     rating: id => state.ratings[id] || 0,

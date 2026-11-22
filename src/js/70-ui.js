@@ -43,7 +43,7 @@ App.UI = (function () {
     kb.hidden = st.style !== 'kieser'; $('kieserRange').value = secs; $('kieserVal').textContent = secs + ' Sekunden';
     const pt = $('ptype'); pt.textContent = '';
     PTYPES.forEach(p => pt.appendChild(btn(p.label, 'choice', st.programType === p.id, () => { S.setSettings({ programType: p.id }); renderHome(); })));
-    $('sound').checked = !!st.sound;
+    $('sound').checked = S.sound();
     const n = st.areas.length * 5;
     const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, currentMode())) : 0;
     $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
@@ -234,8 +234,8 @@ App.UI = (function () {
   /* ---------------- Init ---------------- */
   function init() {
     player = App.Animation.createPlayer($('fig'));
-    $('sound').onchange = e => { S.setSettings({ sound: e.target.checked }); App.Audio.setEnabled(e.target.checked); };
-    App.Audio.setEnabled(S.settings().sound);
+    $('sound').onchange = e => { S.setSound(e.target.checked); App.Audio.setEnabled(e.target.checked); };
+    App.Audio.setEnabled(S.sound());
     $('start').onclick = startStrength;
     $('kieserRange').min = CK.min; $('kieserRange').max = CK.max; $('kieserRange').step = CK.step;
     $('kieserRange').oninput = e => { S.setSettings({ kieserSeconds: +e.target.value }); $('kieserVal').textContent = e.target.value + ' Sekunden'; renderHome(); };
