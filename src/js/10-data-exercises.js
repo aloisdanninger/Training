@@ -117,7 +117,7 @@ App.Data.AREAS = [
     /* ---------- RUMPF · Seitliche Stabilität ---------- */
     ['side_plank', 'Side Plank', 'core', 'Seitliche Stabilität', ['seitliche Bauchmuskeln', 'Hüfte'], 2, [],
       'Seitstütz, Körper in einer Linie.', 'Ellbogen unter der Schulter, Hüfte hoch. Oberen Arm zur Decke strecken. Pro Seite halten.',
-      { a: P(72, [180, 180], [252, 252], { b: [0, 0] }), b: P(62, [180, 180], [242, 242], { b: [0, 0] }) }],
+      { view: 'front', a: P(-55, [180, 180], [125, 125], { b: [0, 0] }), b: P(-65, [180, 180], [115, 115], { b: [0, 0] }) }],
     ['pallof_press', 'Pallof Press', 'core', 'Seitliche Stabilität', ['Rumpf', 'schräge Bauchmuskeln'], 2, ['Band/Kabel'],
       'Anti-Rotation mit Band.', 'Band seitlich verankert. Hände von der Brust nach vorn drücken, Rumpf nicht mitdrehen lassen.',
       { a: P(0, [170, 95]), b: P(0, [90, 90]), props: [{ rope: [20, 95] }] }],
@@ -126,7 +126,7 @@ App.Data.AREAS = [
       { a: P(-30, [135, 135], [70, 110]), b: P(-30, [75, 75], [70, 110]) }],
     ['side_plank_reach', 'Side Plank Reach Through', 'core', 'Seitliche Stabilität', ['schräge Bauchmuskeln', 'Schulter'], 3, [],
       'Seitstütz mit Durchgreifen.', 'Aus dem Seitstütz den oberen Arm unter dem Körper durchführen, dann wieder öffnen.',
-      { a: P(72, [180, 180], [252, 252], { b: [0, 0] }), b: P(66, [180, 180], [246, 246], { b: [110, 130] }) }],
+      { view: 'front', a: P(-55, [180, 180], [125, 125], { b: [0, 0] }), b: P(-60, [180, 180], [120, 120], { b: [205, 230] }) }],
 
     /* ---------- UNTERKÖRPER · Knie dominant ---------- */
     ['kniebeuge', 'Kniebeuge', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 1, [],
@@ -168,13 +168,13 @@ App.Data.AREAS = [
       { a: STAND, b: P(0, [180, 180], [95, 190], { r: [200, 275] }) }],
     ['seitlicher_ausfallschritt', 'Seitlicher Ausfallschritt', 'lower', 'Stabilität', ['Innenseite Oberschenkel', 'Gesäß'], 2, [],
       'Schritt zur Seite.', 'Weit zur Seite treten, Gesäß nach hinten, anderes Bein bleibt gestreckt.',
-      { a: P(0, [150, 70]), b: P(0, [150, 70], [118, 190], { r: [236, 236] }) }],
+      { view: 'front', a: P(0, [195, 170], [180, 180], { b: [165, 190] }), b: P(0, [195, 170], [220, 220], { b: [165, 190], r: [123, 180] }) }],
     ['einbeinstand', 'Einbeinstand', 'lower', 'Stabilität', ['Fußmuskulatur', 'Hüfte', 'Gleichgewicht'], 1, [],
       'Gleichgewicht auf einem Bein.', 'Standbein leicht gebeugt, anderes Knie anheben, ruhig halten. Seite wechseln.',
       { a: P(0, [140, 140]), b: P(0, [100, 100], [180, 180], { r: [100, 175] }) }],
     ['curtsy_lunge', 'Curtsy Lunge', 'lower', 'Stabilität', ['Gesäß', 'seitliche Hüfte', 'Oberschenkel'], 2, [],
       'Ausfallschritt diagonal nach hinten.', 'Ein Bein diagonal hinter das Standbein stellen, absenken, Becken bleibt gerade.',
-      { a: P(0, [150, 70]), b: P(0, [150, 70], [105, 195], { r: [220, 275] }) }]
+      { view: 'front', a: P(0, [195, 170], [180, 180], { b: [165, 190] }), b: P(0, [195, 170], [205, 170], { b: [165, 190], r: [195, 225] }) }]
   ];
 
   App.Data.EXERCISES = EXERCISE_ROWS.map(function (r) {

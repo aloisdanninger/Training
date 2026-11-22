@@ -4,6 +4,9 @@
    p = Bewegungsfortschritt 0..1 (0 = Pose a, 1 = Pose b). Der Timer liefert p,
    dadurch ist die Animation immer synchron zur Übungsphase (auch bei Pause).
 
+   Ansicht: Standard = von der Seite. svgAnimation.view = 'front' -> Frontalansicht (Seitübungen):
+  Winkel dann in der Bildebene, 'near' = Körperseite links im Bild, 'far' = rechts, zwei Augen + Mund.
+
    Gesicht: Auge + Nase zeigen die Vorderseite des Körpers (Blick = Kopfrichtung + 90°).
    So erkennt man Bauchlage (Gesicht nach unten) und Rückenlage (Gesicht nach oben).
 
@@ -40,28 +43,31 @@ App.Animation = (function () {
       head: el(svg, 'circle', { 'class': 'fig-head', r: 10 }),
       nose: el(svg, 'line', { 'class': 'fig-nose' }),
       eye: el(svg, 'circle', { 'class': 'fig-eye', r: 2 }),
+      eye2: el(svg, 'circle', { 'class': 'fig-eye', r: 2 }),
+      bars: [el(svg, 'line', { 'class': 'fig-limb torso' }), el(svg, 'line', { 'class': 'fig-limb torso' })],
       front: el(svg, 'g', { 'class': 'fig-prop' })
     };
-    let A, B, ex = null, propEls = [], mode = 'free', footLimb = 'near', commonOff = [0, 0], x0 = 0, offA = [0, 0];
+    let A, B, front = false, ex = null, propEls = [], mode = 'free', footLimb = 'near', commonOff = [0, 0], x0 = 0, offA = [0, 0];
 
+    const jt = p => Pose.joints(p, front);
     const lowest = j => Math.max(j.near.leg[2][1], j.far.leg[2][1]);
 
     /** Verschiebung (dx, dy) für eine Pose – abhängig vom Bodenkontakt-Modus. */
     function offsetFor(p) {
       if (mode === 'free') return commonOff;
-      const j = Pose.joints(p);
+      const j = jt(p);
       return [x0 - j[footLimb].leg[2][0], C.stage.floorY - lowest(j)];
     }
 
     function setup() {
-      const jA = Pose.joints(A);
+      const jA = jt(A);
       mode = ex.svgAnimation.anchor || (lowest(jA) > 40 ? 'foot' : 'free');
       footLimb = jA.far.leg[2][1] > jA.near.leg[2][1] + 0.01 ? 'far' : 'near';
       // Rahmen über 11 Zwischenposen bestimmen, damit die Figur während der ganzen Bewegung im Bild bleibt
       let minX = 1e9, maxX = -1e9, maxY = -1e9;
       x0 = 0;
       for (let i = 0; i <= 10; i++) {
-        const p = Pose.mix(A, B, i / 10), j = Pose.joints(p);
+        const p = Pose.mix(A, B, i / 10), j = jt(p);
         const o = mode === 'free' ? [0, 0] : offsetFor(p);
         [j.head, j.neck, j.hip].concat(j.near.arm, j.near.leg, j.far.arm, j.far.leg).forEach(pt => {
           minX = Math.min(minX, pt[0] + o[0]); maxX = Math.max(maxX, pt[0] + o[0]); maxY = Math.max(maxY, pt[1]);
@@ -76,7 +82,7 @@ App.Animation = (function () {
       g.props.textContent = ''; g.front.textContent = ''; propEls = [];
       const sh = p => [p[0] + offA[0], p[1] + offA[1]];
       ((ex.svgAnimation.props) || []).forEach(function (pr) {
-        const jA = Pose.joints(A), ank = sh(jA.near.leg[2]), hip = sh(jA.hip);
+        const jA = jt(A), ank = sh(jA.near.leg[2]), hip = sh(jA.hip);
         if (pr === 'step') { el(g.props, 'rect', { 'class': 'fig-box', x: ank[0] - 22, y: ank[1], width: 44, height: Math.max(4, C.stage.floorY + 3 - ank[1]), rx: 3 }); }
         else if (pr === 'wall') { el(g.props, 'line', { 'class': 'fig-wall', x1: hip[0] - 16, x2: hip[0] - 16, y1: 14, y2: C.stage.floorY + 3 }); }
         else if (pr === 'dumbbell') { propEls.push({ kind: 'db', n: [el(g.front, 'circle', { 'class': 'fig-weight', r: 5 }), el(g.front, 'circle', { 'class': 'fig-weight', r: 5 })] }); }
@@ -85,13 +91,13 @@ App.Animation = (function () {
     }
 
     function setExercise(e) {
-      ex = e; A = Pose.resolve(e.svgAnimation.a); B = Pose.resolve(e.svgAnimation.b);
+      ex = e; front = e.svgAnimation.view === 'front'; A = Pose.resolve(e.svgAnimation.a); B = Pose.resolve(e.svgAnimation.b);
       setup(); buildProps(); render(0);
     }
 
     function render(p) {
       if (!ex) return;
-      const pose = Pose.mix(A, B, Math.max(0, Math.min(1, p))), j = Pose.joints(pose), off = offsetFor(pose);
+      const pose = Pose.mix(A, B, Math.max(0, Math.min(1, p))), j = jt(pose), off = offsetFor(pose);
       const sh = q => [q[0] + off[0], q[1] + off[1]];
       const hip = sh(j.hip), neck = sh(j.neck), head = sh(j.head);
       poly(g.farArm, j.far.arm.map(sh)); poly(g.farLeg, j.far.leg.map(sh));
@@ -99,9 +105,18 @@ App.Animation = (function () {
       line(g.torso, hip, neck); line(g.neck, neck, head);
       g.head.setAttribute('cx', head[0]); g.head.setAttribute('cy', head[1]);
       // Gesicht: Vorderseite = Kopfrichtung + 90° (Figur blickt standardmäßig nach rechts)
-      const f = pose.hd + 90, e1 = dir(f, 4.5), n0 = dir(f, 10), n1 = dir(f, 14);
-      g.eye.setAttribute('cx', head[0] + e1[0]); g.eye.setAttribute('cy', head[1] + e1[1]);
-      line(g.nose, [head[0] + n0[0], head[1] + n0[1]], [head[0] + n1[0], head[1] + n1[1]]);
+      if (front) {   // Frontalansicht: zwei Augen + Mund, Schulter- und Hüftlinie
+        const l1 = dir(pose.hd + 90, -3.6), l2 = dir(pose.hd + 90, 3.6), up = dir(pose.hd, 2), m = dir(pose.hd + 180, 5), mw = dir(pose.hd + 90, 3);
+        g.eye.setAttribute('cx', head[0] + l1[0] + up[0]); g.eye.setAttribute('cy', head[1] + l1[1] + up[1]);
+        g.eye2.setAttribute('cx', head[0] + l2[0] + up[0]); g.eye2.setAttribute('cy', head[1] + l2[1] + up[1]);
+        line(g.nose, [head[0] + m[0] - mw[0], head[1] + m[1] - mw[1]], [head[0] + m[0] + mw[0], head[1] + m[1] + mw[1]]);
+        line(g.bars[0], sh(j.sh[0]), sh(j.sh[1])); line(g.bars[1], sh(j.hp[0]), sh(j.hp[1]));
+      } else {
+        const f = pose.hd + 90, e1 = dir(f, 4.5), n0 = dir(f, 10), n1 = dir(f, 14);
+        g.eye.setAttribute('cx', head[0] + e1[0]); g.eye.setAttribute('cy', head[1] + e1[1]);
+        line(g.nose, [head[0] + n0[0], head[1] + n0[1]], [head[0] + n1[0], head[1] + n1[1]]);
+      }
+      g.eye2.style.display = g.bars[0].style.display = g.bars[1].style.display = front ? '' : 'none';
       const hand = sh(j.near.arm[2]), hand2 = sh(j.far.arm[2]);
       propEls.forEach(function (pe) {
         if (pe.kind === 'db') {

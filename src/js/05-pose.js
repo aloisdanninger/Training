@@ -27,14 +27,18 @@ App.Pose = (function () {
   }
 
   /** Vorwärtskinematik: liefert alle Gelenkpunkte (Hüfte im Ursprung). */
-  function joints(p) {
+  function joints(p, front) {
     const L = App.Config.body, R = Math.PI / 180;
     const v = (ang, len) => [Math.sin(ang * R) * len, -Math.cos(ang * R) * len];
     const add = (u, w) => [u[0] + w[0], u[1] + w[1]];
     const hip = [0, 0], neck = add(hip, v(p.t, L.torso)), head = add(neck, v(p.hd, L.neck));
-    const arm = q => { const e = add(neck, v(q[0], L.upperArm)); return [neck, e, add(e, v(q[1], L.foreArm))]; };
-    const leg = q => { const k = add(hip, v(q[0], L.thigh)); return [hip, k, add(k, v(q[1], L.shin))]; };
-    return { hip: hip, neck: neck, head: head, near: { arm: arm(p.a), leg: leg(p.l) }, far: { arm: arm(p.b), leg: leg(p.r) } };
+    // Frontalansicht: "near" = Körperseite links im Bild, "far" = rechts; Schultern/Hüften sitzen seitlich versetzt (quer zum Rumpf)
+    const sw = front ? 11 : 0, hw = front ? 6 : 0, side = (o, w, s) => add(o, v(p.t + 90, s * w));
+    const arm = (q, o) => { const e = add(o, v(q[0], L.upperArm)); return [o, e, add(e, v(q[1], L.foreArm))]; };
+    const leg = (q, o) => { const k = add(o, v(q[0], L.thigh)); return [o, k, add(k, v(q[1], L.shin))]; };
+    const sN = side(neck, sw, -1), sF = side(neck, sw, 1), hN = side(hip, hw, -1), hF = side(hip, hw, 1);
+    return { hip: hip, neck: neck, head: head, sh: [sN, sF], hp: [hN, hF],
+      near: { arm: arm(p.a, front ? sN : neck), leg: leg(p.l, front ? hN : hip) }, far: { arm: arm(p.b, front ? sF : neck), leg: leg(p.r, front ? hF : hip) } };
   }
 
   return { P: P, resolve: resolve, mix: mix, joints: joints };

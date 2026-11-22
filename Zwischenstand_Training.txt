@@ -37,7 +37,7 @@ Test:     Selbsttest im Browser: docs/training.html#selftest (Ergebnis im Seiten
           direkter Edge-Aufruf mit timeout geht). Screenshots: --screenshot mit explizitem Windows-Pfad.
 Namespace App, Module:
   00-config.js          Config (Version, Keys, GitHub, prepareSeconds, excludeAnchored, kieser{min,max,step,default}, Stage)
-  05-pose.js            Posensystem (absolute Winkel, 0=oben, 90=rechts, 180=unten; Vorwärtskinematik)
+  05-pose.js            Posensystem (absolute Winkel, 0=oben, 90=rechts, 180=unten; Vorwärtskinematik); svgAnimation.view='front' = Frontalansicht (Seitübungen: Seitl. Ausfallschritt, Curtsy Lunge, Side Plank (+Reach), Seitbeuge, Latissimus-, Schulter-, Levator-Dehnung)
   10-data-exercises.js  AREAS (Regeln 2/2/1, Standardlisten) + 43 Kraftübungen (Zeile pro Übung);
                         Matte/Gewicht (leicht/mittel/schwer) werden ergänzt; needsAnchor = Band/TRX
   11-data-stretches.js  20 Dehnübungen + 4 Dehnprogramme
