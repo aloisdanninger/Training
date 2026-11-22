@@ -5,6 +5,7 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .screen{max-width:720px;margin:0 auto;padding:18px 18px 40px}.screen.wide{max-width:1100px}
+#train{padding-top:10px}
 [hidden]{display:none!important}
 h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:1.4em 0 .5em}
 .muted{color:var(--muted)}.small{font-size:.85rem}.center{text-align:center}
@@ -25,7 +26,20 @@ h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;
 .topline{display:flex;justify-content:space-between;color:var(--muted);font-weight:600}
 #tName{font-size:clamp(2rem,6vw,3rem);line-height:1.1;margin:.2em 0}
 .muscles{margin:0 0 .3em;color:var(--accent);font-weight:600}
-.stage{position:relative;width:min(88vw,420px,52vh);margin:10px auto}
+.stage{position:relative;width:min(88vw,420px,52vh);margin:10px auto;grid-area:stage}
+.tgrid{display:grid;gap:6px 28px;grid-template-areas:"head" "stage" "info" "ctrl"}
+.thead{grid-area:head}.tinfo{grid-area:info;margin-top:6px}.tctrl{grid-area:ctrl}
+.tinfo h2{margin:.4em 0 .2em}.lead{font-weight:600;margin:.8em 0 0}
+/* Querformat (iPad/Mac): Bild links, Anleitung rechts. Hochformat (Handy): untereinander. */
+@media (orientation:landscape) and (min-width:800px){
+  .tgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr auto;grid-template-areas:"stage head" "stage info" "stage ctrl";align-items:start}
+  .stage{width:min(46vw,78vh,540px);margin:0 auto;align-self:center}
+}
+.gear{list-style:none;margin:0;padding:0}.gear li{padding:10px 0;border-bottom:1px solid var(--line)}.gear li:last-child{border:0}
+.gear b{display:block}.gear small{color:var(--muted)}
+.exlist{margin:0;padding-left:1.6em}.exlist li{padding:8px 0;border-bottom:1px solid var(--line)}.exlist li:last-child{border:0}
+.exlist .area{list-style:none;margin-left:-1.6em;padding:10px 0 2px;font-weight:700;color:var(--accent);border:0}
+.exlist small{display:block;color:var(--muted)}
 #ring{width:100%;display:block}
 .ring-bg{fill:none;stroke:var(--line);stroke-width:10}
 .ring-fg{fill:none;stroke:var(--ring);stroke-width:10;stroke-linecap:round}
@@ -33,11 +47,12 @@ h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;
 .cue{position:absolute;left:0;right:0;top:86%;text-align:center;font-weight:700;color:var(--muted)}
 .controls{display:flex;gap:10px;margin:18px 0}
 .fig-limb{fill:none;stroke:var(--fig);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
-.fig-limb.far{opacity:.4}.fig-head{fill:none;stroke:var(--fig);stroke-width:5}
+.fig-limb.far{opacity:.4}.fig-head{fill:var(--headfill,var(--bg));stroke:var(--fig);stroke-width:3.5}
+.fig-eye{fill:var(--fig)}.fig-nose{stroke:var(--fig);stroke-width:3;stroke-linecap:round}
 .fig-floor,.fig-wall{stroke:var(--line);stroke-width:3;stroke-linecap:round}
 .fig-box{fill:var(--line)}.fig-weight{fill:var(--accent)}
 .fig-rope{stroke:var(--accent);stroke-width:2;stroke-dasharray:4 3}.fig-anchor{fill:var(--accent)}
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-.gcell{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
+.gcell{--headfill:var(--card);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
 .gcell b{display:block}.gcell svg{width:48%}
 summary{cursor:pointer;font-weight:600;padding:12px 0}

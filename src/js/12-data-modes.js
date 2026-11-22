@@ -32,7 +32,7 @@ App.Data.MODES = (function () {
     return {
       id: 'kieser' + total, label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
       buildBlocks: ex => [prepare(ex, App.Config.prepareSeconds),
-        { type: 'work', label: 'Belastung', duration: total, exercise: ex, sound: 'start', endSound: 'end', motion: kieserMotion }]
+        { type: 'work', label: 'Belastung', duration: total, exercise: ex, sound: 'double', endSound: 'double', motion: kieserMotion }]
     };
   }
 
@@ -44,17 +44,16 @@ App.Data.MODES = (function () {
       buildBlocks: function (ex) {
         const out = [prepare(ex, App.Config.prepareSeconds)];
         for (let s = 1; s <= 3; s++) {
-          out.push({ type: 'work', label: 'Satz ' + s + ' / 3', duration: 30, exercise: ex, sound: s === 1 ? 'start' : 'set', motion: loopMotion });
+          out.push({ type: 'work', label: 'Satz ' + s + ' / 3', duration: 30, exercise: ex, sound: 'double', endSound: 'double', motion: loopMotion });
           if (s < 3) out.push({ type: 'rest', label: 'Pause', duration: 10, exercise: ex, sound: null, motion: () => ({ p: 0, cue: 'Pause' }) });
         }
-        out[out.length - 1].endSound = 'end';
         return out;
       }
     },
     {
       id: 'stretch', label: 'Dehnen', kind: 'stretch',
       buildBlocks: function (ex, ctx) {
-        return [prepare(ex, 5), { type: 'work', label: 'Dehnen', duration: (ctx && ctx.secondsEach) || 60, exercise: ex, sound: 'start', endSound: 'end', motion: stretchMotion }];
+        return [prepare(ex, 5), { type: 'work', label: 'Dehnen', duration: (ctx && ctx.secondsEach) || 60, exercise: ex, sound: 'double', endSound: 'double', motion: stretchMotion }];
       }
     }
   ];

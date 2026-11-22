@@ -30,7 +30,7 @@
       { a: P(0, [180, 180]), b: P(140, [170, 175], [175, 185]) }],
     ['st_hueftbeuger', 'Hüftbeuger-Dehnung', 'lower', ['Hüftbeuger'], 'Kniender Ausfallschritt.', 'Hinteres Knie am Boden, Becken nach vorn schieben, Arme nach oben strecken. Seite wechseln.',
       { a: P(0, [180, 180], [120, 180], { r: [190, 270] }), b: P(0, [10, 10], [95, 185], { r: [190, 270] }) }],
-    ['st_gesaess', 'Gesäßdehnung', 'lower', ['Gesäß', 'Piriformis'], 'Figur-4 in Rückenlage.', 'Knöchel über das gegenüberliegende Knie legen, das untere Bein zur Brust ziehen. Seite wechseln.',
+    ['st_gesaess', 'Gesäßdehnung', 'lower', ['Gesäß', 'Piriformis'], 'Figur-4 in Rückenlage.', 'Rückenlage: Knöchel über das gegenüberliegende Knie legen, das untere Bein zur Brust ziehen. Seite wechseln.',
       { a: P(-90, [90, 90], [0, 90], { r: [0, 90] }), b: P(-90, [30, 60], [35, 275], { r: [-10, 95] }) }],
 
     /* Rumpf */
@@ -38,9 +38,9 @@
       { a: P(60, [180, 180], [185, 270], { hd: 30 }), b: P(78, [180, 180], [185, 270], { hd: 150 }) }],
     ['st_child', 'Child Pose', 'core', ['unterer Rücken', 'Latissimus', 'Gesäß'], 'Gesäß auf die Fersen sinken lassen.', 'Aus dem Vierfüßlerstand das Gesäß zu den Fersen schieben, Arme lang nach vorn, Stirn ablegen.',
       { a: Q, b: P(100, [90, 90], [110, 270], { hd: 120 }) }],
-    ['st_cobra', 'Cobra', 'core', ['gerade Bauchmuskeln', 'Hüftbeuger'], 'Aufrichten aus der Bauchlage.', 'Hände neben die Brust, Oberkörper aufrichten, Becken bleibt am Boden, Schultern weg von den Ohren.',
+    ['st_cobra', 'Cobra', 'core', ['gerade Bauchmuskeln', 'Hüftbeuger'], 'Aufrichten aus der Bauchlage.', 'Bauchlage: Hände neben die Brust, Oberkörper aufrichten, Becken bleibt am Boden, Schultern weg von den Ohren.',
       { a: P(90, [270, 90], [270, 270]), b: P(22, [180, 180], [270, 270]) }],
-    ['st_rotation', 'Rotation im Liegen', 'core', ['Rumpfrotatoren', 'unterer Rücken'], 'Beide Knie zur Seite fallen lassen.', 'In Rückenlage Knie anwinkeln, zur Seite sinken lassen, Schultern bleiben am Boden. Seite wechseln.',
+    ['st_rotation', 'Rotation im Liegen', 'core', ['Rumpfrotatoren', 'unterer Rücken'], 'Beide Knie zur Seite fallen lassen.', 'Rückenlage, Arme seitlich: Knie anwinkeln, zur Seite sinken lassen, Schultern bleiben am Boden. Seite wechseln.',
       { a: P(-90, [-90, -90], [45, 180]), b: P(-90, [-90, -90], [80, 150]) }],
     ['st_seitbeuge', 'Seitbeuge', 'core', ['seitlicher Rumpf', 'Latissimus'], 'Im Stand zur Seite neigen.', 'Ein Arm über den Kopf, Oberkörper zur Seite neigen, ohne nach vorn zu kippen. Seite wechseln.',
       { a: P(0, [0, 0]), b: P(25, [40, 40]) }],
@@ -61,6 +61,9 @@
   App.Data.STRETCHES = ROWS.map(function (r) {
     return { id: r[0], name: r[1], category: 'stretch', subCategory: r[2], targetMuscles: r[3], difficulty: 1,
       equipment: [], description: r[4], instructions: r[5], svgAnimation: r[6] };
+  });
+  ['st_gesaess', 'st_catcow', 'st_child', 'st_cobra', 'st_rotation', 'st_thread'].forEach(function (id) {
+    App.Data.STRETCHES.filter(e => e.id === id)[0].equipment = ['Matte'];
   });
   App.Data.register(App.Data.STRETCHES);
 

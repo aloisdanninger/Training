@@ -27,28 +27,51 @@
     <p id="syncInfo" class="muted small"></p></section>
 </main>
 
-<!-- ============ TRAININGSBILDSCHIRM ============ -->
-<main id="train" class="screen" hidden>
-  <div class="topline"><span id="tProgress"></span><span id="tTotal"></span></div>
-  <h1 id="tName"></h1>
-  <p id="tMuscles" class="muscles"></p>
-  <p id="tDesc" class="muted"></p>
-  <div class="stage">
-    <svg id="ring" viewBox="0 0 320 320" aria-hidden="true">
-      <circle class="ring-bg" cx="160" cy="160" r="150"/>
-      <circle id="ringFg" class="ring-fg" cx="160" cy="160" r="150" transform="rotate(-90 160 160)"/>
-      <svg id="fig" x="50" y="40" width="220" height="183"></svg>
-    </svg>
-    <div id="count" class="count" aria-live="off">0</div>
-    <div id="cue" class="cue"></div>
-  </div>
-  <p id="tNext" class="muted center"></p>
+<!-- ============ ÜBERSICHT VOR DEM START ============ -->
+<main id="preview" class="screen" hidden>
+  <h1 id="pvTitle">Dein Training</h1>
+  <p id="pvSummary" class="muted"></p>
+  <section class="card"><h2>Material</h2><ul id="pvGear" class="gear"></ul></section>
+  <section class="card"><h2>Übungen</h2><ol id="pvList" class="exlist"></ol></section>
   <div class="controls">
-    <button id="pauseBtn" class="btn primary big">Pause</button>
-    <button id="skipBtn" class="btn big">Weiter ⏭</button>
-    <button id="stopBtn" class="btn big danger">Stopp</button>
+    <button id="pvStart" class="btn primary big">Training starten</button>
   </div>
-  <details class="card"><summary>Anleitung</summary><p id="tInstr"></p></details>
+  <div class="controls">
+    <button id="pvReroll" class="btn big">🎲 Neu würfeln</button>
+    <button id="pvBack" class="btn big">← Zurück</button>
+  </div>
+</main>
+
+<!-- ============ TRAININGSBILDSCHIRM ============ -->
+<main id="train" class="screen wide" hidden>
+  <div class="tgrid">
+    <header class="thead">
+      <div class="topline"><span id="tProgress"></span><span id="tTotal"></span></div>
+      <h1 id="tName"></h1>
+      <p id="tMuscles" class="muscles"></p>
+    </header>
+    <div class="stage">
+      <svg id="ring" viewBox="0 0 320 320" aria-hidden="true">
+        <circle class="ring-bg" cx="160" cy="160" r="150"/>
+        <circle id="ringFg" class="ring-fg" cx="160" cy="160" r="150" transform="rotate(-90 160 160)"/>
+        <svg id="fig" x="50" y="40" width="220" height="183"></svg>
+      </svg>
+      <div id="count" class="count" aria-live="off">0</div>
+      <div id="cue" class="cue"></div>
+    </div>
+    <section class="tinfo card">
+      <p id="tDesc" class="lead"></p>
+      <h2>Anleitung</h2>
+      <p id="tInstr"></p>
+      <p id="tEquip" class="muted"></p>
+      <p id="tNext" class="muted"></p>
+    </section>
+    <div class="controls tctrl">
+      <button id="pauseBtn" class="btn primary big">Pause</button>
+      <button id="skipBtn" class="btn big">Weiter ⏭</button>
+      <button id="stopBtn" class="btn big danger">Stopp</button>
+    </div>
+  </div>
 </main>
 
 <!-- ============ ENDE / DEHNFRAGE ============ -->

@@ -85,21 +85,21 @@ App.Data.AREAS = [
       'Unterarmstütz als Halteübung.', 'Ellbogen unter den Schultern, Körper bildet eine Linie. Bauch und Gesäß fest anspannen.',
       { a: P(76, [180, 90], [256, 256]), b: P(74, [180, 90], [254, 254]) }],
     ['dead_bug', 'Dead Bug', 'core', 'Bauch', ['tiefe Bauchmuskeln', 'Hüftbeuger'], 1, [],
-      'Gegengleiches Strecken in Rückenlage.', 'Unterer Rücken bleibt am Boden. Gegenüberliegenden Arm und Bein langsam strecken.',
+      'Gegengleiches Strecken in Rückenlage.', 'Rückenlage, Arme zur Decke, Knie 90° über der Hüfte. Unterer Rücken bleibt am Boden. Gegenüberliegenden Arm und Bein langsam strecken.',
       { a: P(-90, [0, 0], [0, 90], { b: [0, 0], r: [0, 90] }), b: P(-90, [-90, -90], [0, 90], { b: [0, 0], r: [90, 90] }) }],
     ['hollow_hold', 'Hollow Hold', 'core', 'Bauch', ['gerade Bauchmuskeln', 'Hüftbeuger'], 3, [],
-      'Bananenhaltung in Rückenlage.', 'Schultern und Beine leicht anheben, unterer Rücken drückt in den Boden. Position halten.',
+      'Bananenhaltung in Rückenlage.', 'Rückenlage: Schultern und Beine leicht anheben, unterer Rücken drückt in den Boden. Position halten.',
       { a: P(-90, [-90, -90], [90, 90]), b: P(-68, [-78, -78], [68, 68]) }],
     ['bicycle_crunch', 'Bicycle Crunch', 'core', 'Bauch', ['schräge Bauchmuskeln', 'gerade Bauchmuskeln'], 2, [],
-      'Fahrradbewegung mit Rumpfdrehung.', 'Hände am Kopf, Ellbogen zum gegenüberliegenden Knie führen, Beine wechseln.',
+      'Fahrradbewegung mit Rumpfdrehung.', 'Rückenlage, Hände am Kopf. Ellbogen zum gegenüberliegenden Knie führen, Beine wechseln.',
       { a: P(-62, [-30, -150], [20, 100], { r: [80, 80] }), b: P(-62, [-30, -150], [80, 80], { r: [20, 100] }) }],
     ['reverse_crunch', 'Reverse Crunch', 'core', 'Bauch', ['untere Bauchmuskeln'], 2, [],
-      'Becken zur Brust rollen.', 'Knie über der Hüfte, Becken kontrolliert vom Boden rollen – kein Schwung.',
+      'Becken zur Brust rollen.', 'Rückenlage, Knie über der Hüfte. Becken kontrolliert vom Boden rollen – kein Schwung.',
       { a: P(-90, [90, 90], [0, 90]), b: P(-88, [90, 90], [-35, 70]) }],
 
     /* ---------- RUMPF · Rücken ---------- */
     ['superman', 'Superman', 'core', 'Rücken', ['Rückenstrecker', 'Gesäß'], 1, [],
-      'Arme und Beine in Bauchlage anheben.', 'Blick zum Boden, Arme und Beine gleichzeitig anheben, oben kurz halten.',
+      'Arme und Beine in Bauchlage anheben.', 'Bauchlage: Gesicht zum Boden, Arme nach vorn gestreckt. Arme und Beine gleichzeitig anheben, oben kurz halten.',
       { a: P(90, [90, 90], [270, 270]), b: P(78, [72, 72], [285, 285]) }],
     ['bird_dog', 'Bird Dog', 'core', 'Rücken', ['Rückenstrecker', 'Gesäß', 'Rumpf'], 1, [],
       'Gegengleiches Strecken im Vierfüßlerstand.', 'Rücken bleibt gerade. Gegenüberliegenden Arm und Bein waagrecht strecken.',
@@ -137,7 +137,7 @@ App.Data.AREAS = [
       { a: P(0, [160, 70]), b: P(30, [160, 70], [100, 215]), props: ['dumbbell'] }],
     ['step_up', 'Step Up', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 1, ['Stufe/Bank'],
       'Auf eine Stufe steigen.', 'Ganzer Fuß auf der Stufe, mit dem vorderen Bein hochdrücken, kontrolliert zurück.',
-      { a: P(5, [180, 180], [100, 190], { r: [180, 180] }), b: P(0, [180, 180], [180, 180], { r: [95, 175] }), props: ['step'] }],
+      { a: P(5, [180, 180], [100, 190], { r: [180, 180] }), b: P(0, [180, 180], [180, 180], { r: [95, 175] }), props: ['step'], anchor: 'free' }],
     ['bulgarian_split_squat', 'Bulgarian Split Squat', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 3, ['Bank'],
       'Einbeinige Kniebeuge mit erhöhtem hinterem Fuß.', 'Hinterer Fuß auf der Bank. Senkrecht absenken, vorderes Knie bleibt über dem Fuß.',
       { a: P(5, [180, 180], [140, 180], { r: [235, 285] }), b: P(10, [180, 180], [100, 200], { r: [205, 280] }) }],
@@ -147,13 +147,13 @@ App.Data.AREAS = [
 
     /* ---------- UNTERKÖRPER · Hüftdominant ---------- */
     ['hip_thrust', 'Hip Thrust', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel'], 2, ['Bank (optional)'],
-      'Hüftheben mit Schulter auf Bank.', 'Obere Rückenpartie aufgelegt, Hüfte kräftig nach oben drücken, oben Gesäß anspannen.',
+      'Hüftheben mit Schulter auf Bank.', 'Rückenlage, obere Rückenpartie auf der Bank. Hüfte kräftig nach oben drücken, oben Gesäß anspannen.',
       { a: P(-60, [100, 100], [45, 180]), b: P(-92, [100, 100], [85, 190]) }],
     ['romanian_deadlift', 'Romanian Deadlift', 'lower', 'Hüftdominant', ['hintere Oberschenkel', 'Gesäß', 'Rückenstrecker'], 2, ['Kurzhanteln'],
       'Hüftbeuge mit fast gestreckten Beinen.', 'Hanteln nah am Bein entlang gleiten lassen, Rücken gerade, bis zur Dehnung hinten.',
       { a: STAND, b: P(75, [180, 180], [172, 185]), props: ['dumbbell'] }],
     ['glute_bridge', 'Glute Bridge', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel'], 1, [],
-      'Beckenheben in Rückenlage.', 'Füße aufgestellt, Hüfte anheben bis Schulter–Knie eine Linie bilden.',
+      'Beckenheben in Rückenlage.', 'Rückenlage, Füße aufgestellt. Hüfte anheben bis Schulter–Knie eine Linie bilden.',
       { a: P(-90, [90, 90], [45, 180]), b: P(-105, [90, 90], [85, 190]) }],
     ['kettlebell_swing', 'Kettlebell Swing', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel', 'Rücken'], 3, ['Kettlebell'],
       'Explosives Hüftschwingen.', 'Hüfte nach hinten, dann explosiv strecken. Die Kraft kommt aus der Hüfte, nicht aus den Armen.',
@@ -180,6 +180,18 @@ App.Data.AREAS = [
   App.Data.EXERCISES = EXERCISE_ROWS.map(function (r) {
     return { id: r[0], name: r[1], category: r[2], subCategory: r[3], targetMuscles: r[4], difficulty: r[5],
       equipment: r[6], description: r[7], instructions: r[8], svgAnimation: r[9] };
+  });
+
+  /* Material-Ergänzungen (zentral gepflegt, damit die Zeilen oben übersichtlich bleiben) */
+  const MAT = ['liegestuetz', 'enge_liegestuetz', 'plank', 'dead_bug', 'hollow_hold', 'bicycle_crunch', 'reverse_crunch', 'superman', 'bird_dog',
+    'hip_extension', 'side_plank', 'russian_twist', 'side_plank_reach', 'hip_thrust', 'glute_bridge'];
+  /* Empfohlene Hantelklasse: leicht (ca. 2–4 kg) · mittel (ca. 5–8 kg) · schwer (ca. 10 kg+) – individuell anpassen */
+  const WEIGHT = { schulterdruecken: 'mittel', arnold_press: 'leicht', kurzhantelrudern: 'schwer', upright_row: 'leicht', bent_over_row: 'mittel',
+    bizeps_curl: 'mittel', hammer_curl: 'mittel', trizeps_kickback: 'leicht', goblet_squat: 'schwer', romanian_deadlift: 'schwer',
+    kettlebell_swing: 'schwer', single_leg_deadlift: 'leicht' };
+  App.Data.EXERCISES.forEach(function (e) {
+    if (MAT.indexOf(e.id) >= 0) e.equipment = e.equipment.concat('Matte');
+    if (WEIGHT[e.id]) e.weight = WEIGHT[e.id];
   });
 
   /* Hilfsfunktion für spätere Module (Dehnübungen nutzen dieselbe Struktur) */

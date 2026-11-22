@@ -14,6 +14,7 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .screen{max-width:720px;margin:0 auto;padding:18px 18px 40px}.screen.wide{max-width:1100px}
+#train{padding-top:10px}
 [hidden]{display:none!important}
 h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:1.4em 0 .5em}
 .muted{color:var(--muted)}.small{font-size:.85rem}.center{text-align:center}
@@ -34,7 +35,20 @@ h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;
 .topline{display:flex;justify-content:space-between;color:var(--muted);font-weight:600}
 #tName{font-size:clamp(2rem,6vw,3rem);line-height:1.1;margin:.2em 0}
 .muscles{margin:0 0 .3em;color:var(--accent);font-weight:600}
-.stage{position:relative;width:min(88vw,420px,52vh);margin:10px auto}
+.stage{position:relative;width:min(88vw,420px,52vh);margin:10px auto;grid-area:stage}
+.tgrid{display:grid;gap:6px 28px;grid-template-areas:"head" "stage" "info" "ctrl"}
+.thead{grid-area:head}.tinfo{grid-area:info;margin-top:6px}.tctrl{grid-area:ctrl}
+.tinfo h2{margin:.4em 0 .2em}.lead{font-weight:600;margin:.8em 0 0}
+/* Querformat (iPad/Mac): Bild links, Anleitung rechts. Hochformat (Handy): untereinander. */
+@media (orientation:landscape) and (min-width:800px){
+  .tgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto 1fr auto;grid-template-areas:"stage head" "stage info" "stage ctrl";align-items:start}
+  .stage{width:min(46vw,78vh,540px);margin:0 auto;align-self:center}
+}
+.gear{list-style:none;margin:0;padding:0}.gear li{padding:10px 0;border-bottom:1px solid var(--line)}.gear li:last-child{border:0}
+.gear b{display:block}.gear small{color:var(--muted)}
+.exlist{margin:0;padding-left:1.6em}.exlist li{padding:8px 0;border-bottom:1px solid var(--line)}.exlist li:last-child{border:0}
+.exlist .area{list-style:none;margin-left:-1.6em;padding:10px 0 2px;font-weight:700;color:var(--accent);border:0}
+.exlist small{display:block;color:var(--muted)}
 #ring{width:100%;display:block}
 .ring-bg{fill:none;stroke:var(--line);stroke-width:10}
 .ring-fg{fill:none;stroke:var(--ring);stroke-width:10;stroke-linecap:round}
@@ -42,12 +56,13 @@ h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;
 .cue{position:absolute;left:0;right:0;top:86%;text-align:center;font-weight:700;color:var(--muted)}
 .controls{display:flex;gap:10px;margin:18px 0}
 .fig-limb{fill:none;stroke:var(--fig);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
-.fig-limb.far{opacity:.4}.fig-head{fill:none;stroke:var(--fig);stroke-width:5}
+.fig-limb.far{opacity:.4}.fig-head{fill:var(--headfill,var(--bg));stroke:var(--fig);stroke-width:3.5}
+.fig-eye{fill:var(--fig)}.fig-nose{stroke:var(--fig);stroke-width:3;stroke-linecap:round}
 .fig-floor,.fig-wall{stroke:var(--line);stroke-width:3;stroke-linecap:round}
 .fig-box{fill:var(--line)}.fig-weight{fill:var(--accent)}
 .fig-rope{stroke:var(--accent);stroke-width:2;stroke-dasharray:4 3}.fig-anchor{fill:var(--accent)}
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-.gcell{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
+.gcell{--headfill:var(--card);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
 .gcell b{display:block}.gcell svg{width:48%}
 summary{cursor:pointer;font-weight:600;padding:12px 0}
 
@@ -70,28 +85,51 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
     <p id="syncInfo" class="muted small"></p></section>
 </main>
 
-<!-- ============ TRAININGSBILDSCHIRM ============ -->
-<main id="train" class="screen" hidden>
-  <div class="topline"><span id="tProgress"></span><span id="tTotal"></span></div>
-  <h1 id="tName"></h1>
-  <p id="tMuscles" class="muscles"></p>
-  <p id="tDesc" class="muted"></p>
-  <div class="stage">
-    <svg id="ring" viewBox="0 0 320 320" aria-hidden="true">
-      <circle class="ring-bg" cx="160" cy="160" r="150"/>
-      <circle id="ringFg" class="ring-fg" cx="160" cy="160" r="150" transform="rotate(-90 160 160)"/>
-      <svg id="fig" x="50" y="40" width="220" height="183"></svg>
-    </svg>
-    <div id="count" class="count" aria-live="off">0</div>
-    <div id="cue" class="cue"></div>
-  </div>
-  <p id="tNext" class="muted center"></p>
+<!-- ============ ÜBERSICHT VOR DEM START ============ -->
+<main id="preview" class="screen" hidden>
+  <h1 id="pvTitle">Dein Training</h1>
+  <p id="pvSummary" class="muted"></p>
+  <section class="card"><h2>Material</h2><ul id="pvGear" class="gear"></ul></section>
+  <section class="card"><h2>Übungen</h2><ol id="pvList" class="exlist"></ol></section>
   <div class="controls">
-    <button id="pauseBtn" class="btn primary big">Pause</button>
-    <button id="skipBtn" class="btn big">Weiter ⏭</button>
-    <button id="stopBtn" class="btn big danger">Stopp</button>
+    <button id="pvStart" class="btn primary big">Training starten</button>
   </div>
-  <details class="card"><summary>Anleitung</summary><p id="tInstr"></p></details>
+  <div class="controls">
+    <button id="pvReroll" class="btn big">🎲 Neu würfeln</button>
+    <button id="pvBack" class="btn big">← Zurück</button>
+  </div>
+</main>
+
+<!-- ============ TRAININGSBILDSCHIRM ============ -->
+<main id="train" class="screen wide" hidden>
+  <div class="tgrid">
+    <header class="thead">
+      <div class="topline"><span id="tProgress"></span><span id="tTotal"></span></div>
+      <h1 id="tName"></h1>
+      <p id="tMuscles" class="muscles"></p>
+    </header>
+    <div class="stage">
+      <svg id="ring" viewBox="0 0 320 320" aria-hidden="true">
+        <circle class="ring-bg" cx="160" cy="160" r="150"/>
+        <circle id="ringFg" class="ring-fg" cx="160" cy="160" r="150" transform="rotate(-90 160 160)"/>
+        <svg id="fig" x="50" y="40" width="220" height="183"></svg>
+      </svg>
+      <div id="count" class="count" aria-live="off">0</div>
+      <div id="cue" class="cue"></div>
+    </div>
+    <section class="tinfo card">
+      <p id="tDesc" class="lead"></p>
+      <h2>Anleitung</h2>
+      <p id="tInstr"></p>
+      <p id="tEquip" class="muted"></p>
+      <p id="tNext" class="muted"></p>
+    </section>
+    <div class="controls tctrl">
+      <button id="pauseBtn" class="btn primary big">Pause</button>
+      <button id="skipBtn" class="btn big">Weiter ⏭</button>
+      <button id="stopBtn" class="btn big danger">Stopp</button>
+    </div>
+  </div>
 </main>
 
 <!-- ============ ENDE / DEHNFRAGE ============ -->
@@ -264,21 +302,21 @@ App.Data.AREAS = [
       'Unterarmstütz als Halteübung.', 'Ellbogen unter den Schultern, Körper bildet eine Linie. Bauch und Gesäß fest anspannen.',
       { a: P(76, [180, 90], [256, 256]), b: P(74, [180, 90], [254, 254]) }],
     ['dead_bug', 'Dead Bug', 'core', 'Bauch', ['tiefe Bauchmuskeln', 'Hüftbeuger'], 1, [],
-      'Gegengleiches Strecken in Rückenlage.', 'Unterer Rücken bleibt am Boden. Gegenüberliegenden Arm und Bein langsam strecken.',
+      'Gegengleiches Strecken in Rückenlage.', 'Rückenlage, Arme zur Decke, Knie 90° über der Hüfte. Unterer Rücken bleibt am Boden. Gegenüberliegenden Arm und Bein langsam strecken.',
       { a: P(-90, [0, 0], [0, 90], { b: [0, 0], r: [0, 90] }), b: P(-90, [-90, -90], [0, 90], { b: [0, 0], r: [90, 90] }) }],
     ['hollow_hold', 'Hollow Hold', 'core', 'Bauch', ['gerade Bauchmuskeln', 'Hüftbeuger'], 3, [],
-      'Bananenhaltung in Rückenlage.', 'Schultern und Beine leicht anheben, unterer Rücken drückt in den Boden. Position halten.',
+      'Bananenhaltung in Rückenlage.', 'Rückenlage: Schultern und Beine leicht anheben, unterer Rücken drückt in den Boden. Position halten.',
       { a: P(-90, [-90, -90], [90, 90]), b: P(-68, [-78, -78], [68, 68]) }],
     ['bicycle_crunch', 'Bicycle Crunch', 'core', 'Bauch', ['schräge Bauchmuskeln', 'gerade Bauchmuskeln'], 2, [],
-      'Fahrradbewegung mit Rumpfdrehung.', 'Hände am Kopf, Ellbogen zum gegenüberliegenden Knie führen, Beine wechseln.',
+      'Fahrradbewegung mit Rumpfdrehung.', 'Rückenlage, Hände am Kopf. Ellbogen zum gegenüberliegenden Knie führen, Beine wechseln.',
       { a: P(-62, [-30, -150], [20, 100], { r: [80, 80] }), b: P(-62, [-30, -150], [80, 80], { r: [20, 100] }) }],
     ['reverse_crunch', 'Reverse Crunch', 'core', 'Bauch', ['untere Bauchmuskeln'], 2, [],
-      'Becken zur Brust rollen.', 'Knie über der Hüfte, Becken kontrolliert vom Boden rollen – kein Schwung.',
+      'Becken zur Brust rollen.', 'Rückenlage, Knie über der Hüfte. Becken kontrolliert vom Boden rollen – kein Schwung.',
       { a: P(-90, [90, 90], [0, 90]), b: P(-88, [90, 90], [-35, 70]) }],
 
     /* ---------- RUMPF · Rücken ---------- */
     ['superman', 'Superman', 'core', 'Rücken', ['Rückenstrecker', 'Gesäß'], 1, [],
-      'Arme und Beine in Bauchlage anheben.', 'Blick zum Boden, Arme und Beine gleichzeitig anheben, oben kurz halten.',
+      'Arme und Beine in Bauchlage anheben.', 'Bauchlage: Gesicht zum Boden, Arme nach vorn gestreckt. Arme und Beine gleichzeitig anheben, oben kurz halten.',
       { a: P(90, [90, 90], [270, 270]), b: P(78, [72, 72], [285, 285]) }],
     ['bird_dog', 'Bird Dog', 'core', 'Rücken', ['Rückenstrecker', 'Gesäß', 'Rumpf'], 1, [],
       'Gegengleiches Strecken im Vierfüßlerstand.', 'Rücken bleibt gerade. Gegenüberliegenden Arm und Bein waagrecht strecken.',
@@ -316,7 +354,7 @@ App.Data.AREAS = [
       { a: P(0, [160, 70]), b: P(30, [160, 70], [100, 215]), props: ['dumbbell'] }],
     ['step_up', 'Step Up', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 1, ['Stufe/Bank'],
       'Auf eine Stufe steigen.', 'Ganzer Fuß auf der Stufe, mit dem vorderen Bein hochdrücken, kontrolliert zurück.',
-      { a: P(5, [180, 180], [100, 190], { r: [180, 180] }), b: P(0, [180, 180], [180, 180], { r: [95, 175] }), props: ['step'] }],
+      { a: P(5, [180, 180], [100, 190], { r: [180, 180] }), b: P(0, [180, 180], [180, 180], { r: [95, 175] }), props: ['step'], anchor: 'free' }],
     ['bulgarian_split_squat', 'Bulgarian Split Squat', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 3, ['Bank'],
       'Einbeinige Kniebeuge mit erhöhtem hinterem Fuß.', 'Hinterer Fuß auf der Bank. Senkrecht absenken, vorderes Knie bleibt über dem Fuß.',
       { a: P(5, [180, 180], [140, 180], { r: [235, 285] }), b: P(10, [180, 180], [100, 200], { r: [205, 280] }) }],
@@ -326,13 +364,13 @@ App.Data.AREAS = [
 
     /* ---------- UNTERKÖRPER · Hüftdominant ---------- */
     ['hip_thrust', 'Hip Thrust', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel'], 2, ['Bank (optional)'],
-      'Hüftheben mit Schulter auf Bank.', 'Obere Rückenpartie aufgelegt, Hüfte kräftig nach oben drücken, oben Gesäß anspannen.',
+      'Hüftheben mit Schulter auf Bank.', 'Rückenlage, obere Rückenpartie auf der Bank. Hüfte kräftig nach oben drücken, oben Gesäß anspannen.',
       { a: P(-60, [100, 100], [45, 180]), b: P(-92, [100, 100], [85, 190]) }],
     ['romanian_deadlift', 'Romanian Deadlift', 'lower', 'Hüftdominant', ['hintere Oberschenkel', 'Gesäß', 'Rückenstrecker'], 2, ['Kurzhanteln'],
       'Hüftbeuge mit fast gestreckten Beinen.', 'Hanteln nah am Bein entlang gleiten lassen, Rücken gerade, bis zur Dehnung hinten.',
       { a: STAND, b: P(75, [180, 180], [172, 185]), props: ['dumbbell'] }],
     ['glute_bridge', 'Glute Bridge', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel'], 1, [],
-      'Beckenheben in Rückenlage.', 'Füße aufgestellt, Hüfte anheben bis Schulter–Knie eine Linie bilden.',
+      'Beckenheben in Rückenlage.', 'Rückenlage, Füße aufgestellt. Hüfte anheben bis Schulter–Knie eine Linie bilden.',
       { a: P(-90, [90, 90], [45, 180]), b: P(-105, [90, 90], [85, 190]) }],
     ['kettlebell_swing', 'Kettlebell Swing', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel', 'Rücken'], 3, ['Kettlebell'],
       'Explosives Hüftschwingen.', 'Hüfte nach hinten, dann explosiv strecken. Die Kraft kommt aus der Hüfte, nicht aus den Armen.',
@@ -359,6 +397,18 @@ App.Data.AREAS = [
   App.Data.EXERCISES = EXERCISE_ROWS.map(function (r) {
     return { id: r[0], name: r[1], category: r[2], subCategory: r[3], targetMuscles: r[4], difficulty: r[5],
       equipment: r[6], description: r[7], instructions: r[8], svgAnimation: r[9] };
+  });
+
+  /* Material-Ergänzungen (zentral gepflegt, damit die Zeilen oben übersichtlich bleiben) */
+  const MAT = ['liegestuetz', 'enge_liegestuetz', 'plank', 'dead_bug', 'hollow_hold', 'bicycle_crunch', 'reverse_crunch', 'superman', 'bird_dog',
+    'hip_extension', 'side_plank', 'russian_twist', 'side_plank_reach', 'hip_thrust', 'glute_bridge'];
+  /* Empfohlene Hantelklasse: leicht (ca. 2–4 kg) · mittel (ca. 5–8 kg) · schwer (ca. 10 kg+) – individuell anpassen */
+  const WEIGHT = { schulterdruecken: 'mittel', arnold_press: 'leicht', kurzhantelrudern: 'schwer', upright_row: 'leicht', bent_over_row: 'mittel',
+    bizeps_curl: 'mittel', hammer_curl: 'mittel', trizeps_kickback: 'leicht', goblet_squat: 'schwer', romanian_deadlift: 'schwer',
+    kettlebell_swing: 'schwer', single_leg_deadlift: 'leicht' };
+  App.Data.EXERCISES.forEach(function (e) {
+    if (MAT.indexOf(e.id) >= 0) e.equipment = e.equipment.concat('Matte');
+    if (WEIGHT[e.id]) e.weight = WEIGHT[e.id];
   });
 
   /* Hilfsfunktion für spätere Module (Dehnübungen nutzen dieselbe Struktur) */
@@ -401,7 +451,7 @@ App.Data.AREAS = [
       { a: P(0, [180, 180]), b: P(140, [170, 175], [175, 185]) }],
     ['st_hueftbeuger', 'Hüftbeuger-Dehnung', 'lower', ['Hüftbeuger'], 'Kniender Ausfallschritt.', 'Hinteres Knie am Boden, Becken nach vorn schieben, Arme nach oben strecken. Seite wechseln.',
       { a: P(0, [180, 180], [120, 180], { r: [190, 270] }), b: P(0, [10, 10], [95, 185], { r: [190, 270] }) }],
-    ['st_gesaess', 'Gesäßdehnung', 'lower', ['Gesäß', 'Piriformis'], 'Figur-4 in Rückenlage.', 'Knöchel über das gegenüberliegende Knie legen, das untere Bein zur Brust ziehen. Seite wechseln.',
+    ['st_gesaess', 'Gesäßdehnung', 'lower', ['Gesäß', 'Piriformis'], 'Figur-4 in Rückenlage.', 'Rückenlage: Knöchel über das gegenüberliegende Knie legen, das untere Bein zur Brust ziehen. Seite wechseln.',
       { a: P(-90, [90, 90], [0, 90], { r: [0, 90] }), b: P(-90, [30, 60], [35, 275], { r: [-10, 95] }) }],
 
     /* Rumpf */
@@ -409,9 +459,9 @@ App.Data.AREAS = [
       { a: P(60, [180, 180], [185, 270], { hd: 30 }), b: P(78, [180, 180], [185, 270], { hd: 150 }) }],
     ['st_child', 'Child Pose', 'core', ['unterer Rücken', 'Latissimus', 'Gesäß'], 'Gesäß auf die Fersen sinken lassen.', 'Aus dem Vierfüßlerstand das Gesäß zu den Fersen schieben, Arme lang nach vorn, Stirn ablegen.',
       { a: Q, b: P(100, [90, 90], [110, 270], { hd: 120 }) }],
-    ['st_cobra', 'Cobra', 'core', ['gerade Bauchmuskeln', 'Hüftbeuger'], 'Aufrichten aus der Bauchlage.', 'Hände neben die Brust, Oberkörper aufrichten, Becken bleibt am Boden, Schultern weg von den Ohren.',
+    ['st_cobra', 'Cobra', 'core', ['gerade Bauchmuskeln', 'Hüftbeuger'], 'Aufrichten aus der Bauchlage.', 'Bauchlage: Hände neben die Brust, Oberkörper aufrichten, Becken bleibt am Boden, Schultern weg von den Ohren.',
       { a: P(90, [270, 90], [270, 270]), b: P(22, [180, 180], [270, 270]) }],
-    ['st_rotation', 'Rotation im Liegen', 'core', ['Rumpfrotatoren', 'unterer Rücken'], 'Beide Knie zur Seite fallen lassen.', 'In Rückenlage Knie anwinkeln, zur Seite sinken lassen, Schultern bleiben am Boden. Seite wechseln.',
+    ['st_rotation', 'Rotation im Liegen', 'core', ['Rumpfrotatoren', 'unterer Rücken'], 'Beide Knie zur Seite fallen lassen.', 'Rückenlage, Arme seitlich: Knie anwinkeln, zur Seite sinken lassen, Schultern bleiben am Boden. Seite wechseln.',
       { a: P(-90, [-90, -90], [45, 180]), b: P(-90, [-90, -90], [80, 150]) }],
     ['st_seitbeuge', 'Seitbeuge', 'core', ['seitlicher Rumpf', 'Latissimus'], 'Im Stand zur Seite neigen.', 'Ein Arm über den Kopf, Oberkörper zur Seite neigen, ohne nach vorn zu kippen. Seite wechseln.',
       { a: P(0, [0, 0]), b: P(25, [40, 40]) }],
@@ -432,6 +482,9 @@ App.Data.AREAS = [
   App.Data.STRETCHES = ROWS.map(function (r) {
     return { id: r[0], name: r[1], category: 'stretch', subCategory: r[2], targetMuscles: r[3], difficulty: 1,
       equipment: [], description: r[4], instructions: r[5], svgAnimation: r[6] };
+  });
+  ['st_gesaess', 'st_catcow', 'st_child', 'st_cobra', 'st_rotation', 'st_thread'].forEach(function (id) {
+    App.Data.STRETCHES.filter(e => e.id === id)[0].equipment = ['Matte'];
   });
   App.Data.register(App.Data.STRETCHES);
 
@@ -484,7 +537,7 @@ App.Data.MODES = (function () {
     return {
       id: 'kieser' + total, label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
       buildBlocks: ex => [prepare(ex, App.Config.prepareSeconds),
-        { type: 'work', label: 'Belastung', duration: total, exercise: ex, sound: 'start', endSound: 'end', motion: kieserMotion }]
+        { type: 'work', label: 'Belastung', duration: total, exercise: ex, sound: 'double', endSound: 'double', motion: kieserMotion }]
     };
   }
 
@@ -496,17 +549,16 @@ App.Data.MODES = (function () {
       buildBlocks: function (ex) {
         const out = [prepare(ex, App.Config.prepareSeconds)];
         for (let s = 1; s <= 3; s++) {
-          out.push({ type: 'work', label: 'Satz ' + s + ' / 3', duration: 30, exercise: ex, sound: s === 1 ? 'start' : 'set', motion: loopMotion });
+          out.push({ type: 'work', label: 'Satz ' + s + ' / 3', duration: 30, exercise: ex, sound: 'double', endSound: 'double', motion: loopMotion });
           if (s < 3) out.push({ type: 'rest', label: 'Pause', duration: 10, exercise: ex, sound: null, motion: () => ({ p: 0, cue: 'Pause' }) });
         }
-        out[out.length - 1].endSound = 'end';
         return out;
       }
     },
     {
       id: 'stretch', label: 'Dehnen', kind: 'stretch',
       buildBlocks: function (ex, ctx) {
-        return [prepare(ex, 5), { type: 'work', label: 'Dehnen', duration: (ctx && ctx.secondsEach) || 60, exercise: ex, sound: 'start', endSound: 'end', motion: stretchMotion }];
+        return [prepare(ex, 5), { type: 'work', label: 'Dehnen', duration: (ctx && ctx.secondsEach) || 60, exercise: ex, sound: 'double', endSound: 'double', motion: stretchMotion }];
       }
     }
   ];
@@ -594,17 +646,43 @@ App.Programs = (function () {
     const blocks = [];
     const items = program.items || program.exerciseIds.map(id => ({ id: id }));
     items.forEach(function (it, i) {
-      mode.buildBlocks(D.byId[it.id], { secondsEach: it.secondsEach }).forEach(function (b) {
-        b.exerciseIndex = i; b.exerciseCount = items.length; blocks.push(b);
-      });
+      const bl = mode.buildBlocks(D.byId[it.id], { secondsEach: it.secondsEach });
+      bl.forEach(function (b) { b.exerciseIndex = i; b.exerciseCount = items.length; b.exerciseEnd = false; blocks.push(b); });
+      bl[bl.length - 1].exerciseEnd = true;           // letzter Block einer Übung (für Zählung/Abschluss)
     });
     return blocks;
   }
 
   const totalSeconds = blocks => blocks.reduce((s, b) => s + b.duration, 0);
 
+  /** Kanonische Materialnamen (Schreibvarianten in den Daten werden zusammengeführt). */
+  const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Gummiband / Kabel'],
+    [/^matte/i, 'Matte'], [/^trx/i, 'TRX / Schlingentrainer'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand']];
+  const canon = n => { const c = CANON.filter(x => x[0].test(n))[0]; return c ? c[1] : n.replace(/\s*\(optional\)/, ''); };
+
+  /**
+   * Materialübersicht für eine Liste von Übungs-IDs.
+   * Rückgabe: [{ item, optional, weights: {leicht:[namen],..}|null, usedBy:[namen] }]
+   * "optional" = nur optional benötigt; Hanteln werden nach Gewichtsklasse gruppiert.
+   */
+  function equipmentSummary(exerciseIds) {
+    const map = {}, order = [];
+    exerciseIds.forEach(function (id) {
+      const ex = D.byId[id];
+      (ex.equipment || []).forEach(function (raw) {
+        const item = canon(raw), opt = /optional/i.test(raw);
+        if (!map[item]) { map[item] = { item: item, optional: true, weights: null, usedBy: [] }; order.push(item); }
+        const m = map[item]; if (!opt) m.optional = false;
+        if (m.usedBy.indexOf(ex.name) < 0) m.usedBy.push(ex.name);
+        if (ex.weight && /hantel|kettlebell/i.test(item)) { m.weights = m.weights || {}; (m.weights[ex.weight] = m.weights[ex.weight] || []).push(ex.name); }
+      });
+    });
+    const rank = { 'Matte': 0, 'Kurzhanteln': 1, 'Kettlebell': 2 };
+    return order.map(k => map[k]).sort((a, b) => (rank[a.item] == null ? 9 : rank[a.item]) - (rank[b.item] == null ? 9 : rank[b.item]));
+  }
+
   return { buildProgram: buildProgram, buildStretch: buildStretch, stretchForAreas: stretchForAreas,
-    buildBlocks: buildBlocks, totalSeconds: totalSeconds, areaById: areaById };
+    buildBlocks: buildBlocks, totalSeconds: totalSeconds, equipmentSummary: equipmentSummary, areaById: areaById };
 })();
 
 
@@ -666,10 +744,18 @@ App.Timer = function (blocks, cb) {
    createPlayer(svgElement) -> { setExercise(ex), render(p) }
    p = Bewegungsfortschritt 0..1 (0 = Pose a, 1 = Pose b). Der Timer liefert p,
    dadurch ist die Animation immer synchron zur Übungsphase (auch bei Pause).
+
+   Gesicht: Auge + Nase zeigen die Vorderseite des Körpers (Blick = Kopfrichtung + 90°).
+   So erkennt man Bauchlage (Gesicht nach unten) und Rückenlage (Gesicht nach oben).
+
+   Bodenkontakt (svgAnimation.anchor):
+     'foot' – Standfuß bleibt am Boden und an derselben Stelle (Kniebeuge, Ausfallschritt ...)
+     'free' – Figur wird über beide Posen gemeinsam zentriert/aufgesetzt (Liegestütz, Plank ...)
+     (ohne Angabe: 'foot', wenn in Pose a die Beine nach unten gestreckt sind, sonst 'free')
    ========================================================================== */
 App.Animation = (function () {
   const NS = 'http://www.w3.org/2000/svg';
-  const C = App.Config, Pose = App.Pose;
+  const C = App.Config, Pose = App.Pose, R = Math.PI / 180;
 
   function el(parent, tag, attrs) {
     const e = document.createElementNS(NS, tag);
@@ -678,6 +764,7 @@ App.Animation = (function () {
   }
   const line = (e, p, q) => { e.setAttribute('x1', p[0]); e.setAttribute('y1', p[1]); e.setAttribute('x2', q[0]); e.setAttribute('y2', q[1]); };
   const poly = (e, pts) => e.setAttribute('points', pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '));
+  const dir = (ang, len) => [Math.sin(ang * R) * len, -Math.cos(ang * R) * len];
 
   function createPlayer(svg) {
     svg.setAttribute('viewBox', '0 0 ' + C.stage.w + ' ' + C.stage.h);
@@ -691,26 +778,44 @@ App.Animation = (function () {
       nearLeg: el(svg, 'polyline', { 'class': 'fig-limb' }),
       nearArm: el(svg, 'polyline', { 'class': 'fig-limb' }),
       neck: el(svg, 'line', { 'class': 'fig-limb' }),
-      head: el(svg, 'circle', { 'class': 'fig-head', r: 9 }),
+      head: el(svg, 'circle', { 'class': 'fig-head', r: 10 }),
+      nose: el(svg, 'line', { 'class': 'fig-nose' }),
+      eye: el(svg, 'circle', { 'class': 'fig-eye', r: 2 }),
       front: el(svg, 'g', { 'class': 'fig-prop' })
     };
-    let A, B, off = [0, 0], ex = null, propEls = [];
+    let A, B, ex = null, propEls = [], mode = 'free', footLimb = 'near', commonOff = [0, 0], x0 = 0, offA = [0, 0];
 
-    /** Normalisierung: Figur über beide Posen zentrieren und auf den Boden stellen. */
-    function normalise() {
-      let minX = 1e9, maxX = -1e9, maxY = -1e9;
-      [A, B].forEach(function (p) {
-        const j = Pose.joints(p);
-        [j.head, j.neck, j.hip].concat(j.near.arm, j.near.leg, j.far.arm, j.far.leg).forEach(pt => {
-          minX = Math.min(minX, pt[0]); maxX = Math.max(maxX, pt[0]); maxY = Math.max(maxY, pt[1]);
-        });
-      });
-      off = [C.stage.w / 2 - (minX + maxX) / 2, C.stage.floorY - maxY];
+    const lowest = j => Math.max(j.near.leg[2][1], j.far.leg[2][1]);
+
+    /** Verschiebung (dx, dy) für eine Pose – abhängig vom Bodenkontakt-Modus. */
+    function offsetFor(p) {
+      if (mode === 'free') return commonOff;
+      const j = Pose.joints(p);
+      return [x0 - j[footLimb].leg[2][0], C.stage.floorY - lowest(j)];
     }
-    const sh = p => [p[0] + off[0], p[1] + off[1]];
+
+    function setup() {
+      const jA = Pose.joints(A);
+      mode = ex.svgAnimation.anchor || (lowest(jA) > 40 ? 'foot' : 'free');
+      footLimb = jA.far.leg[2][1] > jA.near.leg[2][1] + 0.01 ? 'far' : 'near';
+      // Rahmen über 11 Zwischenposen bestimmen, damit die Figur während der ganzen Bewegung im Bild bleibt
+      let minX = 1e9, maxX = -1e9, maxY = -1e9;
+      x0 = 0;
+      for (let i = 0; i <= 10; i++) {
+        const p = Pose.mix(A, B, i / 10), j = Pose.joints(p);
+        const o = mode === 'free' ? [0, 0] : offsetFor(p);
+        [j.head, j.neck, j.hip].concat(j.near.arm, j.near.leg, j.far.arm, j.far.leg).forEach(pt => {
+          minX = Math.min(minX, pt[0] + o[0]); maxX = Math.max(maxX, pt[0] + o[0]); maxY = Math.max(maxY, pt[1]);
+        });
+      }
+      const cx = C.stage.w / 2 - (minX + maxX) / 2;
+      if (mode === 'free') commonOff = [cx, C.stage.floorY - maxY]; else x0 = cx;
+      offA = offsetFor(A);
+    }
 
     function buildProps() {
       g.props.textContent = ''; g.front.textContent = ''; propEls = [];
+      const sh = p => [p[0] + offA[0], p[1] + offA[1]];
       ((ex.svgAnimation.props) || []).forEach(function (pr) {
         const jA = Pose.joints(A), ank = sh(jA.near.leg[2]), hip = sh(jA.hip);
         if (pr === 'step') { el(g.props, 'rect', { 'class': 'fig-box', x: ank[0] - 22, y: ank[1], width: 44, height: Math.max(4, C.stage.floorY + 3 - ank[1]), rx: 3 }); }
@@ -722,17 +827,22 @@ App.Animation = (function () {
 
     function setExercise(e) {
       ex = e; A = Pose.resolve(e.svgAnimation.a); B = Pose.resolve(e.svgAnimation.b);
-      normalise(); buildProps(); render(0);
+      setup(); buildProps(); render(0);
     }
 
     function render(p) {
       if (!ex) return;
-      const j = Pose.joints(Pose.mix(A, B, Math.max(0, Math.min(1, p))));
+      const pose = Pose.mix(A, B, Math.max(0, Math.min(1, p))), j = Pose.joints(pose), off = offsetFor(pose);
+      const sh = q => [q[0] + off[0], q[1] + off[1]];
       const hip = sh(j.hip), neck = sh(j.neck), head = sh(j.head);
       poly(g.farArm, j.far.arm.map(sh)); poly(g.farLeg, j.far.leg.map(sh));
       poly(g.nearLeg, j.near.leg.map(sh)); poly(g.nearArm, j.near.arm.map(sh));
       line(g.torso, hip, neck); line(g.neck, neck, head);
       g.head.setAttribute('cx', head[0]); g.head.setAttribute('cy', head[1]);
+      // Gesicht: Vorderseite = Kopfrichtung + 90° (Figur blickt standardmäßig nach rechts)
+      const f = pose.hd + 90, e1 = dir(f, 4.5), n0 = dir(f, 10), n1 = dir(f, 14);
+      g.eye.setAttribute('cx', head[0] + e1[0]); g.eye.setAttribute('cy', head[1] + e1[1]);
+      line(g.nose, [head[0] + n0[0], head[1] + n0[1]], [head[0] + n1[0], head[1] + n1[1]]);
       const hand = sh(j.near.arm[2]), hand2 = sh(j.far.arm[2]);
       propEls.forEach(function (pe) {
         if (pe.kind === 'db') {
@@ -751,14 +861,13 @@ App.Animation = (function () {
 /* ==========================================================================
    50-audio.js  –  Akustische Signale (WebAudio, keine Audiodateien)
    Auf iOS muss der AudioContext durch eine Nutzergeste entsperrt werden: unlock().
-   Signale: start | set | end (Ende Übung) | finish (Trainingsende)
+   Signale: ping (einfach) | double (Doppelping) | finish (Trainingsende)
    ========================================================================== */
 App.Audio = (function () {
   let ctx = null, enabled = false;
   const PATTERNS = {            // [Frequenz Hz, Dauer s, Pause bis zum nächsten Ton s]
-    start:  [[880, 0.18, 0.0]],
-    set:    [[660, 0.12, 0.16], [880, 0.18, 0]],
-    end:    [[880, 0.12, 0.16], [660, 0.2, 0]],
+    ping:   [[988, 0.12, 0]],                          // Restzeit-Hinweis (60/30/10/3/2/1 s)
+    double: [[988, 0.12, 0.1], [988, 0.12, 0]],        // Start und Ende einer Übung bzw. eines Satzes
     finish: [[523, 0.15, 0.18], [659, 0.15, 0.18], [784, 0.15, 0.18], [1047, 0.35, 0]]
   };
   function unlock() {
@@ -892,10 +1001,11 @@ App.UI = (function () {
   const D = App.Data, S = App.Store, CIRC = 2 * Math.PI * 150;
   const STRENGTH_MODES = D.MODES.filter(m => m.kind === 'strength');
   const PTYPES = [{ id: 'standard', label: 'Standard' }, { id: 'random', label: 'Zufällig' }];
-  let player, timer = null, session = null, wakeLock = null, shownEx = null;
+  const PINGS = [60, 30, 10, 3, 2, 1];            // verbleibende Sekunden mit einfachem Ping
+  let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
   const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); };
-  function show(id) { ['home', 'train', 'done', 'gallery'].forEach(n => { $(n).hidden = n !== id; }); window.scrollTo(0, 0); }
+  function show(id) { ['home', 'preview', 'train', 'done', 'gallery'].forEach(n => { $(n).hidden = n !== id; }); window.scrollTo(0, 0); }
   function btn(label, cls, pressed, onClick, html) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls;
     if (html) b.innerHTML = html; else b.textContent = label;
@@ -924,39 +1034,80 @@ App.UI = (function () {
     $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
     $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5;
     const st2 = $('stretches'); st2.textContent = '';
-    D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => startStretch(App.Programs.buildStretch([p.id])))));
+    D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => openPreview(App.Programs.buildStretch([p.id]), D.modeById('stretch'), 'stretch'))));
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
     $('syncBtn').textContent = App.Sync.hasToken() ? '☁ Jetzt synchronisieren' : '🔑 GitHub-Sync';
   }
 
   /* ---------------- Training ---------------- */
-  function startStrength() {
-    const st = S.settings(); App.Audio.unlock();
-    const program = App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history() });
-    run(program, D.modeById(st.style), { kind: 'strength' });
+  function buildStrength() {
+    const st = S.settings();
+    return App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history() });
   }
-  function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }
+  function startStrength() { openPreview(buildStrength(), D.modeById(S.settings().style), 'strength'); }
+
+  /* ---------------- Übersicht vor dem Start ---------------- */
+  function esc(t) { return String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
+  function openPreview(program, mode, kind) {
+    pending = { program: program, mode: mode, kind: kind };
+    const blocks = App.Programs.buildBlocks(program, mode), perEx = {};
+    blocks.forEach(b => { perEx[b.exerciseIndex] = (perEx[b.exerciseIndex] || 0) + b.duration; });
+    $('pvTitle').textContent = kind === 'stretch' ? program.label : 'Dein Training';
+    $('pvSummary').textContent = program.exerciseIds.length + ' Übungen · ca. ' + Math.round(App.Programs.totalSeconds(blocks) / 60) + ' Minuten · ' + mode.label +
+      (program.type === 'random' ? ' · Zufallsprogramm' : '');
+    // Material
+    const gear = App.Programs.equipmentSummary(program.exerciseIds), ul = $('pvGear'); ul.textContent = '';
+    if (!gear.length) ul.innerHTML = '<li>Kein Material nötig 🎉</li>';
+    gear.forEach(function (g) {
+      let detail = '';
+      if (g.weights) detail = ['leicht', 'mittel', 'schwer'].filter(k => g.weights[k]).map(k => '<b style="display:inline">' + k + '</b>: ' + esc(g.weights[k].join(', '))).join('<br>');
+      else detail = esc(g.usedBy.join(', '));
+      const li = document.createElement('li');
+      li.innerHTML = '<b>' + esc(g.item) + (g.optional ? ' (optional)' : '') + '</b><small>' + detail + '</small>';
+      ul.appendChild(li);
+    });
+    // Übungsliste, gruppiert nach Bereich (nur bei Kraftprogrammen)
+    const ol = $('pvList'); ol.textContent = ''; let lastCat = null;
+    program.exerciseIds.forEach(function (id, i) {
+      const ex = D.byId[id];
+      if (kind === 'strength' && ex.category !== lastCat) {
+        lastCat = ex.category; const h = document.createElement('li'); h.className = 'area'; h.textContent = App.Programs.areaById(ex.category).label; ol.appendChild(h);
+      }
+      const li = document.createElement('li');
+      const w = ex.weight ? ' · Hantel ' + ex.weight : '';
+      li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(ex.subCategory) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
+      ol.appendChild(li);
+    });
+    $('pvReroll').hidden = !(kind === 'strength' && program.type === 'random');
+    show('preview');
+  }
+  function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }   // direkt, ohne Übersicht (Folgefrage)
 
   function run(program, mode, meta) {
     const blocks = App.Programs.buildBlocks(program, mode);
     const totalAll = App.Programs.totalSeconds(blocks);
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, ui: { lastCount: null, lastCue: null } };
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, ui: { lastCount: null, lastCue: null, lastRem: null } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
       onBlockStart: function (b) {
         if (shownEx !== b.exercise) { shownEx = b.exercise; showExercise(b); }
-        App.Audio.play(b.sound);
+        App.Audio.play(b.sound);                              // Doppelping bei Start einer Übung/eines Satzes
+        session.ui.lastRem = null;
         $('tProgress').textContent = (b.exerciseIndex + 1) + ' / ' + b.exerciseCount + (b.type === 'prepare' ? ' · Vorbereitung' : '');
       },
       onBlockEnd: function (b, i) {
-        if (b.endSound) { session.doneCount++; if (i < blocks.length - 1) App.Audio.play(b.endSound); }
+        if (b.exerciseEnd && b.type === 'work') session.doneCount++;
+        if (b.endSound && i < blocks.length - 1) App.Audio.play(b.endSound);   // Doppelping bei Ende; am Trainingsende spielt 'finish'
       },
       onTick: function (s) {
         const b = s.block, rem = Math.ceil(s.remaining - 1e-6), u = session.ui;
         $('ringFg').style.strokeDasharray = CIRC;
         $('ringFg').style.strokeDashoffset = CIRC * Math.min(1, s.elapsed / b.duration);
         if (u.lastCount !== rem) { $('count').textContent = rem; u.lastCount = rem; }
+        // Einfacher Ping bei 60/30/10/3/2/1 s Restzeit (nur wenn der Block länger ist als der Schwellwert)
+        if (s.running && u.lastRem !== null && u.lastRem !== rem && PINGS.indexOf(rem) >= 0 && rem < b.duration) App.Audio.play('ping');
+        u.lastRem = rem;
         const cue = (/^Satz/.test(b.label) ? b.label + ' · ' : '') + s.motion.cue;
         if (u.lastCue !== cue) { $('cue').textContent = cue; u.lastCue = cue; }
         player.render(s.motion.p);
@@ -973,6 +1124,7 @@ App.UI = (function () {
     const ex = b.exercise;
     $('tName').textContent = ex.name; $('tMuscles').textContent = ex.targetMuscles.join(' · ');
     $('tDesc').textContent = ex.description; $('tInstr').textContent = ex.instructions;
+    $('tEquip').textContent = ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (ex.weight ? ' (Hantel ' + ex.weight + ')' : '') : 'Kein Material nötig';
     player.setExercise(ex);
     const nextIdx = b.exerciseIndex + 1, ids = session.program.exerciseIds;
     $('tNext').textContent = nextIdx < ids.length ? 'Als Nächstes: ' + D.byId[ids[nextIdx]].name : 'Letzte Übung';
@@ -1019,6 +1171,9 @@ App.UI = (function () {
     $('sound').onchange = e => { S.setSettings({ sound: e.target.checked }); App.Audio.setEnabled(e.target.checked); };
     App.Audio.setEnabled(S.settings().sound);
     $('start').onclick = startStrength;
+    $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
+    $('pvReroll').onclick = () => openPreview(buildStrength(), pending.mode, 'strength');
+    $('pvBack').onclick = () => { show('home'); renderHome(); };
     $('pauseBtn').onclick = () => { if (timer.isRunning()) timer.pause(); else timer.start(); };
     $('skipBtn').onclick = () => timer.skip();
     $('stopBtn').onclick = () => { if (confirm('Training abbrechen?')) { timer.stop(); finish(false); } };
@@ -1109,6 +1264,25 @@ App.SelfTest = (function () {
     check('Timer wechselt von Vorbereitung zu Satz 1', t.state().index === 1 && Math.abs(t.state().elapsed - 0.5) < 1e-9);
     t.advance(total);      // weit über das Ende hinaus
     check('Timer beendet genau einmal', t.isFinished() && events.filter(e => e === 'F').length === 1 && events.filter(e => e.charAt(0) === 'e').length === blocks.length);
+
+    // 4b. Material-Übersicht
+    const gear = App.Programs.equipmentSummary(['superman', 'bizeps_curl', 'schulterdruecken', 'kurzhantelrudern', 'trizeps_dip', 'kettlebell_swing']);
+    const g = n => gear.filter(x => x.item === n)[0];
+    check('Material: Matte erkannt', !!g('Matte') && g('Matte').usedBy[0] === 'Superman');
+    check('Material: Hanteln nach Gewicht gruppiert', !!g('Kurzhanteln') && g('Kurzhanteln').weights.mittel.length === 2 && g('Kurzhanteln').weights.schwer[0] === 'Kurzhantelrudern');
+    check('Material: Hocker/Bank + Kettlebell', !!g('Hocker / Bank / Stuhl') && !!g('Kettlebell'));
+    check('Material: Programm ohne Equipment liefert leere Liste', App.Programs.equipmentSummary(['wall_sit']).length === 1);   // nur freie Wand
+
+    // 4c. Töne: Doppelping bei Start/Ende jedes Satzes, letzter Block jeder Übung markiert
+    const cb = App.Programs.buildBlocks({ exerciseIds: ['plank'] }, D.modeById('classic3'));
+    check('Klassisch: 3 Sätze mit Doppelping Start/Ende', cb.filter(b => b.type === 'work' && b.sound === 'double' && b.endSound === 'double').length === 3 && cb.filter(b => b.exerciseEnd).length === 1);
+
+    // 4d. Animation: Standfuß bleibt bei der Kniebeuge an derselben Stelle (kein "Hüpfen")
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), pl = App.Animation.createPlayer(svg);
+    pl.setExercise(D.byId.kniebeuge);
+    const ankle = p => { pl.render(p); const pts = svg.querySelectorAll('polyline')[2].getAttribute('points').trim().split(' '); return pts[pts.length - 1].split(',').map(Number); };
+    const a0 = ankle(0), a5 = ankle(0.5), a1 = ankle(1);
+    check('Kniebeuge: Fuß bleibt am Boden und an derselben Stelle', [a5, a1].every(a => Math.abs(a[0] - a0[0]) < 0.2 && Math.abs(a[1] - a0[1]) < 0.2), a0 + ' / ' + a5 + ' / ' + a1);
 
     // 5. Merge der Fortschrittsdaten
     const m = App.Store.merge({ updatedAt: 1, settings: { x: 1 }, sessions: [{ id: 'a', date: '2026-01-01' }] }, { updatedAt: 2, settings: { x: 2 }, sessions: [{ id: 'a', date: '2026-01-01' }, { id: 'b', date: '2026-01-02' }] });

@@ -1,14 +1,13 @@
 /* ==========================================================================
    50-audio.js  –  Akustische Signale (WebAudio, keine Audiodateien)
    Auf iOS muss der AudioContext durch eine Nutzergeste entsperrt werden: unlock().
-   Signale: start | set | end (Ende Übung) | finish (Trainingsende)
+   Signale: ping (einfach) | double (Doppelping) | finish (Trainingsende)
    ========================================================================== */
 App.Audio = (function () {
   let ctx = null, enabled = false;
   const PATTERNS = {            // [Frequenz Hz, Dauer s, Pause bis zum nächsten Ton s]
-    start:  [[880, 0.18, 0.0]],
-    set:    [[660, 0.12, 0.16], [880, 0.18, 0]],
-    end:    [[880, 0.12, 0.16], [660, 0.2, 0]],
+    ping:   [[988, 0.12, 0]],                          // Restzeit-Hinweis (60/30/10/3/2/1 s)
+    double: [[988, 0.12, 0.1], [988, 0.12, 0]],        // Start und Ende einer Übung bzw. eines Satzes
     finish: [[523, 0.15, 0.18], [659, 0.15, 0.18], [784, 0.15, 0.18], [1047, 0.35, 0]]
   };
   function unlock() {

@@ -55,6 +55,25 @@ App.SelfTest = (function () {
     t.advance(total);      // weit über das Ende hinaus
     check('Timer beendet genau einmal', t.isFinished() && events.filter(e => e === 'F').length === 1 && events.filter(e => e.charAt(0) === 'e').length === blocks.length);
 
+    // 4b. Material-Übersicht
+    const gear = App.Programs.equipmentSummary(['superman', 'bizeps_curl', 'schulterdruecken', 'kurzhantelrudern', 'trizeps_dip', 'kettlebell_swing']);
+    const g = n => gear.filter(x => x.item === n)[0];
+    check('Material: Matte erkannt', !!g('Matte') && g('Matte').usedBy[0] === 'Superman');
+    check('Material: Hanteln nach Gewicht gruppiert', !!g('Kurzhanteln') && g('Kurzhanteln').weights.mittel.length === 2 && g('Kurzhanteln').weights.schwer[0] === 'Kurzhantelrudern');
+    check('Material: Hocker/Bank + Kettlebell', !!g('Hocker / Bank / Stuhl') && !!g('Kettlebell'));
+    check('Material: Programm ohne Equipment liefert leere Liste', App.Programs.equipmentSummary(['wall_sit']).length === 1);   // nur freie Wand
+
+    // 4c. Töne: Doppelping bei Start/Ende jedes Satzes, letzter Block jeder Übung markiert
+    const cb = App.Programs.buildBlocks({ exerciseIds: ['plank'] }, D.modeById('classic3'));
+    check('Klassisch: 3 Sätze mit Doppelping Start/Ende', cb.filter(b => b.type === 'work' && b.sound === 'double' && b.endSound === 'double').length === 3 && cb.filter(b => b.exerciseEnd).length === 1);
+
+    // 4d. Animation: Standfuß bleibt bei der Kniebeuge an derselben Stelle (kein "Hüpfen")
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), pl = App.Animation.createPlayer(svg);
+    pl.setExercise(D.byId.kniebeuge);
+    const ankle = p => { pl.render(p); const pts = svg.querySelectorAll('polyline')[2].getAttribute('points').trim().split(' '); return pts[pts.length - 1].split(',').map(Number); };
+    const a0 = ankle(0), a5 = ankle(0.5), a1 = ankle(1);
+    check('Kniebeuge: Fuß bleibt am Boden und an derselben Stelle', [a5, a1].every(a => Math.abs(a[0] - a0[0]) < 0.2 && Math.abs(a[1] - a0[1]) < 0.2), a0 + ' / ' + a5 + ' / ' + a1);
+
     // 5. Merge der Fortschrittsdaten
     const m = App.Store.merge({ updatedAt: 1, settings: { x: 1 }, sessions: [{ id: 'a', date: '2026-01-01' }] }, { updatedAt: 2, settings: { x: 2 }, sessions: [{ id: 'a', date: '2026-01-01' }, { id: 'b', date: '2026-01-02' }] });
     check('Merge vereinigt Sessions, neuere Einstellungen gewinnen', m.sessions.length === 2 && m.settings.x === 2);

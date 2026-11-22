@@ -8,10 +8,11 @@ App.UI = (function () {
   const D = App.Data, S = App.Store, CIRC = 2 * Math.PI * 150;
   const STRENGTH_MODES = D.MODES.filter(m => m.kind === 'strength');
   const PTYPES = [{ id: 'standard', label: 'Standard' }, { id: 'random', label: 'Zufällig' }];
-  let player, timer = null, session = null, wakeLock = null, shownEx = null;
+  const PINGS = [60, 30, 10, 3, 2, 1];            // verbleibende Sekunden mit einfachem Ping
+  let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
   const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); };
-  function show(id) { ['home', 'train', 'done', 'gallery'].forEach(n => { $(n).hidden = n !== id; }); window.scrollTo(0, 0); }
+  function show(id) { ['home', 'preview', 'train', 'done', 'gallery'].forEach(n => { $(n).hidden = n !== id; }); window.scrollTo(0, 0); }
   function btn(label, cls, pressed, onClick, html) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls;
     if (html) b.innerHTML = html; else b.textContent = label;
@@ -40,39 +41,80 @@ App.UI = (function () {
     $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
     $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5;
     const st2 = $('stretches'); st2.textContent = '';
-    D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => startStretch(App.Programs.buildStretch([p.id])))));
+    D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => openPreview(App.Programs.buildStretch([p.id]), D.modeById('stretch'), 'stretch'))));
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
     $('syncBtn').textContent = App.Sync.hasToken() ? '☁ Jetzt synchronisieren' : '🔑 GitHub-Sync';
   }
 
   /* ---------------- Training ---------------- */
-  function startStrength() {
-    const st = S.settings(); App.Audio.unlock();
-    const program = App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history() });
-    run(program, D.modeById(st.style), { kind: 'strength' });
+  function buildStrength() {
+    const st = S.settings();
+    return App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history() });
   }
-  function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }
+  function startStrength() { openPreview(buildStrength(), D.modeById(S.settings().style), 'strength'); }
+
+  /* ---------------- Übersicht vor dem Start ---------------- */
+  function esc(t) { return String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
+  function openPreview(program, mode, kind) {
+    pending = { program: program, mode: mode, kind: kind };
+    const blocks = App.Programs.buildBlocks(program, mode), perEx = {};
+    blocks.forEach(b => { perEx[b.exerciseIndex] = (perEx[b.exerciseIndex] || 0) + b.duration; });
+    $('pvTitle').textContent = kind === 'stretch' ? program.label : 'Dein Training';
+    $('pvSummary').textContent = program.exerciseIds.length + ' Übungen · ca. ' + Math.round(App.Programs.totalSeconds(blocks) / 60) + ' Minuten · ' + mode.label +
+      (program.type === 'random' ? ' · Zufallsprogramm' : '');
+    // Material
+    const gear = App.Programs.equipmentSummary(program.exerciseIds), ul = $('pvGear'); ul.textContent = '';
+    if (!gear.length) ul.innerHTML = '<li>Kein Material nötig 🎉</li>';
+    gear.forEach(function (g) {
+      let detail = '';
+      if (g.weights) detail = ['leicht', 'mittel', 'schwer'].filter(k => g.weights[k]).map(k => '<b style="display:inline">' + k + '</b>: ' + esc(g.weights[k].join(', '))).join('<br>');
+      else detail = esc(g.usedBy.join(', '));
+      const li = document.createElement('li');
+      li.innerHTML = '<b>' + esc(g.item) + (g.optional ? ' (optional)' : '') + '</b><small>' + detail + '</small>';
+      ul.appendChild(li);
+    });
+    // Übungsliste, gruppiert nach Bereich (nur bei Kraftprogrammen)
+    const ol = $('pvList'); ol.textContent = ''; let lastCat = null;
+    program.exerciseIds.forEach(function (id, i) {
+      const ex = D.byId[id];
+      if (kind === 'strength' && ex.category !== lastCat) {
+        lastCat = ex.category; const h = document.createElement('li'); h.className = 'area'; h.textContent = App.Programs.areaById(ex.category).label; ol.appendChild(h);
+      }
+      const li = document.createElement('li');
+      const w = ex.weight ? ' · Hantel ' + ex.weight : '';
+      li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(ex.subCategory) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
+      ol.appendChild(li);
+    });
+    $('pvReroll').hidden = !(kind === 'strength' && program.type === 'random');
+    show('preview');
+  }
+  function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }   // direkt, ohne Übersicht (Folgefrage)
 
   function run(program, mode, meta) {
     const blocks = App.Programs.buildBlocks(program, mode);
     const totalAll = App.Programs.totalSeconds(blocks);
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, ui: { lastCount: null, lastCue: null } };
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, ui: { lastCount: null, lastCue: null, lastRem: null } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
       onBlockStart: function (b) {
         if (shownEx !== b.exercise) { shownEx = b.exercise; showExercise(b); }
-        App.Audio.play(b.sound);
+        App.Audio.play(b.sound);                              // Doppelping bei Start einer Übung/eines Satzes
+        session.ui.lastRem = null;
         $('tProgress').textContent = (b.exerciseIndex + 1) + ' / ' + b.exerciseCount + (b.type === 'prepare' ? ' · Vorbereitung' : '');
       },
       onBlockEnd: function (b, i) {
-        if (b.endSound) { session.doneCount++; if (i < blocks.length - 1) App.Audio.play(b.endSound); }
+        if (b.exerciseEnd && b.type === 'work') session.doneCount++;
+        if (b.endSound && i < blocks.length - 1) App.Audio.play(b.endSound);   // Doppelping bei Ende; am Trainingsende spielt 'finish'
       },
       onTick: function (s) {
         const b = s.block, rem = Math.ceil(s.remaining - 1e-6), u = session.ui;
         $('ringFg').style.strokeDasharray = CIRC;
         $('ringFg').style.strokeDashoffset = CIRC * Math.min(1, s.elapsed / b.duration);
         if (u.lastCount !== rem) { $('count').textContent = rem; u.lastCount = rem; }
+        // Einfacher Ping bei 60/30/10/3/2/1 s Restzeit (nur wenn der Block länger ist als der Schwellwert)
+        if (s.running && u.lastRem !== null && u.lastRem !== rem && PINGS.indexOf(rem) >= 0 && rem < b.duration) App.Audio.play('ping');
+        u.lastRem = rem;
         const cue = (/^Satz/.test(b.label) ? b.label + ' · ' : '') + s.motion.cue;
         if (u.lastCue !== cue) { $('cue').textContent = cue; u.lastCue = cue; }
         player.render(s.motion.p);
@@ -89,6 +131,7 @@ App.UI = (function () {
     const ex = b.exercise;
     $('tName').textContent = ex.name; $('tMuscles').textContent = ex.targetMuscles.join(' · ');
     $('tDesc').textContent = ex.description; $('tInstr').textContent = ex.instructions;
+    $('tEquip').textContent = ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (ex.weight ? ' (Hantel ' + ex.weight + ')' : '') : 'Kein Material nötig';
     player.setExercise(ex);
     const nextIdx = b.exerciseIndex + 1, ids = session.program.exerciseIds;
     $('tNext').textContent = nextIdx < ids.length ? 'Als Nächstes: ' + D.byId[ids[nextIdx]].name : 'Letzte Übung';
@@ -135,6 +178,9 @@ App.UI = (function () {
     $('sound').onchange = e => { S.setSettings({ sound: e.target.checked }); App.Audio.setEnabled(e.target.checked); };
     App.Audio.setEnabled(S.settings().sound);
     $('start').onclick = startStrength;
+    $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
+    $('pvReroll').onclick = () => openPreview(buildStrength(), pending.mode, 'strength');
+    $('pvBack').onclick = () => { show('home'); renderHome(); };
     $('pauseBtn').onclick = () => { if (timer.isRunning()) timer.pause(); else timer.start(); };
     $('skipBtn').onclick = () => timer.skip();
     $('stopBtn').onclick = () => { if (confirm('Training abbrechen?')) { timer.stop(); finish(false); } };

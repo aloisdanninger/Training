@@ -77,15 +77,41 @@ App.Programs = (function () {
     const blocks = [];
     const items = program.items || program.exerciseIds.map(id => ({ id: id }));
     items.forEach(function (it, i) {
-      mode.buildBlocks(D.byId[it.id], { secondsEach: it.secondsEach }).forEach(function (b) {
-        b.exerciseIndex = i; b.exerciseCount = items.length; blocks.push(b);
-      });
+      const bl = mode.buildBlocks(D.byId[it.id], { secondsEach: it.secondsEach });
+      bl.forEach(function (b) { b.exerciseIndex = i; b.exerciseCount = items.length; b.exerciseEnd = false; blocks.push(b); });
+      bl[bl.length - 1].exerciseEnd = true;           // letzter Block einer Übung (für Zählung/Abschluss)
     });
     return blocks;
   }
 
   const totalSeconds = blocks => blocks.reduce((s, b) => s + b.duration, 0);
 
+  /** Kanonische Materialnamen (Schreibvarianten in den Daten werden zusammengeführt). */
+  const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Gummiband / Kabel'],
+    [/^matte/i, 'Matte'], [/^trx/i, 'TRX / Schlingentrainer'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand']];
+  const canon = n => { const c = CANON.filter(x => x[0].test(n))[0]; return c ? c[1] : n.replace(/\s*\(optional\)/, ''); };
+
+  /**
+   * Materialübersicht für eine Liste von Übungs-IDs.
+   * Rückgabe: [{ item, optional, weights: {leicht:[namen],..}|null, usedBy:[namen] }]
+   * "optional" = nur optional benötigt; Hanteln werden nach Gewichtsklasse gruppiert.
+   */
+  function equipmentSummary(exerciseIds) {
+    const map = {}, order = [];
+    exerciseIds.forEach(function (id) {
+      const ex = D.byId[id];
+      (ex.equipment || []).forEach(function (raw) {
+        const item = canon(raw), opt = /optional/i.test(raw);
+        if (!map[item]) { map[item] = { item: item, optional: true, weights: null, usedBy: [] }; order.push(item); }
+        const m = map[item]; if (!opt) m.optional = false;
+        if (m.usedBy.indexOf(ex.name) < 0) m.usedBy.push(ex.name);
+        if (ex.weight && /hantel|kettlebell/i.test(item)) { m.weights = m.weights || {}; (m.weights[ex.weight] = m.weights[ex.weight] || []).push(ex.name); }
+      });
+    });
+    const rank = { 'Matte': 0, 'Kurzhanteln': 1, 'Kettlebell': 2 };
+    return order.map(k => map[k]).sort((a, b) => (rank[a.item] == null ? 9 : rank[a.item]) - (rank[b.item] == null ? 9 : rank[b.item]));
+  }
+
   return { buildProgram: buildProgram, buildStretch: buildStretch, stretchForAreas: stretchForAreas,
-    buildBlocks: buildBlocks, totalSeconds: totalSeconds, areaById: areaById };
+    buildBlocks: buildBlocks, totalSeconds: totalSeconds, equipmentSummary: equipmentSummary, areaById: areaById };
 })();
