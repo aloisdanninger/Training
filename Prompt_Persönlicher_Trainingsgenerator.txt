@@ -1,0 +1,381 @@
+
+Master-Prompt: Persönlicher Trainingsgenerator mit Timer, Animationen und Zufallsmodus
+Du bist ein erfahrener Software-Architekt, UX-Designer, Sportwissenschaftler und Frontend-Entwickler.
+Entwickle eine vollständig in einer einzelnen HTML-Datei lauffähige Trainingsanwendung (HTML + CSS + JavaScript), die offline ohne Server funktioniert und auf Mac, iPad und iPhone im Browser ausführbar ist.
+Die Anwendung soll als persönlicher Trainingsgenerator dienen und langfristig erweiterbar aufgebaut sein.
+
+---
+
+Zielsetzung
+Ich möchte mehrmals pro Woche kurze, effektive Trainingseinheiten durchführen.
+Folgende Trainingsbereiche müssen unterstützt werden:
+	• Oberkörper
+	• Rumpf
+	• Unterkörper
+Zusätzlich:
+	• spezifische Dehnungsprogramme für jede Muskelgruppe
+	• separates Dehnungsprogramm für
+		○ Rücken
+		○ Schulter
+		○ Nacken
+		○ Rumpf
+Die Anwendung soll vollständig selbstständig Trainingsprogramme zusammenstellen können.
+
+---
+
+Trainingsphilosophie
+Es müssen zwei Trainingsstile unterstützt werden.
+Modus 1: Kieser-Prinzip (Time under Tension)
+Eine Übung wird über einen längeren Zeitraum kontrolliert ausgeführt.
+Trainingsschema:
+	• 4 Sekunden Belastung
+	• 2 Sekunden Halten
+	• 4 Sekunden Rückbewegung
+	• 2 Sekunden Halten
+Wiederholt bis:
+	• 90 Sekunden oder
+	• 120 Sekunden
+Trainingsdauer:
+	• 5 Übungen
+	• ca. 10 Minuten Gesamttrainingszeit
+
+---
+
+Modus 2: Klassischer Satzmodus
+Eine Übung besteht aus:
+	• 30 Sekunden Belastung
+	• 10 Sekunden Pause
+	• 30 Sekunden Belastung
+	• 10 Sekunden Pause
+	• 30 Sekunden Belastung
+danach Wechsel zur nächsten Übung.
+Trainingsdauer:
+	• ca. 10 Minuten
+
+---
+
+Trainingsbereiche
+Oberkörper
+Katalog mit Übungen für:
+Drücken
+	• Liegestütz
+	• Schrägliegestütz
+	• Schulterdrücken
+	• Arnold Press
+	• TRX Chest Press
+	• enge Liegestütz
+Ziehen
+	• TRX Rows
+	• Kurzhantelrudern
+	• Face Pull
+	• Upright Row
+	• Bent Over Row
+Arme
+	• Bizeps Curl
+	• Hammer Curl
+	• Trizeps Dip
+	• Trizeps Kickback
+
+---
+
+Rumpf
+Bauch
+	• Plank
+	• Dead Bug
+	• Hollow Hold
+	• Bicycle Crunch
+	• Reverse Crunch
+Rücken
+	• Superman
+	• Bird Dog
+	• Rückenstrecker
+	• Hip Extension
+	• Good Morning
+Seitliche Stabilität
+	• Side Plank
+	• Pallof Press
+	• Russian Twist
+	• Side Plank Reach Through
+
+---
+
+Unterkörper
+Knie dominant
+	• Kniebeuge
+	• Goblet Squat
+	• Step Up
+	• Bulgarian Split Squat
+	• Wall Sit
+Hüftdominant
+	• Hip Thrust
+	• Romanian Deadlift
+	• Glute Bridge
+	• Kettlebell Swing
+	• Single Leg Deadlift
+Stabilität
+	• Ausfallschritt
+	• Seitlicher Ausfallschritt
+	• Einbeinstand
+	• Curtsy Lunge
+
+---
+
+Dehnprogramme
+Oberkörper Dehnung
+5 Übungen
+	• Brust
+	• Schulter
+	• Latissimus
+	• Trizeps
+	• Bizeps
+ca. 5 Minuten
+
+---
+
+Unterkörper Dehnung
+5 Übungen
+	• Waden
+	• Oberschenkel vorne
+	• Oberschenkel hinten
+	• Hüftbeuger
+	• Gesäß
+ca. 5 Minuten
+
+---
+
+Rumpf Dehnung
+5 Übungen
+	• Cat-Cow
+	• Child Pose
+	• Cobra
+	• Rotation im Liegen
+	• Seitbeuge
+ca. 5 Minuten
+
+---
+
+Rücken-Nacken-Schulter Programm
+5 Übungen
+	• Nackendehnung
+	• Levator Stretch
+	• Brustöffner
+	• Schulterblattmobilisierung
+	• Thread the Needle
+ca. 5 bis 7 Minuten
+
+---
+
+Zufallsmodus
+Die App soll intelligente Zufallsprogramme erzeugen.
+Nicht einfach beliebige Übungen auswählen.
+Regeln:
+Oberkörper
+immer:
+	• 2 Drückübungen
+	• 2 Ziehübungen
+	• 1 Armübung
+
+---
+
+Rumpf
+immer:
+	• 2 Bauchübungen
+	• 2 Rückenübungen
+	• 1 Stabilitätsübung
+
+---
+
+Unterkörper
+immer:
+	• 2 kniedominante Übungen
+	• 2 hüftdominante Übungen
+	• 1 Stabilitätsübung
+
+---
+
+Trainingsablauf
+Startbildschirm:
+Trainingsbereich auswählen:
+	• Oberkörper
+	• Rumpf
+	• Unterkörper
+Mehrfachauswahl möglich.
+Beispiel:
+☑ Oberkörper
+☑ Rumpf
+☐ Unterkörper
+
+---
+
+Trainingsstil:
+	• Kieser 90 Sekunden
+	• Kieser 120 Sekunden
+	• Klassisch 3 Sätze
+
+---
+
+Programmtyp:
+	• Standard
+	• Zufällig
+
+---
+
+Button:
+"Training starten"
+
+---
+
+Trainingsbildschirm
+Für jede Übung anzeigen:
+Übungsname
+groß sichtbar
+Zielmuskeln
+anzeigen
+Übungsbeschreibung
+kurze Erklärung
+
+---
+
+Animation
+Jede Übung soll eine eigene SVG-Animation besitzen.
+Animationstil:
+	• minimalistischer Strichmensch
+	• Bewegungsanimation
+	• keine externen Bilder
+	• keine Videos
+Alles mit SVG und CSS umsetzen.
+
+---
+
+Kreisförmiger Countdown
+Um die Animation herum.
+Darstellung:
+	• voller Kreis bei Trainingsbeginn
+	• Kreis läuft kontinuierlich leer
+	• zeigt Restzeit an
+
+---
+
+Numerischer Countdown
+groß in der Mitte darstellen.
+Beispiel:
+89 88 87
+...
+
+---
+
+Akustische Signale
+Optional aktivierbar.
+Signal bei:
+	• Start
+	• Ende einer Übung
+	• Satzwechsel
+	• Trainingsende
+
+---
+
+Dehnungsprogramm
+Nach Abschluss eines Kraftprogramms automatisch fragen:
+"Passendes Dehnungsprogramm starten?"
+Buttons:
+	• Ja
+	• Nein
+Bei Ja:
+automatisch das passende Stretching starten.
+
+---
+
+Datenmodell
+Implementiere die Anwendung datengetrieben.
+Struktur:
+Exercise
+Program
+StretchProgram
+TrainingMode
+TrainingSession
+
+Jede Übung soll enthalten:
+{
+  id,
+  name,
+  category,
+  subCategory,
+  targetMuscles,
+  difficulty,
+  equipment,
+  description,
+  instructions,
+  svgAnimation
+}
+
+Erweiterbarkeit
+Architektur so gestalten, dass später einfach ergänzt werden kann:
+	• neue Übungen
+	• neue Trainingsstile
+	• Statistiken
+	• Trainingshistorie
+	• persönliche Favoriten
+	• Gewichtsverwaltung
+	• Synchronisation mit OneDrive
+
+---
+
+UX-Anforderungen
+Design:
+	• modern
+	• minimalistisch
+	• responsive
+Farbschema:
+	• hell und dunkel
+	• automatische Anpassung
+Große Buttons für iPad Nutzung.
+
+---
+
+Technische Anforderungen
+Die Lösung soll aus nur einer HTML-Datei bestehen:
+training.html
+
+Enthält:
+	• HTML
+	• CSS
+	• JavaScript
+Keine Frameworks:
+	• kein React
+	• kein Angular
+	• kein Vue
+Nur:
+	• Vanilla JavaScript
+	• SVG
+	• CSS
+Offline lauffähig.
+
+---
+
+Codequalität
+Erzeuge:
+	1. saubere Architektur
+	2. modulare Datenstrukturen
+	3. ausführliche Kommentare
+	4. klare Trennung zwischen:
+		○ Daten
+		○ Trainingslogik
+		○ UI
+		○ Timer
+		○ Animationen
+	5. gute Erweiterbarkeit
+
+
+Dazu kommt noch:
+
+Es soll die applikation in meinem GitHub RepoSitory laufen. Das wird eine ausführung auf unterschiedlichen geräten ermöglichen.
+Github.com/alois.danninger/Training
+
+Eine lokale Version des Repo für das Training soll hier erstellt werden:
+c:\Users\danninga\Training_GitRepo\
+
+Es soll der Fortschritt in einer JSON Datei gespeichert werden bzw. Synchronisiert werden.
+
+Ich habe bei Cloudflare (alois.danninger@gmx.at)eine Benutzerverwaltung zur absicherung der Zugangsrechte meines EMBA-repository, das soll auch für diese Applikation erfolgen
+
+

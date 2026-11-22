@@ -1,0 +1,99 @@
+/* ==========================================================================
+   60-storage.js  –  Persistenz + Synchronisation
+   App.Store : lokaler Zustand (localStorage) – TrainingSession-Historie, Einstellungen,
+               Favoriten, Gewichte (Platzhalter für spätere Features).
+   App.Sync  : gleicht denselben Zustand als JSON-Datei mit GitHub ab
+               (Contents-API, Datei progress/training.json auf Branch "progress").
+   Merge-Regel: Sessions werden per ID vereinigt (nie Datenverlust), Einstellungen etc.
+                kommen vom Stand mit dem neueren `updatedAt`.
+   Zusätzlich: Export/Import als Datei (z. B. für OneDrive).
+   ========================================================================== */
+App.Store = (function () {
+  const KEY = App.Config.storageKey;
+  const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser90', programType: 'standard', sound: false },
+    sessions: [], favorites: [], weights: {} });
+  let state = load();
+
+  function load() {
+    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.sessions) return Object.assign(defaults(), s); } catch (e) { /* ignorieren */ }
+    return defaults();
+  }
+  function save(touch) {
+    if (touch !== false) state.updatedAt = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* Speicher voll/privat */ }
+    listeners.forEach(f => f());
+  }
+  const listeners = [];
+
+  /** Vereinigt zwei Zustände (siehe Merge-Regel oben). */
+  function merge(a, b) {
+    const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, byId = {};
+    (a.sessions || []).concat(b.sessions || []).forEach(s => { byId[s.id] = s; });
+    const sessions = Object.keys(byId).map(k => byId[k]).sort((x, y) => x.date < y.date ? -1 : 1);
+    return Object.assign(defaults(), newer, { sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
+  }
+
+  return {
+    get: () => state,
+    settings: () => state.settings,
+    setSettings: function (patch) { Object.assign(state.settings, patch); save(); },
+    addSession: function (s) { state.sessions.push(s); save(); },
+    history: () => state.sessions,
+    replace: function (s) { state = s; save(false); },
+    merge: merge,
+    onChange: f => listeners.push(f),
+    exportJson: () => JSON.stringify(state, null, 1) + '\n',
+    importJson: function (text) { const o = JSON.parse(text); if (!o || !Array.isArray(o.sessions)) throw new Error('Ungültige Datei'); state = merge(state, o); save(); }
+  };
+})();
+
+App.Sync = (function () {
+  const G = App.Config.github;
+  let sha = null, busy = false, again = false, status = { text: '', cls: '' }, onStatus = function () {};
+  const token = () => { try { return localStorage.getItem(App.Config.tokenKey) || ''; } catch (e) { return ''; } };
+  const url = () => 'https://api.github.com/repos/' + G.owner + '/' + G.repo + '/contents/' + G.path;
+  const headers = () => ({ 'Authorization': 'Bearer ' + token(), 'Accept': 'application/vnd.github+json' });
+  const enc = s => btoa(unescape(encodeURIComponent(s)));
+  const dec = s => decodeURIComponent(escape(atob(s.replace(/\s/g, ''))));
+  function set(text, cls) { status = { text: text, cls: cls || '' }; onStatus(status); }
+
+  function fetchRemote() {
+    return fetch(url() + '?ref=' + G.branch + '&t=' + Date.now(), { headers: headers(), cache: 'no-store' }).then(function (r) {
+      if (r.status === 404) { sha = null; return null; }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(j => { if (!j) return null; sha = j.sha; return JSON.parse(dec(j.content)); });
+  }
+
+  function put() {
+    const body = { message: 'progress training', content: enc(App.Store.exportJson()), branch: G.branch };
+    if (sha) body.sha = sha;
+    return fetch(url(), { method: 'PUT', headers: headers(), body: JSON.stringify(body) }).then(function (r) {
+      if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+      return r.json();
+    }).then(j => { sha = j.content.sha; });
+  }
+
+  /** Holt den Remote-Stand, mergt, speichert lokal und schreibt bei Bedarf zurück. */
+  function sync() {
+    if (!token()) { set('Nicht verbunden (🔑 Token eingeben)', 'warn'); return Promise.resolve(); }
+    if (busy) { again = true; return Promise.resolve(); }
+    busy = true; set('Synchronisiere …');
+    return fetchRemote().then(function (remote) {
+      const merged = remote ? App.Store.merge(App.Store.get(), remote) : App.Store.get();
+      App.Store.replace(merged);
+      const same = remote && JSON.stringify(remote.sessions) === JSON.stringify(merged.sessions) && remote.updatedAt === merged.updatedAt;
+      return same ? null : put();
+    }).then(() => set('☁ Synchronisiert ' + new Date().toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })))
+      .catch(function (e) {
+        if (e.status === 409 || e.status === 422) { again = true; } else set('Sync-Fehler (' + (e.message || e) + ')', 'warn');
+      })
+      .then(function () { busy = false; if (again) { again = false; return sync(); } });
+  }
+
+  return {
+    sync: sync, hasToken: () => !!token(), onStatus: f => { onStatus = f; onStatus(status); },
+    setToken: function (t) { try { t ? localStorage.setItem(App.Config.tokenKey, t) : localStorage.removeItem(App.Config.tokenKey); } catch (e) { /* ignorieren */ } },
+    status: () => status
+  };
+})();

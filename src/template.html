@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Persönlicher Trainingsgenerator</title>
+<style>
+/*{{CSS}}*/
+</style>
+</head>
+<body>
+<!-- ============ STARTBILDSCHIRM ============ -->
+<main id="home" class="screen">
+  <h1>Training</h1>
+  <section><h2>Trainingsbereiche</h2><div id="areas" class="grid3"></div></section>
+  <section><h2>Trainingsstil</h2><div id="styles" class="seg"></div></section>
+  <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div></section>
+  <section class="row"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label></section>
+  <p id="summary" class="muted"></p>
+  <button id="start" class="btn primary big">Training starten</button>
+  <section><h2>Nur dehnen</h2><div id="stretches" class="grid2"></div></section>
+  <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
+    <div class="row wrap"><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
+    <label class="btn">⬆ Import<input type="file" id="importFile" accept="application/json" hidden></label><a class="btn" href="#gallery">Übungskatalog</a></div>
+    <p id="syncInfo" class="muted small"></p></section>
+</main>
+
+<!-- ============ TRAININGSBILDSCHIRM ============ -->
+<main id="train" class="screen" hidden>
+  <div class="topline"><span id="tProgress"></span><span id="tTotal"></span></div>
+  <h1 id="tName"></h1>
+  <p id="tMuscles" class="muscles"></p>
+  <p id="tDesc" class="muted"></p>
+  <div class="stage">
+    <svg id="ring" viewBox="0 0 320 320" aria-hidden="true">
+      <circle class="ring-bg" cx="160" cy="160" r="150"/>
+      <circle id="ringFg" class="ring-fg" cx="160" cy="160" r="150" transform="rotate(-90 160 160)"/>
+      <svg id="fig" x="50" y="40" width="220" height="183"></svg>
+    </svg>
+    <div id="count" class="count" aria-live="off">0</div>
+    <div id="cue" class="cue"></div>
+  </div>
+  <p id="tNext" class="muted center"></p>
+  <div class="controls">
+    <button id="pauseBtn" class="btn primary big">Pause</button>
+    <button id="skipBtn" class="btn big">Weiter ⏭</button>
+    <button id="stopBtn" class="btn big danger">Stopp</button>
+  </div>
+  <details class="card"><summary>Anleitung</summary><p id="tInstr"></p></details>
+</main>
+
+<!-- ============ ENDE / DEHNFRAGE ============ -->
+<main id="done" class="screen" hidden>
+  <h1 id="dTitle">Geschafft! 🎉</h1>
+  <p id="dText" class="muted"></p>
+  <div id="dAsk" hidden>
+    <h2>Passendes Dehnungsprogramm starten?</h2>
+    <div class="row"><button id="askYes" class="btn primary big">Ja</button><button id="askNo" class="btn big">Nein</button></div>
+  </div>
+  <button id="dHome" class="btn big">Zum Start</button>
+</main>
+
+<!-- ============ KATALOG (#gallery, auch zur Kontrolle der Animationen) ============ -->
+<main id="gallery" class="screen wide" hidden>
+  <h1>Übungskatalog</h1><p><a href="#">← zurück</a></p><div id="galleryGrid" class="gallery"></div>
+</main>
+<pre id="selftest" hidden></pre>
+<script>
+/*{{JS}}*/
+</script>
+</body>
+</html>

@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Persönlicher Trainingsgenerator</title>
+<style>
+/* style.css – hell/dunkel automatisch, große Touch-Ziele (iPad) */
+:root{--bg:#f5f7fb;--card:#fff;--fg:#14213d;--muted:#5b6b88;--line:#d9e0ee;--accent:#0057b8;--accent-fg:#fff;--ok:#16a34a;--danger:#c62828;--ring:#0057b8;--fig:#14213d;--radius:16px}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1424;--card:#172038;--fg:#e8eefc;--muted:#93a4c8;--line:#2a3658;--accent:#4d9dff;--accent-fg:#06142e;--danger:#ff6b6b;--ring:#4d9dff;--fig:#e8eefc}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.screen{max-width:720px;margin:0 auto;padding:18px 18px 40px}.screen.wide{max-width:1100px}
+[hidden]{display:none!important}
+h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:1.4em 0 .5em}
+.muted{color:var(--muted)}.small{font-size:.85rem}.center{text-align:center}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.seg{display:flex;flex-wrap:wrap;gap:10px}
+.row{display:flex;gap:12px;align-items:center}.row.wrap{flex-wrap:wrap}
+.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-weight:600;min-height:52px;padding:10px 18px;border-radius:var(--radius);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;touch-action:manipulation}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.danger{color:var(--danger)}
+.btn.big{min-height:64px;font-size:1.15rem;flex:1}
+#start{width:100%;margin-top:12px}
+.choice{flex:1;min-width:140px;flex-direction:column;gap:2px;text-align:center}
+.choice[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.choice .ic{font-size:1.6rem}
+.switch{display:flex;align-items:center;gap:12px;min-height:52px;font-weight:600}.switch input{width:26px;height:26px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:4px 16px 16px;margin-top:22px}
+.topline{display:flex;justify-content:space-between;color:var(--muted);font-weight:600}
+#tName{font-size:clamp(2rem,6vw,3rem);line-height:1.1;margin:.2em 0}
+.muscles{margin:0 0 .3em;color:var(--accent);font-weight:600}
+.stage{position:relative;width:min(88vw,420px,52vh);margin:10px auto}
+#ring{width:100%;display:block}
+.ring-bg{fill:none;stroke:var(--line);stroke-width:10}
+.ring-fg{fill:none;stroke:var(--ring);stroke-width:10;stroke-linecap:round}
+.count{position:absolute;left:0;right:0;top:66%;text-align:center;font-size:clamp(3rem,13vw,5.5rem);font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.cue{position:absolute;left:0;right:0;top:86%;text-align:center;font-weight:700;color:var(--muted)}
+.controls{display:flex;gap:10px;margin:18px 0}
+.fig-limb{fill:none;stroke:var(--fig);stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.fig-limb.far{opacity:.4}.fig-head{fill:none;stroke:var(--fig);stroke-width:5}
+.fig-floor,.fig-wall{stroke:var(--line);stroke-width:3;stroke-linecap:round}
+.fig-box{fill:var(--line)}.fig-weight{fill:var(--accent)}
+.fig-rope{stroke:var(--accent);stroke-width:2;stroke-dasharray:4 3}.fig-anchor{fill:var(--accent)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.gcell{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
+.gcell b{display:block}.gcell svg{width:48%}
+summary{cursor:pointer;font-weight:600;padding:12px 0}
+
+</style>
+</head>
+<body>
+<!-- ============ STARTBILDSCHIRM ============ -->
+<main id="home" class="screen">
+  <h1>Training</h1>
+  <section><h2>Trainingsbereiche</h2><div id="areas" class="grid3"></div></section>
+  <section><h2>Trainingsstil</h2><div id="styles" class="seg"></div></section>
+  <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div></section>
+  <section class="row"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label></section>
+  <p id="summary" class="muted"></p>
+  <button id="start" class="btn primary big">Training starten</button>
+  <section><h2>Nur dehnen</h2><div id="stretches" class="grid2"></div></section>
+  <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
+    <div class="row wrap"><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
+    <label class="btn">⬆ Import<input type="file" id="importFile" accept="application/json" hidden></label><a class="btn" href="#gallery">Übungskatalog</a></div>
+    <p id="syncInfo" class="muted small"></p></section>
+</main>
+
+<!-- ============ TRAININGSBILDSCHIRM ============ -->
+<main id="train" class="screen" hidden>
+  <div class="topline"><span id="tProgress"></span><span id="tTotal"></span></div>
+  <h1 id="tName"></h1>
+  <p id="tMuscles" class="muscles"></p>
+  <p id="tDesc" class="muted"></p>
+  <div class="stage">
+    <svg id="ring" viewBox="0 0 320 320" aria-hidden="true">
+      <circle class="ring-bg" cx="160" cy="160" r="150"/>
+      <circle id="ringFg" class="ring-fg" cx="160" cy="160" r="150" transform="rotate(-90 160 160)"/>
+      <svg id="fig" x="50" y="40" width="220" height="183"></svg>
+    </svg>
+    <div id="count" class="count" aria-live="off">0</div>
+    <div id="cue" class="cue"></div>
+  </div>
+  <p id="tNext" class="muted center"></p>
+  <div class="controls">
+    <button id="pauseBtn" class="btn primary big">Pause</button>
+    <button id="skipBtn" class="btn big">Weiter ⏭</button>
+    <button id="stopBtn" class="btn big danger">Stopp</button>
+  </div>
+  <details class="card"><summary>Anleitung</summary><p id="tInstr"></p></details>
+</main>
+
+<!-- ============ ENDE / DEHNFRAGE ============ -->
+<main id="done" class="screen" hidden>
+  <h1 id="dTitle">Geschafft! 🎉</h1>
+  <p id="dText" class="muted"></p>
+  <div id="dAsk" hidden>
+    <h2>Passendes Dehnungsprogramm starten?</h2>
+    <div class="row"><button id="askYes" class="btn primary big">Ja</button><button id="askNo" class="btn big">Nein</button></div>
+  </div>
+  <button id="dHome" class="btn big">Zum Start</button>
+</main>
+
+<!-- ============ KATALOG (#gallery, auch zur Kontrolle der Animationen) ============ -->
+<main id="gallery" class="screen wide" hidden>
+  <h1>Übungskatalog</h1><p><a href="#">← zurück</a></p><div id="galleryGrid" class="gallery"></div>
+</main>
+<pre id="selftest" hidden></pre>
+<script>
+/* ===== 00-config.js ===== */
+/* ==========================================================================
+   00-config.js  –  Globaler Namespace + Konfiguration
+   Alle weiteren Module hängen sich an das Objekt `App`.
+   ========================================================================== */
+const App = {};
+
+App.Config = {
+  version: 1,
+  storageKey: 'training-state-v1',
+  tokenKey: 'training-gh-token',
+  /* GitHub-Sync: Fortschritt liegt als JSON auf eigenem Branch "progress" */
+  github: { owner: 'aloisdanninger', repo: 'Training', branch: 'progress', path: 'progress/training.json' },
+  /* Sekunden Vorbereitung zwischen zwei Übungen */
+  prepareSeconds: 10,
+  /* Geometrie der Strichfigur (SVG-Einheiten) */
+  body: { torso: 40, neck: 13, upperArm: 22, foreArm: 20, thigh: 27, shin: 26 },
+  stage: { w: 240, h: 200, floorY: 172 }
+};
+
+
+/* ===== 05-pose.js ===== */
+/* ==========================================================================
+   05-pose.js  –  Pose-Modell der Strichfigur
+   Winkel in Grad, ABSOLUT gemessen: 0 = nach oben, 90 = nach rechts (Blickrichtung),
+   180 = nach unten, -90/270 = nach links.
+   Pose-Felder:
+     t   Rumpf (Hüfte -> Hals/Schulter)      hd  Kopfrichtung (Default = t)
+     a   [Oberarm, Unterarm] vordere Seite    b   hintere Seite (Default = a)
+     l   [Oberschenkel, Unterschenkel] vorne  r   hinten (Default = l)
+   Eine Übung hat zwei Posen (a = Start, b = Ende); der Player interpoliert.
+   ========================================================================== */
+App.Pose = (function () {
+  /** Kurzschreibweise zum Anlegen einer Pose. */
+  function P(t, a, l, o) { return Object.assign({ t: t, a: a || [180, 180], l: l || [180, 180] }, o || {}); }
+
+  /** Ergänzt Defaults, damit alle Felder gesetzt sind. */
+  function resolve(p) {
+    return { t: p.t, hd: p.hd == null ? p.t : p.hd, a: p.a, b: p.b || p.a, l: p.l, r: p.r || p.l };
+  }
+
+  function lerp(x, y, k) { return x + (y - x) * k; }
+  function lerpPair(x, y, k) { return [lerp(x[0], y[0], k), lerp(x[1], y[1], k)]; }
+
+  /** Interpoliert zwei aufgelöste Posen (k = 0..1). */
+  function mix(A, B, k) {
+    return { t: lerp(A.t, B.t, k), hd: lerp(A.hd, B.hd, k),
+      a: lerpPair(A.a, B.a, k), b: lerpPair(A.b, B.b, k), l: lerpPair(A.l, B.l, k), r: lerpPair(A.r, B.r, k) };
+  }
+
+  /** Vorwärtskinematik: liefert alle Gelenkpunkte (Hüfte im Ursprung). */
+  function joints(p) {
+    const L = App.Config.body, R = Math.PI / 180;
+    const v = (ang, len) => [Math.sin(ang * R) * len, -Math.cos(ang * R) * len];
+    const add = (u, w) => [u[0] + w[0], u[1] + w[1]];
+    const hip = [0, 0], neck = add(hip, v(p.t, L.torso)), head = add(neck, v(p.hd, L.neck));
+    const arm = q => { const e = add(neck, v(q[0], L.upperArm)); return [neck, e, add(e, v(q[1], L.foreArm))]; };
+    const leg = q => { const k = add(hip, v(q[0], L.thigh)); return [hip, k, add(k, v(q[1], L.shin))]; };
+    return { hip: hip, neck: neck, head: head, near: { arm: arm(p.a), leg: leg(p.l) }, far: { arm: arm(p.b), leg: leg(p.r) } };
+  }
+
+  return { P: P, resolve: resolve, mix: mix, joints: joints };
+})();
+
+
+/* ===== 10-data-exercises.js ===== */
+/* ==========================================================================
+   10-data-exercises.js  –  DATEN: Kraftübungen
+   Neue Übung = eine neue Zeile in EXERCISE_ROWS. Sonst ist nichts anzupassen.
+   Spalten: id, Name, Kategorie, Unterkategorie, Zielmuskeln, Schwierigkeit(1-3),
+            Equipment, Beschreibung, Anleitung, Animation {a, b, props}
+   Props (optional): 'dumbbell' | 'step' | 'wall' | {rope:[x,y]}
+   ========================================================================== */
+App.Data = App.Data || {};
+
+/** Bereiche (Kategorien) mit Anzeigename und Zufallsregeln (Anzahl je Unterkategorie). */
+App.Data.AREAS = [
+  { id: 'upper', label: 'Oberkörper', icon: '💪',
+    slots: [{ sub: 'Drücken', n: 2 }, { sub: 'Ziehen', n: 2 }, { sub: 'Arme', n: 1 }],
+    standard: ['liegestuetz', 'schulterdruecken', 'trx_row', 'kurzhantelrudern', 'bizeps_curl'] },
+  { id: 'core', label: 'Rumpf', icon: '🎯',
+    slots: [{ sub: 'Bauch', n: 2 }, { sub: 'Rücken', n: 2 }, { sub: 'Seitliche Stabilität', n: 1 }],
+    standard: ['plank', 'dead_bug', 'superman', 'bird_dog', 'side_plank'] },
+  { id: 'lower', label: 'Unterkörper', icon: '🦵',
+    slots: [{ sub: 'Knie dominant', n: 2 }, { sub: 'Hüftdominant', n: 2 }, { sub: 'Stabilität', n: 1 }],
+    standard: ['kniebeuge', 'step_up', 'hip_thrust', 'romanian_deadlift', 'ausfallschritt'] }
+];
+
+(function () {
+  const P = App.Pose.P;
+  const Q = P(68, [180, 180], [185, 270]);                    // Vierfüßlerstand
+  const PU_UP = P(63, [180, 180], [243, 243]);                // Liegestütz oben
+  const PU_DN = P(72, [235, 145], [252, 252]);                // Liegestütz unten
+  const STAND = P(0, [180, 180], [180, 180]);
+
+  /* [id, name, cat, sub, muscles, difficulty, equipment, description, instructions, animation] */
+  const EXERCISE_ROWS = [
+    /* ---------- OBERKÖRPER · Drücken ---------- */
+    ['liegestuetz', 'Liegestütz', 'upper', 'Drücken', ['Brust', 'Trizeps', 'vordere Schulter'], 2, [],
+      'Klassischer Liegestütz mit geradem Körper.', 'Hände schulterbreit, Körper bildet eine Linie. Brust zum Boden senken, kontrolliert hochdrücken.',
+      { a: PU_UP, b: PU_DN }],
+    ['schraeg_liegestuetz', 'Schrägliegestütz', 'upper', 'Drücken', ['Brust', 'Trizeps'], 1, ['Bank/Stuhl'],
+      'Leichtere Variante mit erhöhten Händen.', 'Hände auf Bank oder Stuhl. Körper gerade halten, Brust zur Kante senken und wieder wegdrücken.',
+      { a: P(40, [180, 180], [220, 220]), b: P(52, [235, 145], [232, 232]) }],
+    ['schulterdruecken', 'Schulterdrücken', 'upper', 'Drücken', ['Schulter', 'Trizeps'], 2, ['Kurzhanteln'],
+      'Kurzhanteln über den Kopf drücken.', 'Aufrecht stehen, Rumpf anspannen. Hanteln von Schulterhöhe senkrecht nach oben drücken.',
+      { a: P(0, [165, 10]), b: P(0, [0, 0]), props: ['dumbbell'] }],
+    ['arnold_press', 'Arnold Press', 'upper', 'Drücken', ['Schulter', 'Trizeps'], 2, ['Kurzhanteln'],
+      'Schulterdrücken mit Drehbewegung.', 'Hanteln vor der Brust, Handflächen zu dir. Beim Hochdrücken die Hände nach außen drehen.',
+      { a: P(0, [135, 350]), b: P(0, [0, 0]), props: ['dumbbell'] }],
+    ['trx_chest_press', 'TRX Chest Press', 'upper', 'Drücken', ['Brust', 'Trizeps', 'Rumpf'], 2, ['TRX'],
+      'Brustpresse am Schlingentrainer.', 'Körper gestreckt nach vorn lehnen, Griffe auf Brusthöhe. Kontrolliert absenken und wegdrücken.',
+      { a: P(20, [110, 110], [200, 200]), b: P(32, [150, 60], [212, 212]), props: [{ rope: [25, 20] }] }],
+    ['enge_liegestuetz', 'Enge Liegestütz', 'upper', 'Drücken', ['Trizeps', 'Brust'], 3, [],
+      'Liegestütz mit engem Handabstand.', 'Hände unter der Brust eng zusammen. Ellbogen nah am Körper führen.',
+      { a: PU_UP, b: P(72, [215, 170], [252, 252]) }],
+
+    /* ---------- OBERKÖRPER · Ziehen ---------- */
+    ['trx_row', 'TRX Rows', 'upper', 'Ziehen', ['oberer Rücken', 'Bizeps', 'hintere Schulter'], 2, ['TRX'],
+      'Rudern am Schlingentrainer.', 'Körper gestreckt nach hinten lehnen. Brust zu den Griffen ziehen, Schulterblätter zusammen.',
+      { a: P(-22, [60, 60], [158, 158]), b: P(-10, [215, 95], [170, 170]), props: [{ rope: [215, 15] }] }],
+    ['kurzhantelrudern', 'Kurzhantelrudern', 'upper', 'Ziehen', ['Latissimus', 'Bizeps', 'Rautenmuskel'], 2, ['Kurzhantel'],
+      'Einarmiges Rudern im Vorbeugen.', 'Rücken gerade, eine Hand stützt. Hantel zur Hüfte ziehen, Ellbogen nah am Körper.',
+      { a: P(72, [180, 180], [170, 190], { b: [140, 170] }), b: P(72, [250, 175], [170, 190], { b: [140, 170] }), props: ['dumbbell'] }],
+    ['face_pull', 'Face Pull', 'upper', 'Ziehen', ['hintere Schulter', 'Trapez', 'Rotatorenmanschette'], 1, ['Band/Kabel'],
+      'Zug zum Gesicht für gesunde Schultern.', 'Band auf Gesichtshöhe. Zum Gesicht ziehen, Ellbogen hoch und weit nach hinten.',
+      { a: P(0, [90, 90]), b: P(0, [265, 25]), props: [{ rope: [220, 60] }] }],
+    ['upright_row', 'Upright Row', 'upper', 'Ziehen', ['Schulter', 'Trapez', 'Bizeps'], 2, ['Kurzhanteln'],
+      'Aufrechtes Rudern entlang des Körpers.', 'Hanteln nah am Körper bis zur Brust ziehen, Ellbogen führen die Bewegung.',
+      { a: P(0, [170, 175]), b: P(0, [95, 205]), props: ['dumbbell'] }],
+    ['bent_over_row', 'Bent Over Row', 'upper', 'Ziehen', ['Rücken', 'Bizeps', 'Gesäß'], 2, ['Kurzhanteln'],
+      'Beidarmiges Rudern im Vorbeugen.', 'Hüfte nach hinten, Rücken gerade. Hanteln zum Bauchnabel ziehen.',
+      { a: P(68, [180, 180], [165, 190]), b: P(68, [250, 175], [165, 190]), props: ['dumbbell'] }],
+
+    /* ---------- OBERKÖRPER · Arme ---------- */
+    ['bizeps_curl', 'Bizeps Curl', 'upper', 'Arme', ['Bizeps'], 1, ['Kurzhanteln'],
+      'Klassisches Beugen der Arme.', 'Oberarme am Körper fixieren. Hanteln beugen, oben kurz anspannen, langsam senken.',
+      { a: P(0, [175, 175]), b: P(0, [175, 25]), props: ['dumbbell'] }],
+    ['hammer_curl', 'Hammer Curl', 'upper', 'Arme', ['Bizeps', 'Brachialis', 'Unterarm'], 1, ['Kurzhanteln'],
+      'Curl mit neutralem Griff (Daumen oben).', 'Handflächen zeigen zueinander. Ohne Schwung beugen und senken.',
+      { a: P(0, [175, 175]), b: P(0, [175, 25]), props: ['dumbbell'] }],
+    ['trizeps_dip', 'Trizeps Dip', 'upper', 'Arme', ['Trizeps', 'Schulter'], 2, ['Bank/Stuhl'],
+      'Dips mit Händen auf Bank oder Stuhl.', 'Hände hinter dem Gesäß auf der Kante, Ellbogen zeigen nach hinten. Beugen und strecken.',
+      { a: P(0, [195, 195], [100, 175]), b: P(0, [240, 150], [95, 170]) }],
+    ['trizeps_kickback', 'Trizeps Kickback', 'upper', 'Arme', ['Trizeps'], 1, ['Kurzhantel'],
+      'Armstrecken im Vorbeugen.', 'Oberarm parallel zum Rücken fixieren, nur den Unterarm nach hinten strecken.',
+      { a: P(70, [265, 185], [165, 190]), b: P(70, [265, 270], [165, 190]), props: ['dumbbell'] }],
+
+    /* ---------- RUMPF · Bauch ---------- */
+    ['plank', 'Plank', 'core', 'Bauch', ['gerade Bauchmuskeln', 'Rumpf', 'Schulter'], 1, [],
+      'Unterarmstütz als Halteübung.', 'Ellbogen unter den Schultern, Körper bildet eine Linie. Bauch und Gesäß fest anspannen.',
+      { a: P(76, [180, 90], [256, 256]), b: P(74, [180, 90], [254, 254]) }],
+    ['dead_bug', 'Dead Bug', 'core', 'Bauch', ['tiefe Bauchmuskeln', 'Hüftbeuger'], 1, [],
+      'Gegengleiches Strecken in Rückenlage.', 'Unterer Rücken bleibt am Boden. Gegenüberliegenden Arm und Bein langsam strecken.',
+      { a: P(-90, [0, 0], [0, 90], { b: [0, 0], r: [0, 90] }), b: P(-90, [-90, -90], [0, 90], { b: [0, 0], r: [90, 90] }) }],
+    ['hollow_hold', 'Hollow Hold', 'core', 'Bauch', ['gerade Bauchmuskeln', 'Hüftbeuger'], 3, [],
+      'Bananenhaltung in Rückenlage.', 'Schultern und Beine leicht anheben, unterer Rücken drückt in den Boden. Position halten.',
+      { a: P(-90, [-90, -90], [90, 90]), b: P(-68, [-78, -78], [68, 68]) }],
+    ['bicycle_crunch', 'Bicycle Crunch', 'core', 'Bauch', ['schräge Bauchmuskeln', 'gerade Bauchmuskeln'], 2, [],
+      'Fahrradbewegung mit Rumpfdrehung.', 'Hände am Kopf, Ellbogen zum gegenüberliegenden Knie führen, Beine wechseln.',
+      { a: P(-62, [-30, -150], [20, 100], { r: [80, 80] }), b: P(-62, [-30, -150], [80, 80], { r: [20, 100] }) }],
+    ['reverse_crunch', 'Reverse Crunch', 'core', 'Bauch', ['untere Bauchmuskeln'], 2, [],
+      'Becken zur Brust rollen.', 'Knie über der Hüfte, Becken kontrolliert vom Boden rollen – kein Schwung.',
+      { a: P(-90, [90, 90], [0, 90]), b: P(-88, [90, 90], [-35, 70]) }],
+
+    /* ---------- RUMPF · Rücken ---------- */
+    ['superman', 'Superman', 'core', 'Rücken', ['Rückenstrecker', 'Gesäß'], 1, [],
+      'Arme und Beine in Bauchlage anheben.', 'Blick zum Boden, Arme und Beine gleichzeitig anheben, oben kurz halten.',
+      { a: P(90, [90, 90], [270, 270]), b: P(78, [72, 72], [285, 285]) }],
+    ['bird_dog', 'Bird Dog', 'core', 'Rücken', ['Rückenstrecker', 'Gesäß', 'Rumpf'], 1, [],
+      'Gegengleiches Strecken im Vierfüßlerstand.', 'Rücken bleibt gerade. Gegenüberliegenden Arm und Bein waagrecht strecken.',
+      { a: Q, b: P(68, [90, 90], [185, 270], { b: [180, 180], r: [272, 272] }) }],
+    ['rueckenstrecker', 'Rückenstrecker', 'core', 'Rücken', ['Rückenstrecker', 'Gesäß'], 2, ['Bank (optional)'],
+      'Oberkörper aus der Vorbeuge aufrichten.', 'Hüfte fixiert, Oberkörper bis zur Verlängerung der Beine heben, nicht überstrecken.',
+      { a: P(125, [140, 40], [190, 190]), b: P(25, [140, 40], [190, 190]) }],
+    ['hip_extension', 'Hip Extension', 'core', 'Rücken', ['Gesäß', 'Rückenstrecker'], 1, [],
+      'Beinstrecken nach hinten im Vierfüßlerstand.', 'Bein aus der Hüfte nach hinten oben strecken, Becken ruhig halten.',
+      { a: Q, b: P(68, [180, 180], [185, 270], { r: [290, 285] }) }],
+    ['good_morning', 'Good Morning', 'core', 'Rücken', ['Rückenstrecker', 'hintere Oberschenkel'], 2, [],
+      'Hüftbeuge mit geradem Rücken.', 'Hände am Kopf, Hüfte nach hinten schieben, Rücken lang, dann wieder aufrichten.',
+      { a: P(0, [-30, 110]), b: P(75, [-30, 110], [172, 190]) }],
+
+    /* ---------- RUMPF · Seitliche Stabilität ---------- */
+    ['side_plank', 'Side Plank', 'core', 'Seitliche Stabilität', ['seitliche Bauchmuskeln', 'Hüfte'], 2, [],
+      'Seitstütz, Körper in einer Linie.', 'Ellbogen unter der Schulter, Hüfte hoch. Oberen Arm zur Decke strecken. Pro Seite halten.',
+      { a: P(72, [180, 180], [252, 252], { b: [0, 0] }), b: P(62, [180, 180], [242, 242], { b: [0, 0] }) }],
+    ['pallof_press', 'Pallof Press', 'core', 'Seitliche Stabilität', ['Rumpf', 'schräge Bauchmuskeln'], 2, ['Band/Kabel'],
+      'Anti-Rotation mit Band.', 'Band seitlich verankert. Hände von der Brust nach vorn drücken, Rumpf nicht mitdrehen lassen.',
+      { a: P(0, [170, 95]), b: P(0, [90, 90]), props: [{ rope: [20, 95] }] }],
+    ['russian_twist', 'Russian Twist', 'core', 'Seitliche Stabilität', ['schräge Bauchmuskeln'], 2, [],
+      'Rumpfdrehung im Sitz.', 'Oberkörper leicht zurück, Füße angehoben. Hände von Seite zu Seite führen.',
+      { a: P(-30, [135, 135], [70, 110]), b: P(-30, [75, 75], [70, 110]) }],
+    ['side_plank_reach', 'Side Plank Reach Through', 'core', 'Seitliche Stabilität', ['schräge Bauchmuskeln', 'Schulter'], 3, [],
+      'Seitstütz mit Durchgreifen.', 'Aus dem Seitstütz den oberen Arm unter dem Körper durchführen, dann wieder öffnen.',
+      { a: P(72, [180, 180], [252, 252], { b: [0, 0] }), b: P(66, [180, 180], [246, 246], { b: [110, 130] }) }],
+
+    /* ---------- UNTERKÖRPER · Knie dominant ---------- */
+    ['kniebeuge', 'Kniebeuge', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 1, [],
+      'Grundübung für die Beine.', 'Füße schulterbreit, Gewicht auf der ganzen Sohle. Hüfte nach hinten unten, Brust aufrecht.',
+      { a: P(0, [90, 90]), b: P(35, [90, 90], [100, 215]) }],
+    ['goblet_squat', 'Goblet Squat', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß', 'Rumpf'], 1, ['Kurzhantel'],
+      'Kniebeuge mit Hantel vor der Brust.', 'Hantel mit beiden Händen vor die Brust, Ellbogen nach unten, tief beugen.',
+      { a: P(0, [160, 70]), b: P(30, [160, 70], [100, 215]), props: ['dumbbell'] }],
+    ['step_up', 'Step Up', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 1, ['Stufe/Bank'],
+      'Auf eine Stufe steigen.', 'Ganzer Fuß auf der Stufe, mit dem vorderen Bein hochdrücken, kontrolliert zurück.',
+      { a: P(5, [180, 180], [100, 190], { r: [180, 180] }), b: P(0, [180, 180], [180, 180], { r: [95, 175] }), props: ['step'] }],
+    ['bulgarian_split_squat', 'Bulgarian Split Squat', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 3, ['Bank'],
+      'Einbeinige Kniebeuge mit erhöhtem hinterem Fuß.', 'Hinterer Fuß auf der Bank. Senkrecht absenken, vorderes Knie bleibt über dem Fuß.',
+      { a: P(5, [180, 180], [140, 180], { r: [235, 285] }), b: P(10, [180, 180], [100, 200], { r: [205, 280] }) }],
+    ['wall_sit', 'Wall Sit', 'lower', 'Knie dominant', ['Oberschenkel vorne'], 1, ['Wand'],
+      'Statisches Sitzen an der Wand.', 'Rücken an der Wand, Knie 90°. Position halten, nicht mit den Händen abstützen.',
+      { a: P(0, [180, 180], [110, 190]), b: P(0, [160, 160], [90, 180]), props: ['wall'] }],
+
+    /* ---------- UNTERKÖRPER · Hüftdominant ---------- */
+    ['hip_thrust', 'Hip Thrust', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel'], 2, ['Bank (optional)'],
+      'Hüftheben mit Schulter auf Bank.', 'Obere Rückenpartie aufgelegt, Hüfte kräftig nach oben drücken, oben Gesäß anspannen.',
+      { a: P(-60, [100, 100], [45, 180]), b: P(-92, [100, 100], [85, 190]) }],
+    ['romanian_deadlift', 'Romanian Deadlift', 'lower', 'Hüftdominant', ['hintere Oberschenkel', 'Gesäß', 'Rückenstrecker'], 2, ['Kurzhanteln'],
+      'Hüftbeuge mit fast gestreckten Beinen.', 'Hanteln nah am Bein entlang gleiten lassen, Rücken gerade, bis zur Dehnung hinten.',
+      { a: STAND, b: P(75, [180, 180], [172, 185]), props: ['dumbbell'] }],
+    ['glute_bridge', 'Glute Bridge', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel'], 1, [],
+      'Beckenheben in Rückenlage.', 'Füße aufgestellt, Hüfte anheben bis Schulter–Knie eine Linie bilden.',
+      { a: P(-90, [90, 90], [45, 180]), b: P(-105, [90, 90], [85, 190]) }],
+    ['kettlebell_swing', 'Kettlebell Swing', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel', 'Rücken'], 3, ['Kettlebell'],
+      'Explosives Hüftschwingen.', 'Hüfte nach hinten, dann explosiv strecken. Die Kraft kommt aus der Hüfte, nicht aus den Armen.',
+      { a: P(65, [200, 200], [165, 195]), b: P(0, [90, 90]), props: ['dumbbell'] }],
+    ['single_leg_deadlift', 'Single Leg Deadlift', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel', 'Gleichgewicht'], 3, ['Kurzhantel (optional)'],
+      'Einbeiniges Kreuzheben.', 'Oberkörper nach vorn kippen, Bein nach hinten strecken, Hüfte bleibt gerade.',
+      { a: STAND, b: P(85, [180, 180], [178, 182], { r: [268, 268] }) }],
+
+    /* ---------- UNTERKÖRPER · Stabilität ---------- */
+    ['ausfallschritt', 'Ausfallschritt', 'lower', 'Stabilität', ['Oberschenkel', 'Gesäß'], 1, [],
+      'Schritt nach vorn in die Tiefe.', 'Großer Schritt, hinteres Knie Richtung Boden, Oberkörper aufrecht, zurückdrücken.',
+      { a: STAND, b: P(0, [180, 180], [95, 190], { r: [200, 275] }) }],
+    ['seitlicher_ausfallschritt', 'Seitlicher Ausfallschritt', 'lower', 'Stabilität', ['Innenseite Oberschenkel', 'Gesäß'], 2, [],
+      'Schritt zur Seite.', 'Weit zur Seite treten, Gesäß nach hinten, anderes Bein bleibt gestreckt.',
+      { a: P(0, [150, 70]), b: P(0, [150, 70], [118, 190], { r: [236, 236] }) }],
+    ['einbeinstand', 'Einbeinstand', 'lower', 'Stabilität', ['Fußmuskulatur', 'Hüfte', 'Gleichgewicht'], 1, [],
+      'Gleichgewicht auf einem Bein.', 'Standbein leicht gebeugt, anderes Knie anheben, ruhig halten. Seite wechseln.',
+      { a: P(0, [140, 140]), b: P(0, [100, 100], [180, 180], { r: [100, 175] }) }],
+    ['curtsy_lunge', 'Curtsy Lunge', 'lower', 'Stabilität', ['Gesäß', 'seitliche Hüfte', 'Oberschenkel'], 2, [],
+      'Ausfallschritt diagonal nach hinten.', 'Ein Bein diagonal hinter das Standbein stellen, absenken, Becken bleibt gerade.',
+      { a: P(0, [150, 70]), b: P(0, [150, 70], [105, 195], { r: [220, 275] }) }]
+  ];
+
+  App.Data.EXERCISES = EXERCISE_ROWS.map(function (r) {
+    return { id: r[0], name: r[1], category: r[2], subCategory: r[3], targetMuscles: r[4], difficulty: r[5],
+      equipment: r[6], description: r[7], instructions: r[8], svgAnimation: r[9] };
+  });
+
+  /* Hilfsfunktion für spätere Module (Dehnübungen nutzen dieselbe Struktur) */
+  App.Data.byId = {};
+  App.Data.register = function (list) { list.forEach(function (e) { App.Data.byId[e.id] = e; }); };
+  App.Data.register(App.Data.EXERCISES);
+})();
+
+
+/* ===== 11-data-stretches.js ===== */
+/* ==========================================================================
+   11-data-stretches.js  –  DATEN: Dehnübungen und Dehnprogramme
+   Gleiche Struktur wie Kraftübungen (category = 'stretch', subCategory = Programm).
+   Animation: a = Ausgangsposition, b = gedehnte Endposition (wird gehalten).
+   ========================================================================== */
+(function () {
+  const P = App.Pose.P;
+  const Q = P(68, [180, 180], [185, 270]);
+
+  /* [id, name, program, muscles, description, instructions, animation] */
+  const ROWS = [
+    /* Oberkörper */
+    ['st_brust', 'Brustdehnung', 'upper', ['Brust', 'vordere Schulter'], 'Arme hinter dem Körper verschränken.', 'Hände hinter dem Rücken falten, Arme nach hinten oben ziehen, Brust öffnen. Ruhig atmen.',
+      { a: P(0, [180, 180]), b: P(-5, [250, 250]) }],
+    ['st_schulter', 'Schulterdehnung', 'upper', ['hintere Schulter'], 'Arm quer vor der Brust.', 'Einen Arm quer vor der Brust halten, mit dem anderen Arm sanft zum Körper ziehen. Seite wechseln.',
+      { a: P(0, [180, 180]), b: P(0, [90, 90], [180, 180], { b: [120, 260] }) }],
+    ['st_latissimus', 'Latissimus-Dehnung', 'upper', ['Latissimus', 'seitlicher Rumpf'], 'Arm über Kopf, zur Seite neigen.', 'Arm gestreckt über den Kopf, Oberkörper zur Gegenseite neigen. Hüfte bleibt stabil.',
+      { a: P(0, [180, 180]), b: P(20, [20, 20]) }],
+    ['st_trizeps', 'Trizepsdehnung', 'upper', ['Trizeps'], 'Hand hinter den Kopf.', 'Ellbogen zeigt zur Decke, Hand zwischen die Schulterblätter. Mit der anderen Hand sanft am Ellbogen drücken.',
+      { a: P(0, [180, 180]), b: P(0, [10, 200], [180, 180], { b: [30, 350] }) }],
+    ['st_bizeps', 'Bizepsdehnung', 'upper', ['Bizeps', 'Brust'], 'Arm gestreckt nach hinten.', 'Arm gestreckt nach hinten führen, Daumen zeigt nach unten. Oberkörper leicht wegdrehen.',
+      { a: P(0, [180, 180]), b: P(0, [250, 250], [180, 180], { b: [180, 180] }) }],
+
+    /* Unterkörper */
+    ['st_waden', 'Wadendehnung', 'lower', ['Waden'], 'Ausfallposition an der Wand.', 'Hinteres Bein gestreckt, Ferse am Boden, Hände an der Wand. Hüfte nach vorn schieben.',
+      { a: P(0, [180, 180]), b: P(22, [80, 80], [130, 190], { r: [202, 202] }) }],
+    ['st_quad', 'Dehnung Oberschenkel vorne', 'lower', ['Oberschenkel vorne'], 'Ferse zum Gesäß ziehen.', 'Auf einem Bein stehen, Fuß zum Gesäß ziehen, Knie zeigt nach unten, Hüfte nach vorn. Seite wechseln.',
+      { a: P(0, [180, 180]), b: P(0, [180, 180], [180, 180], { r: [185, 335], b: [240, 280] }) }],
+    ['st_hamstring', 'Dehnung Oberschenkel hinten', 'lower', ['hintere Oberschenkel'], 'Vorbeuge mit langem Rücken.', 'Beine fast gestreckt, aus der Hüfte nach vorn beugen, Hände Richtung Fuß gleiten lassen.',
+      { a: P(0, [180, 180]), b: P(140, [170, 175], [175, 185]) }],
+    ['st_hueftbeuger', 'Hüftbeuger-Dehnung', 'lower', ['Hüftbeuger'], 'Kniender Ausfallschritt.', 'Hinteres Knie am Boden, Becken nach vorn schieben, Arme nach oben strecken. Seite wechseln.',
+      { a: P(0, [180, 180], [120, 180], { r: [190, 270] }), b: P(0, [10, 10], [95, 185], { r: [190, 270] }) }],
+    ['st_gesaess', 'Gesäßdehnung', 'lower', ['Gesäß', 'Piriformis'], 'Figur-4 in Rückenlage.', 'Knöchel über das gegenüberliegende Knie legen, das untere Bein zur Brust ziehen. Seite wechseln.',
+      { a: P(-90, [90, 90], [0, 90], { r: [0, 90] }), b: P(-90, [30, 60], [35, 275], { r: [-10, 95] }) }],
+
+    /* Rumpf */
+    ['st_catcow', 'Cat-Cow', 'core', ['Wirbelsäule', 'Rückenstrecker', 'Bauch'], 'Katzenbuckel und Hohlkreuz im Wechsel.', 'Vierfüßlerstand, mit der Atmung abwechselnd Rücken runden (Cat) und Brust öffnen (Cow).',
+      { a: P(60, [180, 180], [185, 270], { hd: 30 }), b: P(78, [180, 180], [185, 270], { hd: 150 }) }],
+    ['st_child', 'Child Pose', 'core', ['unterer Rücken', 'Latissimus', 'Gesäß'], 'Gesäß auf die Fersen sinken lassen.', 'Aus dem Vierfüßlerstand das Gesäß zu den Fersen schieben, Arme lang nach vorn, Stirn ablegen.',
+      { a: Q, b: P(100, [90, 90], [110, 270], { hd: 120 }) }],
+    ['st_cobra', 'Cobra', 'core', ['gerade Bauchmuskeln', 'Hüftbeuger'], 'Aufrichten aus der Bauchlage.', 'Hände neben die Brust, Oberkörper aufrichten, Becken bleibt am Boden, Schultern weg von den Ohren.',
+      { a: P(90, [270, 90], [270, 270]), b: P(22, [180, 180], [270, 270]) }],
+    ['st_rotation', 'Rotation im Liegen', 'core', ['Rumpfrotatoren', 'unterer Rücken'], 'Beide Knie zur Seite fallen lassen.', 'In Rückenlage Knie anwinkeln, zur Seite sinken lassen, Schultern bleiben am Boden. Seite wechseln.',
+      { a: P(-90, [-90, -90], [45, 180]), b: P(-90, [-90, -90], [80, 150]) }],
+    ['st_seitbeuge', 'Seitbeuge', 'core', ['seitlicher Rumpf', 'Latissimus'], 'Im Stand zur Seite neigen.', 'Ein Arm über den Kopf, Oberkörper zur Seite neigen, ohne nach vorn zu kippen. Seite wechseln.',
+      { a: P(0, [0, 0]), b: P(25, [40, 40]) }],
+
+    /* Rücken – Nacken – Schulter */
+    ['st_nacken', 'Nackendehnung', 'rns', ['Nacken', 'Trapez'], 'Kopf seitlich neigen.', 'Ohr Richtung Schulter neigen, Hand legt sich locker auf den Kopf. Gegenüberliegende Schulter bleibt tief.',
+      { a: P(0, [180, 180]), b: P(0, [60, 300], [180, 180], { hd: 40 }) }],
+    ['st_levator', 'Levator Stretch', 'rns', ['Levator scapulae', 'Nacken'], 'Kopf diagonal nach vorn neigen.', 'Kopf schräg nach vorn unten Richtung Achsel neigen, Hand am Hinterkopf. Seite wechseln.',
+      { a: P(0, [180, 180]), b: P(0, [-40, 60], [180, 180], { hd: 110 }) }],
+    ['st_brustoeffner', 'Brustöffner', 'rns', ['Brust', 'vordere Schulter'], 'Arme hinten öffnen, Brust heben.', 'Arme seitlich/hinten oben öffnen, Brustbein nach vorn oben schieben, Blick leicht nach oben.',
+      { a: P(0, [180, 180]), b: P(-8, [290, 290], [180, 180], { hd: -25 }) }],
+    ['st_schulterblatt', 'Schulterblattmobilisierung', 'rns', ['Schulterblatt', 'Trapez', 'Rautenmuskel'], 'Wall Angels: Arme an der Wand gleiten.', 'Rücken an der Wand, Arme in W-Form, langsam nach oben gleiten und zurück. Kontakt zur Wand halten.',
+      { a: P(0, [140, 30]), b: P(0, [10, 10]), props: ['wall'] }],
+    ['st_thread', 'Thread the Needle', 'rns', ['oberer Rücken', 'Schulter', 'Rotatoren'], 'Arm unter dem Körper durchfädeln.', 'Aus dem Vierfüßlerstand einen Arm unter dem Körper durchführen, Schulter und Kopf sinken lassen.',
+      { a: Q, b: P(80, [190, 185], [185, 270], { b: [250, 270], hd: 130 }) }]
+  ];
+
+  App.Data.STRETCHES = ROWS.map(function (r) {
+    return { id: r[0], name: r[1], category: 'stretch', subCategory: r[2], targetMuscles: r[3], difficulty: 1,
+      equipment: [], description: r[4], instructions: r[5], svgAnimation: r[6] };
+  });
+  App.Data.register(App.Data.STRETCHES);
+
+  /* Dehnprogramme. `forAreas`: Zuordnung zu Kraftbereichen (für "Passendes Dehnungsprogramm"). */
+  App.Data.STRETCH_PROGRAMS = [
+    { id: 'stretch_upper', label: 'Oberkörper Dehnung', forAreas: ['upper'], secondsEach: 60,
+      exerciseIds: ['st_brust', 'st_schulter', 'st_latissimus', 'st_trizeps', 'st_bizeps'] },
+    { id: 'stretch_lower', label: 'Unterkörper Dehnung', forAreas: ['lower'], secondsEach: 60,
+      exerciseIds: ['st_waden', 'st_quad', 'st_hamstring', 'st_hueftbeuger', 'st_gesaess'] },
+    { id: 'stretch_core', label: 'Rumpf Dehnung', forAreas: ['core'], secondsEach: 60,
+      exerciseIds: ['st_catcow', 'st_child', 'st_cobra', 'st_rotation', 'st_seitbeuge'] },
+    { id: 'stretch_rns', label: 'Rücken · Nacken · Schulter', forAreas: [], secondsEach: 75,
+      exerciseIds: ['st_nacken', 'st_levator', 'st_brustoeffner', 'st_schulterblatt', 'st_thread'] }
+  ];
+})();
+
+
+/* ===== 12-data-modes.js ===== */
+/* ==========================================================================
+   12-data-modes.js  –  DATEN: Trainingsstile (TrainingMode)
+   Ein Modus beschreibt, wie EINE Übung in zeitliche Blöcke zerlegt wird.
+   Block = { type: 'prepare'|'work'|'rest', label, duration (s), exercise,
+             motion(t) -> { p: 0..1 Bewegungsfortschritt, cue: Phasentext },
+             sound: Signal beim Start des Blocks }
+   Neuen Stil ergänzen = neuen Eintrag in App.Data.MODES (buildBlocks).
+   ========================================================================== */
+App.Data.MODES = (function () {
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  const ease = x => x * x * (3 - 2 * x);
+
+  /** Kieser: 4 s Belastung · 2 s Halten · 4 s Rückbewegung · 2 s Halten, wiederholt bis `total` s. */
+  function kieserMotion(t) {
+    const s = t % 12;
+    if (s < 4) return { p: s / 4, cue: 'Belastung' };
+    if (s < 6) return { p: 1, cue: 'Halten' };
+    if (s < 10) return { p: 1 - (s - 6) / 4, cue: 'Rückbewegung' };
+    return { p: 0, cue: 'Halten' };
+  }
+
+  /** Klassisch: kontinuierliche Wiederholungen, eine Wiederholung dauert 3 s. */
+  function loopMotion(t) { const k = (t % 3) / 3; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Los!' }; }
+
+  /** Dehnung: langsam in die Dehnung gleiten (6 s), dann halten. */
+  function stretchMotion(t) { return { p: ease(clamp01(t / 6)), cue: t < 6 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
+
+  const prepare = (ex, secs) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
+    motion: () => ({ p: 0, cue: 'Gleich geht es los' }) });
+
+  function kieser(total) {
+    return {
+      id: 'kieser' + total, label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
+      buildBlocks: ex => [prepare(ex, App.Config.prepareSeconds),
+        { type: 'work', label: 'Belastung', duration: total, exercise: ex, sound: 'start', endSound: 'end', motion: kieserMotion }]
+    };
+  }
+
+  return [
+    kieser(90),
+    kieser(120),
+    {
+      id: 'classic3', label: 'Klassisch 3 Sätze', kind: 'strength',
+      buildBlocks: function (ex) {
+        const out = [prepare(ex, App.Config.prepareSeconds)];
+        for (let s = 1; s <= 3; s++) {
+          out.push({ type: 'work', label: 'Satz ' + s + ' / 3', duration: 30, exercise: ex, sound: s === 1 ? 'start' : 'set', motion: loopMotion });
+          if (s < 3) out.push({ type: 'rest', label: 'Pause', duration: 10, exercise: ex, sound: null, motion: () => ({ p: 0, cue: 'Pause' }) });
+        }
+        out[out.length - 1].endSound = 'end';
+        return out;
+      }
+    },
+    {
+      id: 'stretch', label: 'Dehnen', kind: 'stretch',
+      buildBlocks: function (ex, ctx) {
+        return [prepare(ex, 5), { type: 'work', label: 'Dehnen', duration: (ctx && ctx.secondsEach) || 60, exercise: ex, sound: 'start', endSound: 'end', motion: stretchMotion }];
+      }
+    }
+  ];
+})();
+App.Data.modeById = id => App.Data.MODES.filter(m => m.id === id)[0];
+
+
+/* ===== 20-logic-programs.js ===== */
+/* ==========================================================================
+   20-logic-programs.js  –  TRAININGSLOGIK (keine UI, kein DOM)
+   - Standardprogramme und "intelligenter" Zufallsmodus (Regeln aus App.Data.AREAS)
+   - Dehnprogramm-Auswahl
+   - Umwandlung eines Programms in zeitliche Blöcke für den Timer
+   ========================================================================== */
+App.Programs = (function () {
+  const D = App.Data;
+  const areaById = id => D.AREAS.filter(a => a.id === id)[0];
+
+  /** Kürzlich trainierte Übungen werden seltener gewählt (Abwechslung). */
+  function recentIds(history, n) {
+    const ids = {};
+    (history || []).slice(-n).forEach(s => (s.exerciseIds || []).forEach(id => { ids[id] = true; }));
+    return ids;
+  }
+
+  /** Gewichtete Zufallsauswahl von `n` verschiedenen Elementen. */
+  function pickWeighted(pool, n, weightOf, rnd) {
+    const items = pool.slice(), out = [];
+    while (out.length < n && items.length) {
+      const w = items.map(weightOf), sum = w.reduce((x, y) => x + y, 0);
+      let r = rnd() * sum, i = 0;
+      while (i < items.length - 1 && r >= w[i]) { r -= w[i]; i++; }
+      out.push(items.splice(i, 1)[0]);
+    }
+    return out;
+  }
+
+  /** Zufallsprogramm für einen Bereich: strikt nach den Slot-Regeln (2/2/1). */
+  function randomForArea(area, history, rnd) {
+    const recent = recentIds(history, 3);
+    let ids = [];
+    area.slots.forEach(function (slot) {
+      const pool = D.EXERCISES.filter(e => e.category === area.id && e.subCategory === slot.sub);
+      ids = ids.concat(pickWeighted(pool, slot.n, e => (recent[e.id] ? 0.25 : 1), rnd).map(e => e.id));
+    });
+    return ids;
+  }
+
+  /**
+   * Erstellt ein Kraftprogramm.
+   * opts: { areaIds: ['upper',..], programType: 'standard'|'random', history: [...], rnd: fn }
+   * Rückgabe (Program): { id, type, areaIds, exerciseIds }
+   */
+  function buildProgram(opts) {
+    const rnd = opts.rnd || Math.random;
+    const order = D.AREAS.map(a => a.id).filter(id => opts.areaIds.indexOf(id) >= 0);   // feste Reihenfolge
+    let ids = [];
+    order.forEach(function (id) {
+      const a = areaById(id);
+      ids = ids.concat(opts.programType === 'random' ? randomForArea(a, opts.history, rnd) : a.standard);
+    });
+    return { id: 'prog-' + Date.now(), type: opts.programType, areaIds: order, exerciseIds: ids };
+  }
+
+  /** Passendes Dehnprogramm zu trainierten Bereichen (mehrere Bereiche -> aneinandergehängt). */
+  function stretchForAreas(areaIds) {
+    const progs = D.STRETCH_PROGRAMS.filter(p => p.forAreas.some(a => areaIds.indexOf(a) >= 0));
+    return buildStretch(progs.map(p => p.id));
+  }
+
+  /** StretchProgram aus einer oder mehreren Programm-IDs. */
+  function buildStretch(programIds) {
+    const progs = programIds.map(id => D.STRETCH_PROGRAMS.filter(p => p.id === id)[0]).filter(Boolean);
+    const items = [];
+    progs.forEach(p => p.exerciseIds.forEach(id => items.push({ id: id, secondsEach: p.secondsEach })));
+    return { id: 'stretch-' + Date.now(), type: 'stretch', label: progs.map(p => p.label).join(' + '),
+      areaIds: [], exerciseIds: items.map(i => i.id), items: items };
+  }
+
+  /**
+   * Programm + Modus -> flache Blockliste (TrainingSession-Ablauf).
+   * Jeder Block erhält exerciseIndex/exerciseCount für die Anzeige.
+   */
+  function buildBlocks(program, mode) {
+    const blocks = [];
+    const items = program.items || program.exerciseIds.map(id => ({ id: id }));
+    items.forEach(function (it, i) {
+      mode.buildBlocks(D.byId[it.id], { secondsEach: it.secondsEach }).forEach(function (b) {
+        b.exerciseIndex = i; b.exerciseCount = items.length; blocks.push(b);
+      });
+    });
+    return blocks;
+  }
+
+  const totalSeconds = blocks => blocks.reduce((s, b) => s + b.duration, 0);
+
+  return { buildProgram: buildProgram, buildStretch: buildStretch, stretchForAreas: stretchForAreas,
+    buildBlocks: buildBlocks, totalSeconds: totalSeconds, areaById: areaById };
+})();
+
+
+/* ===== 30-timer.js ===== */
+/* ==========================================================================
+   30-timer.js  –  TIMER (kennt weder DOM noch Übungen, nur Blöcke)
+   Arbeitet mit Zeitstempeln statt Tick-Zählung -> bleibt korrekt, wenn der Browser
+   im Hintergrund drosselt. `advance(dt)` ist die Kernlogik und direkt testbar.
+   Callbacks: onTick(state), onBlockStart(block, index), onBlockEnd(block, index), onFinish()
+   ========================================================================== */
+App.Timer = function (blocks, cb) {
+  let index = 0, elapsed = 0, running = false, finished = false, last = 0, raf = 0, iv = 0, started = false;
+  const noop = function () {};
+  cb = Object.assign({ onTick: noop, onBlockStart: noop, onBlockEnd: noop, onFinish: noop }, cb);
+
+  function state() {
+    const b = blocks[Math.min(index, blocks.length - 1)];
+    return { index: index, block: b, elapsed: elapsed, remaining: Math.max(0, b.duration - elapsed),
+      running: running, finished: finished, motion: b.motion(Math.min(elapsed, b.duration)) };
+  }
+
+  /** Zeit um dt Sekunden vorrücken; wechselt Blöcke, auch über mehrere Blockgrenzen. */
+  function advance(dt) {
+    if (finished) return;
+    if (!started) { started = true; cb.onBlockStart(blocks[0], 0); }
+    elapsed += dt;
+    while (!finished && elapsed >= blocks[index].duration) {
+      elapsed -= blocks[index].duration;
+      cb.onBlockEnd(blocks[index], index);
+      index++;
+      if (index >= blocks.length) { finished = true; running = false; index = blocks.length - 1; elapsed = blocks[index].duration; stopLoops(); cb.onFinish(); return; }
+      cb.onBlockStart(blocks[index], index);
+    }
+    cb.onTick(state());
+  }
+
+  function frame() {
+    if (!running) return;
+    const now = performance.now(); advance((now - last) / 1000); last = now;
+    raf = requestAnimationFrame(frame);
+  }
+  function poll() { if (running) { const now = performance.now(); advance((now - last) / 1000); last = now; } }
+  function stopLoops() { cancelAnimationFrame(raf); clearInterval(iv); }
+
+  return {
+    start: function () { if (running || finished) return; running = true; last = performance.now(); raf = requestAnimationFrame(frame); iv = setInterval(poll, 250); if (!started) advance(0); },
+    pause: function () { if (!running) return; poll(); running = false; stopLoops(); cb.onTick(state()); },
+    stop: function () { running = false; finished = true; stopLoops(); },
+    /** Springt zum Beginn des nächsten Blocks. */
+    skip: function () { if (!finished) advance(blocks[index].duration - elapsed); },
+    advance: advance, state: state, isRunning: () => running, isFinished: () => finished
+  };
+};
+
+
+/* ===== 40-animation.js ===== */
+/* ==========================================================================
+   40-animation.js  –  ANIMATION: SVG-Strichfigur (reines SVG, keine Bilder)
+   createPlayer(svgElement) -> { setExercise(ex), render(p) }
+   p = Bewegungsfortschritt 0..1 (0 = Pose a, 1 = Pose b). Der Timer liefert p,
+   dadurch ist die Animation immer synchron zur Übungsphase (auch bei Pause).
+   ========================================================================== */
+App.Animation = (function () {
+  const NS = 'http://www.w3.org/2000/svg';
+  const C = App.Config, Pose = App.Pose;
+
+  function el(parent, tag, attrs) {
+    const e = document.createElementNS(NS, tag);
+    Object.keys(attrs || {}).forEach(k => e.setAttribute(k, attrs[k]));
+    parent.appendChild(e); return e;
+  }
+  const line = (e, p, q) => { e.setAttribute('x1', p[0]); e.setAttribute('y1', p[1]); e.setAttribute('x2', q[0]); e.setAttribute('y2', q[1]); };
+  const poly = (e, pts) => e.setAttribute('points', pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '));
+
+  function createPlayer(svg) {
+    svg.setAttribute('viewBox', '0 0 ' + C.stage.w + ' ' + C.stage.h);
+    svg.textContent = '';
+    const g = {
+      props: el(svg, 'g', { 'class': 'fig-prop' }),
+      floor: el(svg, 'line', { 'class': 'fig-floor', x1: 20, x2: C.stage.w - 20, y1: C.stage.floorY + 3, y2: C.stage.floorY + 3 }),
+      farArm: el(svg, 'polyline', { 'class': 'fig-limb far' }),
+      farLeg: el(svg, 'polyline', { 'class': 'fig-limb far' }),
+      torso: el(svg, 'line', { 'class': 'fig-limb torso' }),
+      nearLeg: el(svg, 'polyline', { 'class': 'fig-limb' }),
+      nearArm: el(svg, 'polyline', { 'class': 'fig-limb' }),
+      neck: el(svg, 'line', { 'class': 'fig-limb' }),
+      head: el(svg, 'circle', { 'class': 'fig-head', r: 9 }),
+      front: el(svg, 'g', { 'class': 'fig-prop' })
+    };
+    let A, B, off = [0, 0], ex = null, propEls = [];
+
+    /** Normalisierung: Figur über beide Posen zentrieren und auf den Boden stellen. */
+    function normalise() {
+      let minX = 1e9, maxX = -1e9, maxY = -1e9;
+      [A, B].forEach(function (p) {
+        const j = Pose.joints(p);
+        [j.head, j.neck, j.hip].concat(j.near.arm, j.near.leg, j.far.arm, j.far.leg).forEach(pt => {
+          minX = Math.min(minX, pt[0]); maxX = Math.max(maxX, pt[0]); maxY = Math.max(maxY, pt[1]);
+        });
+      });
+      off = [C.stage.w / 2 - (minX + maxX) / 2, C.stage.floorY - maxY];
+    }
+    const sh = p => [p[0] + off[0], p[1] + off[1]];
+
+    function buildProps() {
+      g.props.textContent = ''; g.front.textContent = ''; propEls = [];
+      ((ex.svgAnimation.props) || []).forEach(function (pr) {
+        const jA = Pose.joints(A), ank = sh(jA.near.leg[2]), hip = sh(jA.hip);
+        if (pr === 'step') { el(g.props, 'rect', { 'class': 'fig-box', x: ank[0] - 22, y: ank[1], width: 44, height: Math.max(4, C.stage.floorY + 3 - ank[1]), rx: 3 }); }
+        else if (pr === 'wall') { el(g.props, 'line', { 'class': 'fig-wall', x1: hip[0] - 16, x2: hip[0] - 16, y1: 14, y2: C.stage.floorY + 3 }); }
+        else if (pr === 'dumbbell') { propEls.push({ kind: 'db', n: [el(g.front, 'circle', { 'class': 'fig-weight', r: 5 }), el(g.front, 'circle', { 'class': 'fig-weight', r: 5 })] }); }
+        else if (pr.rope) { propEls.push({ kind: 'rope', anchor: pr.rope, n: [el(g.props, 'line', { 'class': 'fig-rope' }), el(g.props, 'circle', { 'class': 'fig-anchor', r: 3, cx: pr.rope[0], cy: pr.rope[1] })] }); }
+      });
+    }
+
+    function setExercise(e) {
+      ex = e; A = Pose.resolve(e.svgAnimation.a); B = Pose.resolve(e.svgAnimation.b);
+      normalise(); buildProps(); render(0);
+    }
+
+    function render(p) {
+      if (!ex) return;
+      const j = Pose.joints(Pose.mix(A, B, Math.max(0, Math.min(1, p))));
+      const hip = sh(j.hip), neck = sh(j.neck), head = sh(j.head);
+      poly(g.farArm, j.far.arm.map(sh)); poly(g.farLeg, j.far.leg.map(sh));
+      poly(g.nearLeg, j.near.leg.map(sh)); poly(g.nearArm, j.near.arm.map(sh));
+      line(g.torso, hip, neck); line(g.neck, neck, head);
+      g.head.setAttribute('cx', head[0]); g.head.setAttribute('cy', head[1]);
+      const hand = sh(j.near.arm[2]), hand2 = sh(j.far.arm[2]);
+      propEls.forEach(function (pe) {
+        if (pe.kind === 'db') {
+          [hand, hand2].forEach((h, i) => { pe.n[i].setAttribute('cx', h[0]); pe.n[i].setAttribute('cy', h[1]); });
+        } else { line(pe.n[0], hand, pe.anchor); }
+      });
+    }
+    return { setExercise: setExercise, render: render };
+  }
+
+  return { createPlayer: createPlayer };
+})();
+
+
+/* ===== 50-audio.js ===== */
+/* ==========================================================================
+   50-audio.js  –  Akustische Signale (WebAudio, keine Audiodateien)
+   Auf iOS muss der AudioContext durch eine Nutzergeste entsperrt werden: unlock().
+   Signale: start | set | end (Ende Übung) | finish (Trainingsende)
+   ========================================================================== */
+App.Audio = (function () {
+  let ctx = null, enabled = false;
+  const PATTERNS = {            // [Frequenz Hz, Dauer s, Pause bis zum nächsten Ton s]
+    start:  [[880, 0.18, 0.0]],
+    set:    [[660, 0.12, 0.16], [880, 0.18, 0]],
+    end:    [[880, 0.12, 0.16], [660, 0.2, 0]],
+    finish: [[523, 0.15, 0.18], [659, 0.15, 0.18], [784, 0.15, 0.18], [1047, 0.35, 0]]
+  };
+  function unlock() {
+    try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) { ctx = null; }
+  }
+  function play(name) {
+    if (!enabled || !ctx || !PATTERNS[name]) return;
+    let t = ctx.currentTime;
+    PATTERNS[name].forEach(function (n) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = n[0];
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + n[1]);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + n[1] + 0.05);
+      t += n[1] + n[2];
+    });
+  }
+  return { unlock: unlock, play: play, setEnabled: function (v) { enabled = !!v; if (enabled) unlock(); }, isEnabled: () => enabled };
+})();
+
+
+/* ===== 60-storage.js ===== */
+/* ==========================================================================
+   60-storage.js  –  Persistenz + Synchronisation
+   App.Store : lokaler Zustand (localStorage) – TrainingSession-Historie, Einstellungen,
+               Favoriten, Gewichte (Platzhalter für spätere Features).
+   App.Sync  : gleicht denselben Zustand als JSON-Datei mit GitHub ab
+               (Contents-API, Datei progress/training.json auf Branch "progress").
+   Merge-Regel: Sessions werden per ID vereinigt (nie Datenverlust), Einstellungen etc.
+                kommen vom Stand mit dem neueren `updatedAt`.
+   Zusätzlich: Export/Import als Datei (z. B. für OneDrive).
+   ========================================================================== */
+App.Store = (function () {
+  const KEY = App.Config.storageKey;
+  const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser90', programType: 'standard', sound: false },
+    sessions: [], favorites: [], weights: {} });
+  let state = load();
+
+  function load() {
+    try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.sessions) return Object.assign(defaults(), s); } catch (e) { /* ignorieren */ }
+    return defaults();
+  }
+  function save(touch) {
+    if (touch !== false) state.updatedAt = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* Speicher voll/privat */ }
+    listeners.forEach(f => f());
+  }
+  const listeners = [];
+
+  /** Vereinigt zwei Zustände (siehe Merge-Regel oben). */
+  function merge(a, b) {
+    const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, byId = {};
+    (a.sessions || []).concat(b.sessions || []).forEach(s => { byId[s.id] = s; });
+    const sessions = Object.keys(byId).map(k => byId[k]).sort((x, y) => x.date < y.date ? -1 : 1);
+    return Object.assign(defaults(), newer, { sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
+  }
+
+  return {
+    get: () => state,
+    settings: () => state.settings,
+    setSettings: function (patch) { Object.assign(state.settings, patch); save(); },
+    addSession: function (s) { state.sessions.push(s); save(); },
+    history: () => state.sessions,
+    replace: function (s) { state = s; save(false); },
+    merge: merge,
+    onChange: f => listeners.push(f),
+    exportJson: () => JSON.stringify(state, null, 1) + '\n',
+    importJson: function (text) { const o = JSON.parse(text); if (!o || !Array.isArray(o.sessions)) throw new Error('Ungültige Datei'); state = merge(state, o); save(); }
+  };
+})();
+
+App.Sync = (function () {
+  const G = App.Config.github;
+  let sha = null, busy = false, again = false, status = { text: '', cls: '' }, onStatus = function () {};
+  const token = () => { try { return localStorage.getItem(App.Config.tokenKey) || ''; } catch (e) { return ''; } };
+  const url = () => 'https://api.github.com/repos/' + G.owner + '/' + G.repo + '/contents/' + G.path;
+  const headers = () => ({ 'Authorization': 'Bearer ' + token(), 'Accept': 'application/vnd.github+json' });
+  const enc = s => btoa(unescape(encodeURIComponent(s)));
+  const dec = s => decodeURIComponent(escape(atob(s.replace(/\s/g, ''))));
+  function set(text, cls) { status = { text: text, cls: cls || '' }; onStatus(status); }
+
+  function fetchRemote() {
+    return fetch(url() + '?ref=' + G.branch + '&t=' + Date.now(), { headers: headers(), cache: 'no-store' }).then(function (r) {
+      if (r.status === 404) { sha = null; return null; }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(j => { if (!j) return null; sha = j.sha; return JSON.parse(dec(j.content)); });
+  }
+
+  function put() {
+    const body = { message: 'progress training', content: enc(App.Store.exportJson()), branch: G.branch };
+    if (sha) body.sha = sha;
+    return fetch(url(), { method: 'PUT', headers: headers(), body: JSON.stringify(body) }).then(function (r) {
+      if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+      return r.json();
+    }).then(j => { sha = j.content.sha; });
+  }
+
+  /** Holt den Remote-Stand, mergt, speichert lokal und schreibt bei Bedarf zurück. */
+  function sync() {
+    if (!token()) { set('Nicht verbunden (🔑 Token eingeben)', 'warn'); return Promise.resolve(); }
+    if (busy) { again = true; return Promise.resolve(); }
+    busy = true; set('Synchronisiere …');
+    return fetchRemote().then(function (remote) {
+      const merged = remote ? App.Store.merge(App.Store.get(), remote) : App.Store.get();
+      App.Store.replace(merged);
+      const same = remote && JSON.stringify(remote.sessions) === JSON.stringify(merged.sessions) && remote.updatedAt === merged.updatedAt;
+      return same ? null : put();
+    }).then(() => set('☁ Synchronisiert ' + new Date().toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })))
+      .catch(function (e) {
+        if (e.status === 409 || e.status === 422) { again = true; } else set('Sync-Fehler (' + (e.message || e) + ')', 'warn');
+      })
+      .then(function () { busy = false; if (again) { again = false; return sync(); } });
+  }
+
+  return {
+    sync: sync, hasToken: () => !!token(), onStatus: f => { onStatus = f; onStatus(status); },
+    setToken: function (t) { try { t ? localStorage.setItem(App.Config.tokenKey, t) : localStorage.removeItem(App.Config.tokenKey); } catch (e) { /* ignorieren */ } },
+    status: () => status
+  };
+})();
+
+
+/* ===== 70-ui.js ===== */
+/* ==========================================================================
+   70-ui.js  –  UI: Startbildschirm, Trainingsbildschirm, Ende, Katalog
+   Verbindet Daten (App.Data), Logik (App.Programs), Timer, Animation, Audio, Speicher.
+   Enthält keine Trainingsregeln – nur Darstellung und Ereignisbehandlung.
+   ========================================================================== */
+App.UI = (function () {
+  const $ = id => document.getElementById(id);
+  const D = App.Data, S = App.Store, CIRC = 2 * Math.PI * 150;
+  const STRENGTH_MODES = D.MODES.filter(m => m.kind === 'strength');
+  const PTYPES = [{ id: 'standard', label: 'Standard' }, { id: 'random', label: 'Zufällig' }];
+  let player, timer = null, session = null, wakeLock = null, shownEx = null;
+
+  const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); };
+  function show(id) { ['home', 'train', 'done', 'gallery'].forEach(n => { $(n).hidden = n !== id; }); window.scrollTo(0, 0); }
+  function btn(label, cls, pressed, onClick, html) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls;
+    if (html) b.innerHTML = html; else b.textContent = label;
+    if (pressed != null) b.setAttribute('aria-pressed', pressed);
+    b.onclick = onClick; return b;
+  }
+
+  /* ---------------- Startbildschirm ---------------- */
+  function renderHome() {
+    const st = S.settings();
+    const areas = $('areas'); areas.textContent = '';
+    D.AREAS.forEach(a => {
+      const on = st.areas.indexOf(a.id) >= 0;
+      areas.appendChild(btn('', 'choice', on, () => {
+        const sel = st.areas.indexOf(a.id) >= 0 ? st.areas.filter(x => x !== a.id) : st.areas.concat(a.id);
+        S.setSettings({ areas: sel }); renderHome();
+      }, '<span class="ic">' + (on ? '☑' : '☐') + '</span><span>' + a.icon + ' ' + a.label + '</span>'));
+    });
+    const styles = $('styles'); styles.textContent = '';
+    STRENGTH_MODES.forEach(m => styles.appendChild(btn(m.label, 'choice', st.style === m.id, () => { S.setSettings({ style: m.id }); renderHome(); })));
+    const pt = $('ptype'); pt.textContent = '';
+    PTYPES.forEach(p => pt.appendChild(btn(p.label, 'choice', st.programType === p.id, () => { S.setSettings({ programType: p.id }); renderHome(); })));
+    $('sound').checked = !!st.sound;
+    const n = st.areas.length * 5;
+    const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, D.modeById(st.style))) : 0;
+    $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
+    $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5;
+    const st2 = $('stretches'); st2.textContent = '';
+    D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => startStretch(App.Programs.buildStretch([p.id])))));
+    const h = S.history(), week = Date.now() - 7 * 864e5;
+    $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
+    $('syncBtn').textContent = App.Sync.hasToken() ? '☁ Jetzt synchronisieren' : '🔑 GitHub-Sync';
+  }
+
+  /* ---------------- Training ---------------- */
+  function startStrength() {
+    const st = S.settings(); App.Audio.unlock();
+    const program = App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history() });
+    run(program, D.modeById(st.style), { kind: 'strength' });
+  }
+  function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }
+
+  function run(program, mode, meta) {
+    const blocks = App.Programs.buildBlocks(program, mode);
+    const totalAll = App.Programs.totalSeconds(blocks);
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, ui: { lastCount: null, lastCue: null } };
+    shownEx = null; show('train'); requestWake();
+    timer = App.Timer(blocks, {
+      onBlockStart: function (b) {
+        if (shownEx !== b.exercise) { shownEx = b.exercise; showExercise(b); }
+        App.Audio.play(b.sound);
+        $('tProgress').textContent = (b.exerciseIndex + 1) + ' / ' + b.exerciseCount + (b.type === 'prepare' ? ' · Vorbereitung' : '');
+      },
+      onBlockEnd: function (b, i) {
+        if (b.endSound) { session.doneCount++; if (i < blocks.length - 1) App.Audio.play(b.endSound); }
+      },
+      onTick: function (s) {
+        const b = s.block, rem = Math.ceil(s.remaining - 1e-6), u = session.ui;
+        $('ringFg').style.strokeDasharray = CIRC;
+        $('ringFg').style.strokeDashoffset = CIRC * Math.min(1, s.elapsed / b.duration);
+        if (u.lastCount !== rem) { $('count').textContent = rem; u.lastCount = rem; }
+        const cue = (/^Satz/.test(b.label) ? b.label + ' · ' : '') + s.motion.cue;
+        if (u.lastCue !== cue) { $('cue').textContent = cue; u.lastCue = cue; }
+        player.render(s.motion.p);
+        let left = s.remaining; for (let k = s.index + 1; k < blocks.length; k++) left += blocks[k].duration;
+        $('tTotal').textContent = 'Gesamt ' + fmt(left) + ' / ' + fmt(totalAll);
+        $('pauseBtn').textContent = s.running ? 'Pause' : 'Weiter';
+      },
+      onFinish: function () { App.Audio.play('finish'); finish(true); }
+    });
+    timer.start();
+  }
+
+  function showExercise(b) {
+    const ex = b.exercise;
+    $('tName').textContent = ex.name; $('tMuscles').textContent = ex.targetMuscles.join(' · ');
+    $('tDesc').textContent = ex.description; $('tInstr').textContent = ex.instructions;
+    player.setExercise(ex);
+    const nextIdx = b.exerciseIndex + 1, ids = session.program.exerciseIds;
+    $('tNext').textContent = nextIdx < ids.length ? 'Als Nächstes: ' + D.byId[ids[nextIdx]].name : 'Letzte Übung';
+  }
+
+  function finish(completed) {
+    releaseWake();
+    const secs = Math.round((Date.now() - session.startedAt.getTime()) / 1000), p = session.program;
+    if (session.doneCount > 0) {
+      S.addSession({ id: 's' + session.startedAt.getTime() + Math.random().toString(36).slice(2, 6), date: session.startedAt.toISOString(),
+        kind: session.kind, areaIds: p.areaIds, modeId: session.mode.id, programType: p.type, exerciseIds: p.exerciseIds,
+        completed: completed, durationSec: secs });
+      if (App.Sync.hasToken()) App.Sync.sync();
+    }
+    if (!completed) { show('home'); renderHome(); return; }
+    $('dText').textContent = fmt(secs) + ' Minuten · ' + p.exerciseIds.length + ' Übungen';
+    $('dAsk').hidden = session.kind !== 'strength'; show('done');
+  }
+
+  function requestWake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wakeLock = w; }, () => {}); } catch (e) { /* optional */ } }
+  function releaseWake() { try { if (wakeLock) wakeLock.release(); } catch (e) { /* optional */ } wakeLock = null; }
+
+  /* ---------------- Katalog (Kontrolle aller Animationen) ---------------- */
+  function renderGallery() {
+    const grid = $('galleryGrid'); if (grid.firstChild) return;
+    D.EXERCISES.concat(D.STRETCHES).forEach(ex => {
+      const c = document.createElement('div'); c.className = 'gcell';
+      c.innerHTML = '<b>' + ex.name + '</b><small class="muted">' + ex.subCategory + '</small><br>';
+      [0, 1].forEach(k => {
+        const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const pl = App.Animation.createPlayer(s); pl.setExercise(ex); pl.render(k); c.appendChild(s);
+      });
+      grid.appendChild(c);
+    });
+  }
+  function route() {
+    if (timer && !timer.isFinished()) return;
+    if (location.hash === '#gallery') { renderGallery(); show('gallery'); } else if (!$('gallery').hidden) { show('home'); renderHome(); }
+  }
+
+  /* ---------------- Init ---------------- */
+  function init() {
+    player = App.Animation.createPlayer($('fig'));
+    $('sound').onchange = e => { S.setSettings({ sound: e.target.checked }); App.Audio.setEnabled(e.target.checked); };
+    App.Audio.setEnabled(S.settings().sound);
+    $('start').onclick = startStrength;
+    $('pauseBtn').onclick = () => { if (timer.isRunning()) timer.pause(); else timer.start(); };
+    $('skipBtn').onclick = () => timer.skip();
+    $('stopBtn').onclick = () => { if (confirm('Training abbrechen?')) { timer.stop(); finish(false); } };
+    $('askYes').onclick = () => startStretch(App.Programs.stretchForAreas(session.program.areaIds));
+    $('askNo').onclick = $('dHome').onclick = () => { show('home'); renderHome(); };
+    $('syncBtn').onclick = function () {
+      if (!App.Sync.hasToken()) {
+        const t = prompt('GitHub Fine-grained Token (Contents: Read & Write für Repo ' + App.Config.github.repo + '):', '');
+        if (!t) return; App.Sync.setToken(t.trim());
+      }
+      App.Sync.sync().then(renderHome);
+    };
+    $('exportBtn').onclick = function () {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([S.exportJson()], { type: 'application/json' }));
+      a.download = 'training-fortschritt.json'; a.click();
+    };
+    $('importFile').onchange = function (e) {
+      const f = e.target.files[0]; if (!f) return;
+      f.text().then(t => { S.importJson(t); renderHome(); }).catch(err => alert('Import fehlgeschlagen: ' + err.message));
+    };
+    App.Sync.onStatus(s => { $('syncInfo').textContent = s.text; });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      if (timer && timer.isRunning()) requestWake(); else if (App.Sync.hasToken() && !$('home').hidden) App.Sync.sync().then(renderHome);
+    });
+    window.addEventListener('hashchange', route);
+    renderHome(); route();
+    if (App.Sync.hasToken()) App.Sync.sync().then(renderHome);
+  }
+  return { init: init };
+})();
+
+
+/* ===== 90-selftest.js ===== */
+/* ==========================================================================
+   90-selftest.js  –  Eingebauter Selbsttest. Aufruf: training.html#selftest
+   Ergebnis steht in <pre id="selftest"> und im Seitentitel ("SELFTEST PASS/FAIL").
+   Läuft ohne Testframework, auch headless (siehe tests/run-selftest.py).
+   ========================================================================== */
+App.SelfTest = (function () {
+  function run() {
+    const out = [], fails = [];
+    const check = (name, ok, info) => { out.push((ok ? 'PASS ' : 'FAIL ') + name + (info ? ' – ' + info : '')); if (!ok) fails.push(name); };
+    const D = App.Data;
+
+    // 1. Datenmodell: Pflichtfelder
+    const req = ['id', 'name', 'category', 'subCategory', 'targetMuscles', 'difficulty', 'equipment', 'description', 'instructions', 'svgAnimation'];
+    const all = D.EXERCISES.concat(D.STRETCHES);
+    check('Anzahl Kraftübungen = 43', D.EXERCISES.length === 43, D.EXERCISES.length);
+    check('Anzahl Dehnübungen = 20', D.STRETCHES.length === 20, D.STRETCHES.length);
+    check('Pflichtfelder vollständig', all.every(e => req.every(k => e[k] != null && e[k] !== '')));
+    check('IDs eindeutig', new Set(all.map(e => e.id)).size === all.length);
+    check('Posen vorhanden und endlich', all.every(function (e) {
+      return [e.svgAnimation.a, e.svgAnimation.b].every(function (p) {
+        const j = App.Pose.joints(App.Pose.resolve(p)); return [j.head, j.neck].concat(j.near.arm, j.near.leg).every(q => isFinite(q[0]) && isFinite(q[1]));
+      });
+    }));
+    check('Dehnprogramme referenzieren existierende Übungen', D.STRETCH_PROGRAMS.every(p => p.exerciseIds.length === 5 && p.exerciseIds.every(id => D.byId[id])));
+    check('Standardprogramme gültig (5 Übungen je Bereich)', D.AREAS.every(a => a.standard.length === 5 && a.standard.every(id => D.byId[id].category === a.id)));
+
+    // 2. Zufallsregeln (2/2/1) – 300 Ziehungen
+    let rulesOk = true;
+    for (let i = 0; i < 300 && rulesOk; i++) {
+      D.AREAS.forEach(function (a) {
+        const p = App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] });
+        if (p.exerciseIds.length !== 5 || new Set(p.exerciseIds).size !== 5) rulesOk = false;
+        a.slots.forEach(s => { if (p.exerciseIds.filter(id => D.byId[id].subCategory === s.sub).length !== s.n) rulesOk = false; });
+      });
+    }
+    check('Zufallsmodus hält Regeln ein', rulesOk);
+    check('Mehrfachauswahl: 3 Bereiche = 15 Übungen in fester Reihenfolge',
+      (function () { const p = App.Programs.buildProgram({ areaIds: ['lower', 'upper', 'core'], programType: 'standard' }); return p.exerciseIds.length === 15 && p.areaIds.join() === 'upper,core,lower'; })());
+
+    // 3. Trainingsstile / Dauer
+    const ex = D.byId.plank, sum = m => App.Programs.totalSeconds(D.modeById(m).buildBlocks(ex));
+    check('Kieser 90: 10 s Vorbereitung + 90 s', sum('kieser90') === 100, sum('kieser90'));
+    check('Kieser 120: 10 s Vorbereitung + 120 s', sum('kieser120') === 130, sum('kieser120'));
+    check('Klassisch: 10 + 3×30 + 2×10 = 120 s', sum('classic3') === 120, sum('classic3'));
+    const km = D.modeById('kieser90').buildBlocks(ex)[1].motion;
+    check('Kieser-Zyklus 4/2/4/2', km(0).p === 0 && km(4).p === 1 && km(5).cue === 'Halten' && km(8).p === 0.5 && km(10).p === 0 && km(11).cue === 'Halten');
+    check('Stretch-Programm 5 Übungen', App.Programs.stretchForAreas(['upper']).exerciseIds.length === 5 && App.Programs.stretchForAreas(['upper', 'core']).exerciseIds.length === 10);
+
+    // 4. Timer mit simulierter Zeit
+    const events = [], blocks = App.Programs.buildBlocks({ exerciseIds: ['plank', 'bird_dog'] }, D.modeById('classic3'));
+    const t = App.Timer(blocks, { onBlockStart: (b, i) => events.push('s' + i), onBlockEnd: (b, i) => events.push('e' + i), onFinish: () => events.push('F') });
+    const total = App.Programs.totalSeconds(blocks);
+    t.advance(0); t.advance(10.5);
+    check('Timer wechselt von Vorbereitung zu Satz 1', t.state().index === 1 && Math.abs(t.state().elapsed - 0.5) < 1e-9);
+    t.advance(total);      // weit über das Ende hinaus
+    check('Timer beendet genau einmal', t.isFinished() && events.filter(e => e === 'F').length === 1 && events.filter(e => e.charAt(0) === 'e').length === blocks.length);
+
+    // 5. Merge der Fortschrittsdaten
+    const m = App.Store.merge({ updatedAt: 1, settings: { x: 1 }, sessions: [{ id: 'a', date: '2026-01-01' }] }, { updatedAt: 2, settings: { x: 2 }, sessions: [{ id: 'a', date: '2026-01-01' }, { id: 'b', date: '2026-01-02' }] });
+    check('Merge vereinigt Sessions, neuere Einstellungen gewinnen', m.sessions.length === 2 && m.settings.x === 2);
+
+    document.getElementById('selftest').textContent = out.join('\n'); document.getElementById('selftest').hidden = false;
+    document.title = 'SELFTEST ' + (fails.length ? 'FAIL (' + fails.join('; ') + ')' : 'PASS');
+  }
+  return { run: run };
+})();
+
+
+/* ===== 99-main.js ===== */
+/* 99-main.js – Einstiegspunkt. Muss als letztes Modul geladen werden. */
+document.addEventListener('DOMContentLoaded', function () {
+  App.UI.init();
+  if (location.hash === '#selftest') App.SelfTest.run();
+});
+
+</script>
+</body>
+</html>
