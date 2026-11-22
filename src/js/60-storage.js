@@ -10,8 +10,8 @@
    ========================================================================== */
 App.Store = (function () {
   const KEY = App.Config.storageKey;
-  const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser90', programType: 'standard', sound: false },
-    sessions: [], favorites: [], weights: {} });
+  const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser', kieserSeconds: App.Config.kieser.default, programType: 'standard', sound: false },
+    sessions: [], favorites: [], weights: {}, ratings: {} });
   let state = load();
 
   function load() {
@@ -30,7 +30,8 @@ App.Store = (function () {
     const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, byId = {};
     (a.sessions || []).concat(b.sessions || []).forEach(s => { byId[s.id] = s; });
     const sessions = Object.keys(byId).map(k => byId[k]).sort((x, y) => x.date < y.date ? -1 : 1);
-    return Object.assign(defaults(), newer, { sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
+    const older = newer === a ? b : a;
+    return Object.assign(defaults(), newer, { ratings: Object.assign({}, older.ratings, newer.ratings), sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
   }
 
   return {
@@ -39,6 +40,9 @@ App.Store = (function () {
     setSettings: function (patch) { Object.assign(state.settings, patch); save(); },
     addSession: function (s) { state.sessions.push(s); save(); },
     history: () => state.sessions,
+    ratings: () => state.ratings,
+    rating: id => state.ratings[id] || 0,
+    setRating: function (id, n) { if (n) state.ratings[id] = n; else delete state.ratings[id]; save(); },
     replace: function (s) { state = s; save(false); },
     merge: merge,
     onChange: f => listeners.push(f),

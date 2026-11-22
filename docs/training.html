@@ -66,6 +66,19 @@ h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;
 .gcell b{display:block}.gcell svg{width:48%}
 summary{cursor:pointer;font-weight:600;padding:12px 0}
 
+/* Slider, Sterne, Overlay */
+.slider{display:block;font-weight:600}.slider input{display:block;width:100%;height:44px;margin-top:6px;accent-color:var(--accent)}
+.stars{display:inline-flex;gap:2px}.stars button{appearance:none;border:0;background:none;font-size:2rem;line-height:1;padding:6px 4px;min-width:44px;min-height:44px;color:var(--line);cursor:pointer;touch-action:manipulation}
+.stars button.on{color:#f5a623}.stars.small button{font-size:1.4rem;min-width:36px;min-height:36px;padding:2px}
+.ratelist{list-style:none;margin:0;padding:0}.ratelist li{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line)}.ratelist li:last-child{border:0}.ratelist li>span{font-weight:600}
+.gcell{cursor:pointer}.gcell:focus-visible{outline:3px solid var(--accent)}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(10,16,32,.6);display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) 12px 12px}
+.overlay[hidden]{display:none}
+.sheet{--headfill:var(--card);background:var(--card);border-radius:20px;padding:16px 20px 20px;width:min(900px,100%);max-height:100%;overflow:auto}
+.ovbody{display:grid;grid-template-columns:minmax(260px,1fr) 1fr;gap:20px;align-items:start}
+.ovbody svg{width:100%;background:var(--bg);border-radius:14px}
+@media (orientation:portrait),(max-width:700px){.ovbody{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -74,6 +87,8 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
   <h1>Training</h1>
   <section><h2>Trainingsbereiche</h2><div id="areas" class="grid3"></div></section>
   <section><h2>Trainingsstil</h2><div id="styles" class="seg"></div></section>
+  <section id="kieserBox" hidden><label class="slider">Dauer pro Übung: <b id="kieserVal"></b>
+    <input type="range" id="kieserRange" aria-label="Kieser-Dauer in Sekunden"></label></section>
   <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div></section>
   <section class="row"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label></section>
   <p id="summary" class="muted"></p>
@@ -136,6 +151,10 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 <main id="done" class="screen" hidden>
   <h1 id="dTitle">Geschafft! 🎉</h1>
   <p id="dText" class="muted"></p>
+  <div id="dRate" class="card" hidden>
+    <h2>Übungen bewerten</h2><p class="muted small">Gut bewertete Übungen kommen im Zufallsmodus öfter. Erneut auf den gleichen Stern tippen = unbewertet.</p>
+    <ul id="dRateList" class="ratelist"></ul>
+  </div>
   <div id="dAsk" hidden>
     <h2>Passendes Dehnungsprogramm starten?</h2>
     <div class="row"><button id="askYes" class="btn primary big">Ja</button><button id="askNo" class="btn big">Nein</button></div>
@@ -147,6 +166,17 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 <main id="gallery" class="screen wide" hidden>
   <h1>Übungskatalog</h1><p><a href="#">← zurück</a></p><div id="galleryGrid" class="gallery"></div>
 </main>
+<div id="overlay" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="ovName">
+  <div class="sheet">
+    <button id="ovClose" class="btn">✕ Schließen</button>
+    <h1 id="ovName"></h1><p id="ovMuscles" class="muscles"></p>
+    <div class="ovbody">
+      <svg id="ovFig" aria-hidden="true"></svg>
+      <div><p id="ovDesc" class="lead"></p><h2>Anleitung</h2><p id="ovInstr"></p><p id="ovEquip" class="muted"></p>
+        <h2>Deine Bewertung</h2><div id="ovStars"></div></div>
+    </div>
+  </div>
+</div>
 <pre id="selftest" hidden></pre>
 <script>
 /* ===== 00-config.js ===== */
@@ -164,6 +194,10 @@ App.Config = {
   github: { owner: 'aloisdanninger', repo: 'Training', branch: 'progress', path: 'progress/training.json' },
   /* Sekunden Vorbereitung zwischen zwei Übungen */
   prepareSeconds: 10,
+  /* Übungen, die Befestigung brauchen (Band/TRX), nicht vorschlagen. Auf false setzen, wenn ein Ankerpunkt vorhanden ist. */
+  excludeAnchored: true,
+  /* Kieser-Dauer: Standard und Reglerbereich (Sekunden) */
+  kieser: { min: 90, max: 120, step: 5, default: 120 },
   /* Geometrie der Strichfigur (SVG-Einheiten) */
   body: { torso: 40, neck: 13, upperArm: 22, foreArm: 20, thigh: 27, shin: 26 },
   stage: { w: 240, h: 200, floorY: 172 }
@@ -228,7 +262,7 @@ App.Data = App.Data || {};
 App.Data.AREAS = [
   { id: 'upper', label: 'Oberkörper', icon: '💪',
     slots: [{ sub: 'Drücken', n: 2 }, { sub: 'Ziehen', n: 2 }, { sub: 'Arme', n: 1 }],
-    standard: ['liegestuetz', 'schulterdruecken', 'trx_row', 'kurzhantelrudern', 'bizeps_curl'] },
+    standard: ['liegestuetz', 'schulterdruecken', 'bent_over_row', 'kurzhantelrudern', 'bizeps_curl'] },
   { id: 'core', label: 'Rumpf', icon: '🎯',
     slots: [{ sub: 'Bauch', n: 2 }, { sub: 'Rücken', n: 2 }, { sub: 'Seitliche Stabilität', n: 1 }],
     standard: ['plank', 'dead_bug', 'superman', 'bird_dog', 'side_plank'] },
@@ -409,6 +443,7 @@ App.Data.AREAS = [
   App.Data.EXERCISES.forEach(function (e) {
     if (MAT.indexOf(e.id) >= 0) e.equipment = e.equipment.concat('Matte');
     if (WEIGHT[e.id]) e.weight = WEIGHT[e.id];
+    e.needsAnchor = e.equipment.some(q => /^(trx|band)/i.test(q));   // braucht Befestigungspunkt
   });
 
   /* Hilfsfunktion für spätere Module (Dehnübungen nutzen dieselbe Struktur) */
@@ -535,15 +570,15 @@ App.Data.MODES = (function () {
 
   function kieser(total) {
     return {
-      id: 'kieser' + total, label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
+      id: 'kieser', label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
       buildBlocks: ex => [prepare(ex, App.Config.prepareSeconds),
         { type: 'work', label: 'Belastung', duration: total, exercise: ex, sound: 'double', endSound: 'double', motion: kieserMotion }]
     };
   }
 
+  App.Data.kieserMode = kieser;
   return [
-    kieser(90),
-    kieser(120),
+    kieser(App.Config.kieser.default),
     {
       id: 'classic3', label: 'Klassisch 3 Sätze', kind: 'strength',
       buildBlocks: function (ex) {
@@ -563,7 +598,11 @@ App.Data.MODES = (function () {
     }
   ];
 })();
-App.Data.modeById = id => App.Data.MODES.filter(m => m.id === id)[0];
+/** Modus per ID. Für 'kieser' kann die Dauer (Sekunden) übergeben werden. */
+App.Data.modeById = function (id, kieserSeconds) {
+  if (id === 'kieser' && kieserSeconds) return App.Data.kieserMode(kieserSeconds);
+  return App.Data.MODES.filter(m => m.id === id)[0];
+};
 
 
 /* ===== 20-logic-programs.js ===== */
@@ -584,6 +623,10 @@ App.Programs = (function () {
     return ids;
   }
 
+  /** Gewicht einer Bewertung (0 = unbewertet = neutral wie 3 Sterne). Hohe Bewertung -> häufiger. */
+  const RATING_WEIGHT = { 1: 0.25, 2: 0.6, 3: 1, 4: 1.8, 5: 3 };
+  const ratingWeight = r => RATING_WEIGHT[r] || 1;
+
   /** Gewichtete Zufallsauswahl von `n` verschiedenen Elementen. */
   function pickWeighted(pool, n, weightOf, rnd) {
     const items = pool.slice(), out = [];
@@ -597,19 +640,19 @@ App.Programs = (function () {
   }
 
   /** Zufallsprogramm für einen Bereich: strikt nach den Slot-Regeln (2/2/1). */
-  function randomForArea(area, history, rnd) {
-    const recent = recentIds(history, 3);
+  function randomForArea(area, history, rnd, ratings) {
+    const recent = recentIds(history, 3), excl = App.Config.excludeAnchored;
     let ids = [];
     area.slots.forEach(function (slot) {
-      const pool = D.EXERCISES.filter(e => e.category === area.id && e.subCategory === slot.sub);
-      ids = ids.concat(pickWeighted(pool, slot.n, e => (recent[e.id] ? 0.25 : 1), rnd).map(e => e.id));
+      const pool = D.EXERCISES.filter(e => e.category === area.id && e.subCategory === slot.sub && !(excl && e.needsAnchor));
+      ids = ids.concat(pickWeighted(pool, slot.n, e => (recent[e.id] ? 0.25 : 1) * ratingWeight((ratings || {})[e.id]), rnd).map(e => e.id));
     });
     return ids;
   }
 
   /**
    * Erstellt ein Kraftprogramm.
-   * opts: { areaIds: ['upper',..], programType: 'standard'|'random', history: [...], rnd: fn }
+   * opts: { areaIds: ['upper',..], programType: 'standard'|'random', history: [...], ratings: {id: 0-5}, rnd: fn }
    * Rückgabe (Program): { id, type, areaIds, exerciseIds }
    */
   function buildProgram(opts) {
@@ -618,7 +661,7 @@ App.Programs = (function () {
     let ids = [];
     order.forEach(function (id) {
       const a = areaById(id);
-      ids = ids.concat(opts.programType === 'random' ? randomForArea(a, opts.history, rnd) : a.standard);
+      ids = ids.concat(opts.programType === 'random' ? randomForArea(a, opts.history, rnd, opts.ratings) : a.standard);
     });
     return { id: 'prog-' + Date.now(), type: opts.programType, areaIds: order, exerciseIds: ids };
   }
@@ -682,7 +725,7 @@ App.Programs = (function () {
   }
 
   return { buildProgram: buildProgram, buildStretch: buildStretch, stretchForAreas: stretchForAreas,
-    buildBlocks: buildBlocks, totalSeconds: totalSeconds, equipmentSummary: equipmentSummary, areaById: areaById };
+    buildBlocks: buildBlocks, totalSeconds: totalSeconds, equipmentSummary: equipmentSummary, ratingWeight: ratingWeight, areaById: areaById };
 })();
 
 
@@ -870,11 +913,27 @@ App.Audio = (function () {
     double: [[988, 0.12, 0.1], [988, 0.12, 0]],        // Start und Ende einer Übung bzw. eines Satzes
     finish: [[523, 0.15, 0.18], [659, 0.15, 0.18], [784, 0.15, 0.18], [1047, 0.35, 0]]
   };
+  let keep = null;
+  /** Stiller Dauerton: schaltet iOS auf "Wiedergabe" – dann wirkt der Stumm-Schalter nicht auf die Pings. */
+  function silentKeepAlive() {
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';      // iOS 16.4+
+      if (keep) return;
+      const n = 8000, b = new Uint8Array(44 + n), v = new DataView(b.buffer), w = (o, s) => { for (let i = 0; i < s.length; i++) b[o + i] = s.charCodeAt(i); };
+      w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
+      for (let i = 0; i < n; i++) b[44 + i] = 128;
+      keep = new Audio(URL.createObjectURL(new Blob([b], { type: 'audio/wav' }))); keep.loop = true; keep.volume = 0.01;
+      keep.play().catch(function () { keep = null; });
+    } catch (e) { keep = null; }
+  }
   function unlock() {
-    try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) { ctx = null; }
+    try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state !== 'running') ctx.resume(); } catch (e) { ctx = null; }
+    if (enabled) silentKeepAlive();
   }
   function play(name) {
     if (!enabled || !ctx || !PATTERNS[name]) return;
+    if (ctx.state !== 'running') ctx.resume();
     let t = ctx.currentTime;
     PATTERNS[name].forEach(function (n) {
       const o = ctx.createOscillator(), g = ctx.createGain();
@@ -901,8 +960,8 @@ App.Audio = (function () {
    ========================================================================== */
 App.Store = (function () {
   const KEY = App.Config.storageKey;
-  const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser90', programType: 'standard', sound: false },
-    sessions: [], favorites: [], weights: {} });
+  const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser', kieserSeconds: App.Config.kieser.default, programType: 'standard', sound: false },
+    sessions: [], favorites: [], weights: {}, ratings: {} });
   let state = load();
 
   function load() {
@@ -921,7 +980,8 @@ App.Store = (function () {
     const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, byId = {};
     (a.sessions || []).concat(b.sessions || []).forEach(s => { byId[s.id] = s; });
     const sessions = Object.keys(byId).map(k => byId[k]).sort((x, y) => x.date < y.date ? -1 : 1);
-    return Object.assign(defaults(), newer, { sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
+    const older = newer === a ? b : a;
+    return Object.assign(defaults(), newer, { ratings: Object.assign({}, older.ratings, newer.ratings), sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
   }
 
   return {
@@ -930,6 +990,9 @@ App.Store = (function () {
     setSettings: function (patch) { Object.assign(state.settings, patch); save(); },
     addSession: function (s) { state.sessions.push(s); save(); },
     history: () => state.sessions,
+    ratings: () => state.ratings,
+    rating: id => state.ratings[id] || 0,
+    setRating: function (id, n) { if (n) state.ratings[id] = n; else delete state.ratings[id]; save(); },
     replace: function (s) { state = s; save(false); },
     merge: merge,
     onChange: f => listeners.push(f),
@@ -1001,6 +1064,7 @@ App.UI = (function () {
   const D = App.Data, S = App.Store, CIRC = 2 * Math.PI * 150;
   const STRENGTH_MODES = D.MODES.filter(m => m.kind === 'strength');
   const PTYPES = [{ id: 'standard', label: 'Standard' }, { id: 'random', label: 'Zufällig' }];
+  const CK = App.Config.kieser;
   const PINGS = [60, 30, 10, 3, 2, 1];            // verbleibende Sekunden mit einfachem Ping
   let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
@@ -1014,8 +1078,13 @@ App.UI = (function () {
   }
 
   /* ---------------- Startbildschirm ---------------- */
+  function currentMode() { const st = S.settings(); return D.modeById(st.style, st.kieserSeconds || CK.default); }
+
   function renderHome() {
-    const st = S.settings();
+    let st = S.settings();
+    if (/^kieser\d+$/.test(st.style)) {         // alter Stand (kieser90/kieser120) -> 'kieser' + Dauer
+      S.setSettings({ style: 'kieser', kieserSeconds: parseInt(st.style.slice(6), 10) || CK.default }); st = S.settings();
+    }
     const areas = $('areas'); areas.textContent = '';
     D.AREAS.forEach(a => {
       const on = st.areas.indexOf(a.id) >= 0;
@@ -1025,12 +1094,14 @@ App.UI = (function () {
       }, '<span class="ic">' + (on ? '☑' : '☐') + '</span><span>' + a.icon + ' ' + a.label + '</span>'));
     });
     const styles = $('styles'); styles.textContent = '';
-    STRENGTH_MODES.forEach(m => styles.appendChild(btn(m.label, 'choice', st.style === m.id, () => { S.setSettings({ style: m.id }); renderHome(); })));
+    STRENGTH_MODES.forEach(m => styles.appendChild(btn(m.id === 'kieser' ? 'Kieser' : m.label, 'choice', st.style === m.id, () => { S.setSettings({ style: m.id }); renderHome(); })));
+    const secs = st.kieserSeconds || CK.default, kb = $('kieserBox');
+    kb.hidden = st.style !== 'kieser'; $('kieserRange').value = secs; $('kieserVal').textContent = secs + ' Sekunden';
     const pt = $('ptype'); pt.textContent = '';
     PTYPES.forEach(p => pt.appendChild(btn(p.label, 'choice', st.programType === p.id, () => { S.setSettings({ programType: p.id }); renderHome(); })));
     $('sound').checked = !!st.sound;
     const n = st.areas.length * 5;
-    const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, D.modeById(st.style))) : 0;
+    const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, currentMode())) : 0;
     $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
     $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5;
     const st2 = $('stretches'); st2.textContent = '';
@@ -1043,9 +1114,9 @@ App.UI = (function () {
   /* ---------------- Training ---------------- */
   function buildStrength() {
     const st = S.settings();
-    return App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history() });
+    return App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history(), ratings: S.ratings() });
   }
-  function startStrength() { openPreview(buildStrength(), D.modeById(S.settings().style), 'strength'); }
+  function startStrength() { openPreview(buildStrength(), currentMode(), 'strength'); }
 
   /* ---------------- Übersicht vor dem Start ---------------- */
   function esc(t) { return String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
@@ -1087,7 +1158,7 @@ App.UI = (function () {
   function run(program, mode, meta) {
     const blocks = App.Programs.buildBlocks(program, mode);
     const totalAll = App.Programs.totalSeconds(blocks);
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, ui: { lastCount: null, lastCue: null, lastRem: null } };
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], ui: { lastCount: null, lastCue: null, lastRem: null } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
       onBlockStart: function (b) {
@@ -1097,7 +1168,7 @@ App.UI = (function () {
         $('tProgress').textContent = (b.exerciseIndex + 1) + ' / ' + b.exerciseCount + (b.type === 'prepare' ? ' · Vorbereitung' : '');
       },
       onBlockEnd: function (b, i) {
-        if (b.exerciseEnd && b.type === 'work') session.doneCount++;
+        if (b.exerciseEnd && b.type === 'work') { session.doneCount++; session.completed.push(program.exerciseIds[b.exerciseIndex]); }
         if (b.endSound && i < blocks.length - 1) App.Audio.play(b.endSound);   // Doppelping bei Ende; am Trainingsende spielt 'finish'
       },
       onTick: function (s) {
@@ -1141,6 +1212,7 @@ App.UI = (function () {
     }
     if (!completed) { show('home'); renderHome(); return; }
     $('dText').textContent = fmt(secs) + ' Minuten · ' + p.exerciseIds.length + ' Übungen';
+    renderRating(session.completed);
     $('dAsk').hidden = session.kind !== 'strength'; show('done');
   }
 
@@ -1152,14 +1224,64 @@ App.UI = (function () {
     const grid = $('galleryGrid'); if (grid.firstChild) return;
     D.EXERCISES.concat(D.STRETCHES).forEach(ex => {
       const c = document.createElement('div'); c.className = 'gcell';
-      c.innerHTML = '<b>' + ex.name + '</b><small class="muted">' + ex.subCategory + '</small><br>';
+      c.innerHTML = '<b>' + ex.name + '</b><small class="muted">' + ex.subCategory + (ex.needsAnchor ? ' · Befestigung nötig' : '') + '</small><br>';
+      c.tabIndex = 0; c.setAttribute('role', 'button'); c.onclick = () => openOverlay(ex);
+      c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOverlay(ex); } };
       [0, 1].forEach(k => {
         const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         const pl = App.Animation.createPlayer(s); pl.setExercise(ex); pl.render(k); c.appendChild(s);
       });
+      const sw = starsEl(ex.id); sw.className += ' small'; c.appendChild(sw);
       grid.appendChild(c);
     });
   }
+  /* ---------------- Bewertung (Sterne) ---------------- */
+  /** Sterne-Element; ein Tipp auf den aktuellen Wert setzt zurück auf 0 (unbewertet). */
+  function starsEl(id) {
+    const w = document.createElement('span'); w.className = 'stars'; w.dataset.id = id; w.setAttribute('role', 'group'); w.setAttribute('aria-label', 'Bewertung');
+    for (let i = 1; i <= 5; i++) {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = '★'; b.setAttribute('aria-label', i + ' Sterne');
+      b.onclick = function (e) { e.stopPropagation(); S.setRating(id, S.rating(id) === i ? 0 : i); refreshStars(id); };
+      w.appendChild(b);
+    }
+    paintStars(w); return w;
+  }
+  function paintStars(w) {
+    const r = S.rating(w.dataset.id);
+    Array.prototype.forEach.call(w.children, (b, i) => { b.className = i < r ? 'on' : ''; });
+    w.title = r ? r + ' von 5 Sternen' : 'nicht bewertet';
+  }
+  function refreshStars(id) { Array.prototype.forEach.call(document.querySelectorAll('.stars'), w => { if (w.dataset.id === id) paintStars(w); }); }
+
+  /** Bewertung der vollständig durchgeführten Übungen am Trainingsende. */
+  function renderRating(ids) {
+    const ul = $('dRateList'); ul.textContent = ''; $('dRate').hidden = !ids.length;
+    ids.forEach(function (id) {
+      const li = document.createElement('li'), n = document.createElement('span'); n.textContent = D.byId[id].name;
+      li.appendChild(n); li.appendChild(starsEl(id)); ul.appendChild(li);
+    });
+  }
+
+  /* ---------------- Übungs-Overlay (Katalog) ---------------- */
+  let ovPlayer = null, ovRaf = 0;
+  function openOverlay(ex) {
+    if (!ovPlayer) ovPlayer = App.Animation.createPlayer($('ovFig'));
+    $('ovName').textContent = ex.name; $('ovMuscles').textContent = ex.targetMuscles.join(' · ');
+    $('ovDesc').textContent = ex.description; $('ovInstr').textContent = ex.instructions;
+    $('ovEquip').textContent = (ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (ex.weight ? ' (Hantel ' + ex.weight + ')' : '') : 'Kein Material nötig') +
+      (ex.needsAnchor ? ' · braucht einen Befestigungspunkt' : '');
+    const sb = $('ovStars'); sb.textContent = ''; sb.appendChild(starsEl(ex.id));
+    ovPlayer.setExercise(ex);
+    $('overlay').hidden = false; document.body.style.overflow = 'hidden';
+    const t0 = performance.now(), ease = x => x * x * (3 - 2 * x);
+    cancelAnimationFrame(ovRaf);
+    (function frame(now) {
+      const k = (((now || t0) - t0) / 4000) % 1; ovPlayer.render(k < 0.5 ? ease(k * 2) : ease(2 - k * 2));
+      ovRaf = requestAnimationFrame(frame);
+    })(t0);
+  }
+  function closeOverlay() { cancelAnimationFrame(ovRaf); $('overlay').hidden = true; document.body.style.overflow = ''; }
+
   function route() {
     if (timer && !timer.isFinished()) return;
     if (location.hash === '#gallery') { renderGallery(); show('gallery'); } else if (!$('gallery').hidden) { show('home'); renderHome(); }
@@ -1171,6 +1293,11 @@ App.UI = (function () {
     $('sound').onchange = e => { S.setSettings({ sound: e.target.checked }); App.Audio.setEnabled(e.target.checked); };
     App.Audio.setEnabled(S.settings().sound);
     $('start').onclick = startStrength;
+    $('kieserRange').min = CK.min; $('kieserRange').max = CK.max; $('kieserRange').step = CK.step;
+    $('kieserRange').oninput = e => { S.setSettings({ kieserSeconds: +e.target.value }); $('kieserVal').textContent = e.target.value + ' Sekunden'; renderHome(); };
+    $('ovClose').onclick = closeOverlay;
+    $('overlay').onclick = e => { if (e.target === $('overlay')) closeOverlay(); };
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('overlay').hidden) closeOverlay(); });
     $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
     $('pvReroll').onclick = () => openPreview(buildStrength(), pending.mode, 'strength');
     $('pvBack').onclick = () => { show('home'); renderHome(); };
@@ -1247,12 +1374,22 @@ App.SelfTest = (function () {
     check('Mehrfachauswahl: 3 Bereiche = 15 Übungen in fester Reihenfolge',
       (function () { const p = App.Programs.buildProgram({ areaIds: ['lower', 'upper', 'core'], programType: 'standard' }); return p.exerciseIds.length === 15 && p.areaIds.join() === 'upper,core,lower'; })());
 
+    // 2b. Bewertung und Befestigung
+    check('Standardprogramme ohne Band/TRX', D.AREAS.every(a => a.standard.every(id => !D.byId[id].needsAnchor)));
+    let anchorOk = true;
+    for (let i = 0; i < 200; i++) D.AREAS.forEach(a => { if (App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] }).exerciseIds.some(id => D.byId[id].needsAnchor)) anchorOk = false; });
+    check('Zufallsmodus schlägt keine Band/TRX-Übungen vor', anchorOk && D.EXERCISES.filter(e => e.needsAnchor).length === 4);
+    const rt = { liegestuetz: 5, schulterdruecken: 1 }; let hi = 0, lo = 0;
+    for (let i = 0; i < 400; i++) { const ids = App.Programs.buildProgram({ areaIds: ['upper'], programType: 'random', history: [], ratings: rt }).exerciseIds; if (ids.indexOf('liegestuetz') >= 0) hi++; if (ids.indexOf('schulterdruecken') >= 0) lo++; }
+    check('Hohe Bewertung kommt öfter als niedrige', hi > lo * 1.5, hi + ' vs ' + lo);
+
     // 3. Trainingsstile / Dauer
     const ex = D.byId.plank, sum = m => App.Programs.totalSeconds(D.modeById(m).buildBlocks(ex));
-    check('Kieser 90: 10 s Vorbereitung + 90 s', sum('kieser90') === 100, sum('kieser90'));
-    check('Kieser 120: 10 s Vorbereitung + 120 s', sum('kieser120') === 130, sum('kieser120'));
+    const ks = n => App.Programs.totalSeconds(D.modeById('kieser', n).buildBlocks(ex));
+    check('Kieser 90: 10 s Vorbereitung + 90 s', ks(90) === 100, ks(90));
+    check('Kieser Standard 120 s: 10 s Vorbereitung + 120 s', sum('kieser') === 130 && ks(120) === 130, sum('kieser'));
     check('Klassisch: 10 + 3×30 + 2×10 = 120 s', sum('classic3') === 120, sum('classic3'));
-    const km = D.modeById('kieser90').buildBlocks(ex)[1].motion;
+    const km = D.modeById('kieser').buildBlocks(ex)[1].motion;
     check('Kieser-Zyklus 4/2/4/2', km(0).p === 0 && km(4).p === 1 && km(5).cue === 'Halten' && km(8).p === 0.5 && km(10).p === 0 && km(11).cue === 'Halten');
     check('Stretch-Programm 5 Übungen', App.Programs.stretchForAreas(['upper']).exerciseIds.length === 5 && App.Programs.stretchForAreas(['upper', 'core']).exerciseIds.length === 10);
 

@@ -11,7 +11,7 @@ App.Data = App.Data || {};
 App.Data.AREAS = [
   { id: 'upper', label: 'Oberkörper', icon: '💪',
     slots: [{ sub: 'Drücken', n: 2 }, { sub: 'Ziehen', n: 2 }, { sub: 'Arme', n: 1 }],
-    standard: ['liegestuetz', 'schulterdruecken', 'trx_row', 'kurzhantelrudern', 'bizeps_curl'] },
+    standard: ['liegestuetz', 'schulterdruecken', 'bent_over_row', 'kurzhantelrudern', 'bizeps_curl'] },
   { id: 'core', label: 'Rumpf', icon: '🎯',
     slots: [{ sub: 'Bauch', n: 2 }, { sub: 'Rücken', n: 2 }, { sub: 'Seitliche Stabilität', n: 1 }],
     standard: ['plank', 'dead_bug', 'superman', 'bird_dog', 'side_plank'] },
@@ -192,6 +192,7 @@ App.Data.AREAS = [
   App.Data.EXERCISES.forEach(function (e) {
     if (MAT.indexOf(e.id) >= 0) e.equipment = e.equipment.concat('Matte');
     if (WEIGHT[e.id]) e.weight = WEIGHT[e.id];
+    e.needsAnchor = e.equipment.some(q => /^(trx|band)/i.test(q));   // braucht Befestigungspunkt
   });
 
   /* Hilfsfunktion für spätere Module (Dehnübungen nutzen dieselbe Struktur) */

@@ -30,15 +30,15 @@ App.Data.MODES = (function () {
 
   function kieser(total) {
     return {
-      id: 'kieser' + total, label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
+      id: 'kieser', label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
       buildBlocks: ex => [prepare(ex, App.Config.prepareSeconds),
         { type: 'work', label: 'Belastung', duration: total, exercise: ex, sound: 'double', endSound: 'double', motion: kieserMotion }]
     };
   }
 
+  App.Data.kieserMode = kieser;
   return [
-    kieser(90),
-    kieser(120),
+    kieser(App.Config.kieser.default),
     {
       id: 'classic3', label: 'Klassisch 3 Sätze', kind: 'strength',
       buildBlocks: function (ex) {
@@ -58,4 +58,8 @@ App.Data.MODES = (function () {
     }
   ];
 })();
-App.Data.modeById = id => App.Data.MODES.filter(m => m.id === id)[0];
+/** Modus per ID. Für 'kieser' kann die Dauer (Sekunden) übergeben werden. */
+App.Data.modeById = function (id, kieserSeconds) {
+  if (id === 'kieser' && kieserSeconds) return App.Data.kieserMode(kieserSeconds);
+  return App.Data.MODES.filter(m => m.id === id)[0];
+};

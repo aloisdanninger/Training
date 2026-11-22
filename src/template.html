@@ -16,6 +16,8 @@
   <h1>Training</h1>
   <section><h2>Trainingsbereiche</h2><div id="areas" class="grid3"></div></section>
   <section><h2>Trainingsstil</h2><div id="styles" class="seg"></div></section>
+  <section id="kieserBox" hidden><label class="slider">Dauer pro Übung: <b id="kieserVal"></b>
+    <input type="range" id="kieserRange" aria-label="Kieser-Dauer in Sekunden"></label></section>
   <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div></section>
   <section class="row"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label></section>
   <p id="summary" class="muted"></p>
@@ -78,6 +80,10 @@
 <main id="done" class="screen" hidden>
   <h1 id="dTitle">Geschafft! 🎉</h1>
   <p id="dText" class="muted"></p>
+  <div id="dRate" class="card" hidden>
+    <h2>Übungen bewerten</h2><p class="muted small">Gut bewertete Übungen kommen im Zufallsmodus öfter. Erneut auf den gleichen Stern tippen = unbewertet.</p>
+    <ul id="dRateList" class="ratelist"></ul>
+  </div>
   <div id="dAsk" hidden>
     <h2>Passendes Dehnungsprogramm starten?</h2>
     <div class="row"><button id="askYes" class="btn primary big">Ja</button><button id="askNo" class="btn big">Nein</button></div>
@@ -89,6 +95,17 @@
 <main id="gallery" class="screen wide" hidden>
   <h1>Übungskatalog</h1><p><a href="#">← zurück</a></p><div id="galleryGrid" class="gallery"></div>
 </main>
+<div id="overlay" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="ovName">
+  <div class="sheet">
+    <button id="ovClose" class="btn">✕ Schließen</button>
+    <h1 id="ovName"></h1><p id="ovMuscles" class="muscles"></p>
+    <div class="ovbody">
+      <svg id="ovFig" aria-hidden="true"></svg>
+      <div><p id="ovDesc" class="lead"></p><h2>Anleitung</h2><p id="ovInstr"></p><p id="ovEquip" class="muted"></p>
+        <h2>Deine Bewertung</h2><div id="ovStars"></div></div>
+    </div>
+  </div>
+</div>
 <pre id="selftest" hidden></pre>
 <script>
 /*{{JS}}*/

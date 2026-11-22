@@ -15,6 +15,10 @@ App.Programs = (function () {
     return ids;
   }
 
+  /** Gewicht einer Bewertung (0 = unbewertet = neutral wie 3 Sterne). Hohe Bewertung -> häufiger. */
+  const RATING_WEIGHT = { 1: 0.25, 2: 0.6, 3: 1, 4: 1.8, 5: 3 };
+  const ratingWeight = r => RATING_WEIGHT[r] || 1;
+
   /** Gewichtete Zufallsauswahl von `n` verschiedenen Elementen. */
   function pickWeighted(pool, n, weightOf, rnd) {
     const items = pool.slice(), out = [];
@@ -28,19 +32,19 @@ App.Programs = (function () {
   }
 
   /** Zufallsprogramm für einen Bereich: strikt nach den Slot-Regeln (2/2/1). */
-  function randomForArea(area, history, rnd) {
-    const recent = recentIds(history, 3);
+  function randomForArea(area, history, rnd, ratings) {
+    const recent = recentIds(history, 3), excl = App.Config.excludeAnchored;
     let ids = [];
     area.slots.forEach(function (slot) {
-      const pool = D.EXERCISES.filter(e => e.category === area.id && e.subCategory === slot.sub);
-      ids = ids.concat(pickWeighted(pool, slot.n, e => (recent[e.id] ? 0.25 : 1), rnd).map(e => e.id));
+      const pool = D.EXERCISES.filter(e => e.category === area.id && e.subCategory === slot.sub && !(excl && e.needsAnchor));
+      ids = ids.concat(pickWeighted(pool, slot.n, e => (recent[e.id] ? 0.25 : 1) * ratingWeight((ratings || {})[e.id]), rnd).map(e => e.id));
     });
     return ids;
   }
 
   /**
    * Erstellt ein Kraftprogramm.
-   * opts: { areaIds: ['upper',..], programType: 'standard'|'random', history: [...], rnd: fn }
+   * opts: { areaIds: ['upper',..], programType: 'standard'|'random', history: [...], ratings: {id: 0-5}, rnd: fn }
    * Rückgabe (Program): { id, type, areaIds, exerciseIds }
    */
   function buildProgram(opts) {
@@ -49,7 +53,7 @@ App.Programs = (function () {
     let ids = [];
     order.forEach(function (id) {
       const a = areaById(id);
-      ids = ids.concat(opts.programType === 'random' ? randomForArea(a, opts.history, rnd) : a.standard);
+      ids = ids.concat(opts.programType === 'random' ? randomForArea(a, opts.history, rnd, opts.ratings) : a.standard);
     });
     return { id: 'prog-' + Date.now(), type: opts.programType, areaIds: order, exerciseIds: ids };
   }
@@ -113,5 +117,5 @@ App.Programs = (function () {
   }
 
   return { buildProgram: buildProgram, buildStretch: buildStretch, stretchForAreas: stretchForAreas,
-    buildBlocks: buildBlocks, totalSeconds: totalSeconds, equipmentSummary: equipmentSummary, areaById: areaById };
+    buildBlocks: buildBlocks, totalSeconds: totalSeconds, equipmentSummary: equipmentSummary, ratingWeight: ratingWeight, areaById: areaById };
 })();

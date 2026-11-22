@@ -8,6 +8,7 @@ App.UI = (function () {
   const D = App.Data, S = App.Store, CIRC = 2 * Math.PI * 150;
   const STRENGTH_MODES = D.MODES.filter(m => m.kind === 'strength');
   const PTYPES = [{ id: 'standard', label: 'Standard' }, { id: 'random', label: 'Zufällig' }];
+  const CK = App.Config.kieser;
   const PINGS = [60, 30, 10, 3, 2, 1];            // verbleibende Sekunden mit einfachem Ping
   let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
@@ -21,8 +22,13 @@ App.UI = (function () {
   }
 
   /* ---------------- Startbildschirm ---------------- */
+  function currentMode() { const st = S.settings(); return D.modeById(st.style, st.kieserSeconds || CK.default); }
+
   function renderHome() {
-    const st = S.settings();
+    let st = S.settings();
+    if (/^kieser\d+$/.test(st.style)) {         // alter Stand (kieser90/kieser120) -> 'kieser' + Dauer
+      S.setSettings({ style: 'kieser', kieserSeconds: parseInt(st.style.slice(6), 10) || CK.default }); st = S.settings();
+    }
     const areas = $('areas'); areas.textContent = '';
     D.AREAS.forEach(a => {
       const on = st.areas.indexOf(a.id) >= 0;
@@ -32,12 +38,14 @@ App.UI = (function () {
       }, '<span class="ic">' + (on ? '☑' : '☐') + '</span><span>' + a.icon + ' ' + a.label + '</span>'));
     });
     const styles = $('styles'); styles.textContent = '';
-    STRENGTH_MODES.forEach(m => styles.appendChild(btn(m.label, 'choice', st.style === m.id, () => { S.setSettings({ style: m.id }); renderHome(); })));
+    STRENGTH_MODES.forEach(m => styles.appendChild(btn(m.id === 'kieser' ? 'Kieser' : m.label, 'choice', st.style === m.id, () => { S.setSettings({ style: m.id }); renderHome(); })));
+    const secs = st.kieserSeconds || CK.default, kb = $('kieserBox');
+    kb.hidden = st.style !== 'kieser'; $('kieserRange').value = secs; $('kieserVal').textContent = secs + ' Sekunden';
     const pt = $('ptype'); pt.textContent = '';
     PTYPES.forEach(p => pt.appendChild(btn(p.label, 'choice', st.programType === p.id, () => { S.setSettings({ programType: p.id }); renderHome(); })));
     $('sound').checked = !!st.sound;
     const n = st.areas.length * 5;
-    const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, D.modeById(st.style))) : 0;
+    const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, currentMode())) : 0;
     $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
     $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5;
     const st2 = $('stretches'); st2.textContent = '';
@@ -50,9 +58,9 @@ App.UI = (function () {
   /* ---------------- Training ---------------- */
   function buildStrength() {
     const st = S.settings();
-    return App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history() });
+    return App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history(), ratings: S.ratings() });
   }
-  function startStrength() { openPreview(buildStrength(), D.modeById(S.settings().style), 'strength'); }
+  function startStrength() { openPreview(buildStrength(), currentMode(), 'strength'); }
 
   /* ---------------- Übersicht vor dem Start ---------------- */
   function esc(t) { return String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
@@ -94,7 +102,7 @@ App.UI = (function () {
   function run(program, mode, meta) {
     const blocks = App.Programs.buildBlocks(program, mode);
     const totalAll = App.Programs.totalSeconds(blocks);
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, ui: { lastCount: null, lastCue: null, lastRem: null } };
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], ui: { lastCount: null, lastCue: null, lastRem: null } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
       onBlockStart: function (b) {
@@ -104,7 +112,7 @@ App.UI = (function () {
         $('tProgress').textContent = (b.exerciseIndex + 1) + ' / ' + b.exerciseCount + (b.type === 'prepare' ? ' · Vorbereitung' : '');
       },
       onBlockEnd: function (b, i) {
-        if (b.exerciseEnd && b.type === 'work') session.doneCount++;
+        if (b.exerciseEnd && b.type === 'work') { session.doneCount++; session.completed.push(program.exerciseIds[b.exerciseIndex]); }
         if (b.endSound && i < blocks.length - 1) App.Audio.play(b.endSound);   // Doppelping bei Ende; am Trainingsende spielt 'finish'
       },
       onTick: function (s) {
@@ -148,6 +156,7 @@ App.UI = (function () {
     }
     if (!completed) { show('home'); renderHome(); return; }
     $('dText').textContent = fmt(secs) + ' Minuten · ' + p.exerciseIds.length + ' Übungen';
+    renderRating(session.completed);
     $('dAsk').hidden = session.kind !== 'strength'; show('done');
   }
 
@@ -159,14 +168,64 @@ App.UI = (function () {
     const grid = $('galleryGrid'); if (grid.firstChild) return;
     D.EXERCISES.concat(D.STRETCHES).forEach(ex => {
       const c = document.createElement('div'); c.className = 'gcell';
-      c.innerHTML = '<b>' + ex.name + '</b><small class="muted">' + ex.subCategory + '</small><br>';
+      c.innerHTML = '<b>' + ex.name + '</b><small class="muted">' + ex.subCategory + (ex.needsAnchor ? ' · Befestigung nötig' : '') + '</small><br>';
+      c.tabIndex = 0; c.setAttribute('role', 'button'); c.onclick = () => openOverlay(ex);
+      c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOverlay(ex); } };
       [0, 1].forEach(k => {
         const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         const pl = App.Animation.createPlayer(s); pl.setExercise(ex); pl.render(k); c.appendChild(s);
       });
+      const sw = starsEl(ex.id); sw.className += ' small'; c.appendChild(sw);
       grid.appendChild(c);
     });
   }
+  /* ---------------- Bewertung (Sterne) ---------------- */
+  /** Sterne-Element; ein Tipp auf den aktuellen Wert setzt zurück auf 0 (unbewertet). */
+  function starsEl(id) {
+    const w = document.createElement('span'); w.className = 'stars'; w.dataset.id = id; w.setAttribute('role', 'group'); w.setAttribute('aria-label', 'Bewertung');
+    for (let i = 1; i <= 5; i++) {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = '★'; b.setAttribute('aria-label', i + ' Sterne');
+      b.onclick = function (e) { e.stopPropagation(); S.setRating(id, S.rating(id) === i ? 0 : i); refreshStars(id); };
+      w.appendChild(b);
+    }
+    paintStars(w); return w;
+  }
+  function paintStars(w) {
+    const r = S.rating(w.dataset.id);
+    Array.prototype.forEach.call(w.children, (b, i) => { b.className = i < r ? 'on' : ''; });
+    w.title = r ? r + ' von 5 Sternen' : 'nicht bewertet';
+  }
+  function refreshStars(id) { Array.prototype.forEach.call(document.querySelectorAll('.stars'), w => { if (w.dataset.id === id) paintStars(w); }); }
+
+  /** Bewertung der vollständig durchgeführten Übungen am Trainingsende. */
+  function renderRating(ids) {
+    const ul = $('dRateList'); ul.textContent = ''; $('dRate').hidden = !ids.length;
+    ids.forEach(function (id) {
+      const li = document.createElement('li'), n = document.createElement('span'); n.textContent = D.byId[id].name;
+      li.appendChild(n); li.appendChild(starsEl(id)); ul.appendChild(li);
+    });
+  }
+
+  /* ---------------- Übungs-Overlay (Katalog) ---------------- */
+  let ovPlayer = null, ovRaf = 0;
+  function openOverlay(ex) {
+    if (!ovPlayer) ovPlayer = App.Animation.createPlayer($('ovFig'));
+    $('ovName').textContent = ex.name; $('ovMuscles').textContent = ex.targetMuscles.join(' · ');
+    $('ovDesc').textContent = ex.description; $('ovInstr').textContent = ex.instructions;
+    $('ovEquip').textContent = (ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (ex.weight ? ' (Hantel ' + ex.weight + ')' : '') : 'Kein Material nötig') +
+      (ex.needsAnchor ? ' · braucht einen Befestigungspunkt' : '');
+    const sb = $('ovStars'); sb.textContent = ''; sb.appendChild(starsEl(ex.id));
+    ovPlayer.setExercise(ex);
+    $('overlay').hidden = false; document.body.style.overflow = 'hidden';
+    const t0 = performance.now(), ease = x => x * x * (3 - 2 * x);
+    cancelAnimationFrame(ovRaf);
+    (function frame(now) {
+      const k = (((now || t0) - t0) / 4000) % 1; ovPlayer.render(k < 0.5 ? ease(k * 2) : ease(2 - k * 2));
+      ovRaf = requestAnimationFrame(frame);
+    })(t0);
+  }
+  function closeOverlay() { cancelAnimationFrame(ovRaf); $('overlay').hidden = true; document.body.style.overflow = ''; }
+
   function route() {
     if (timer && !timer.isFinished()) return;
     if (location.hash === '#gallery') { renderGallery(); show('gallery'); } else if (!$('gallery').hidden) { show('home'); renderHome(); }
@@ -178,6 +237,11 @@ App.UI = (function () {
     $('sound').onchange = e => { S.setSettings({ sound: e.target.checked }); App.Audio.setEnabled(e.target.checked); };
     App.Audio.setEnabled(S.settings().sound);
     $('start').onclick = startStrength;
+    $('kieserRange').min = CK.min; $('kieserRange').max = CK.max; $('kieserRange').step = CK.step;
+    $('kieserRange').oninput = e => { S.setSettings({ kieserSeconds: +e.target.value }); $('kieserVal').textContent = e.target.value + ' Sekunden'; renderHome(); };
+    $('ovClose').onclick = closeOverlay;
+    $('overlay').onclick = e => { if (e.target === $('overlay')) closeOverlay(); };
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('overlay').hidden) closeOverlay(); });
     $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
     $('pvReroll').onclick = () => openPreview(buildStrength(), pending.mode, 'strength');
     $('pvBack').onclick = () => { show('home'); renderHome(); };

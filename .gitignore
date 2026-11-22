@@ -2,3 +2,6 @@ tests/out/
 __pycache__/
 node_modules/
 .wrangler/
+
+Training-token.txt
+*token*.txt

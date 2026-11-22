@@ -37,12 +37,22 @@ App.SelfTest = (function () {
     check('Mehrfachauswahl: 3 Bereiche = 15 Übungen in fester Reihenfolge',
       (function () { const p = App.Programs.buildProgram({ areaIds: ['lower', 'upper', 'core'], programType: 'standard' }); return p.exerciseIds.length === 15 && p.areaIds.join() === 'upper,core,lower'; })());
 
+    // 2b. Bewertung und Befestigung
+    check('Standardprogramme ohne Band/TRX', D.AREAS.every(a => a.standard.every(id => !D.byId[id].needsAnchor)));
+    let anchorOk = true;
+    for (let i = 0; i < 200; i++) D.AREAS.forEach(a => { if (App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] }).exerciseIds.some(id => D.byId[id].needsAnchor)) anchorOk = false; });
+    check('Zufallsmodus schlägt keine Band/TRX-Übungen vor', anchorOk && D.EXERCISES.filter(e => e.needsAnchor).length === 4);
+    const rt = { liegestuetz: 5, schulterdruecken: 1 }; let hi = 0, lo = 0;
+    for (let i = 0; i < 400; i++) { const ids = App.Programs.buildProgram({ areaIds: ['upper'], programType: 'random', history: [], ratings: rt }).exerciseIds; if (ids.indexOf('liegestuetz') >= 0) hi++; if (ids.indexOf('schulterdruecken') >= 0) lo++; }
+    check('Hohe Bewertung kommt öfter als niedrige', hi > lo * 1.5, hi + ' vs ' + lo);
+
     // 3. Trainingsstile / Dauer
     const ex = D.byId.plank, sum = m => App.Programs.totalSeconds(D.modeById(m).buildBlocks(ex));
-    check('Kieser 90: 10 s Vorbereitung + 90 s', sum('kieser90') === 100, sum('kieser90'));
-    check('Kieser 120: 10 s Vorbereitung + 120 s', sum('kieser120') === 130, sum('kieser120'));
+    const ks = n => App.Programs.totalSeconds(D.modeById('kieser', n).buildBlocks(ex));
+    check('Kieser 90: 10 s Vorbereitung + 90 s', ks(90) === 100, ks(90));
+    check('Kieser Standard 120 s: 10 s Vorbereitung + 120 s', sum('kieser') === 130 && ks(120) === 130, sum('kieser'));
     check('Klassisch: 10 + 3×30 + 2×10 = 120 s', sum('classic3') === 120, sum('classic3'));
-    const km = D.modeById('kieser90').buildBlocks(ex)[1].motion;
+    const km = D.modeById('kieser').buildBlocks(ex)[1].motion;
     check('Kieser-Zyklus 4/2/4/2', km(0).p === 0 && km(4).p === 1 && km(5).cue === 'Halten' && km(8).p === 0.5 && km(10).p === 0 && km(11).cue === 'Halten');
     check('Stretch-Programm 5 Übungen', App.Programs.stretchForAreas(['upper']).exerciseIds.length === 5 && App.Programs.stretchForAreas(['upper', 'core']).exerciseIds.length === 10);
 

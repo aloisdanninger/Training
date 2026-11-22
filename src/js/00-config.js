@@ -12,6 +12,10 @@ App.Config = {
   github: { owner: 'aloisdanninger', repo: 'Training', branch: 'progress', path: 'progress/training.json' },
   /* Sekunden Vorbereitung zwischen zwei Übungen */
   prepareSeconds: 10,
+  /* Übungen, die Befestigung brauchen (Band/TRX), nicht vorschlagen. Auf false setzen, wenn ein Ankerpunkt vorhanden ist. */
+  excludeAnchored: true,
+  /* Kieser-Dauer: Standard und Reglerbereich (Sekunden) */
+  kieser: { min: 90, max: 120, step: 5, default: 120 },
   /* Geometrie der Strichfigur (SVG-Einheiten) */
   body: { torso: 40, neck: 13, upperArm: 22, foreArm: 20, thigh: 27, shin: 26 },
   stage: { w: 240, h: 200, floorY: 172 }
