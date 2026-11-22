@@ -189,7 +189,11 @@ App.Data.AREAS = [
   const WEIGHT = { schulterdruecken: 'mittel', arnold_press: 'leicht', kurzhantelrudern: 'schwer', upright_row: 'leicht', bent_over_row: 'mittel',
     bizeps_curl: 'mittel', hammer_curl: 'mittel', trizeps_kickback: 'leicht', goblet_squat: 'schwer', romanian_deadlift: 'schwer',
     kettlebell_swing: 'schwer', single_leg_deadlift: 'leicht' };
+  /* Einseitige Übungen (Seitenwechsel in der Mitte der Zeit -> Doppelping) */
+  const ONE_SIDED = ['kurzhantelrudern', 'trizeps_kickback', 'step_up', 'bulgarian_split_squat', 'single_leg_deadlift', 'ausfallschritt',
+    'seitlicher_ausfallschritt', 'einbeinstand', 'curtsy_lunge', 'side_plank', 'side_plank_reach'];
   App.Data.EXERCISES.forEach(function (e) {
+    e.oneSided = ONE_SIDED.indexOf(e.id) >= 0;
     if (MAT.indexOf(e.id) >= 0) e.equipment = e.equipment.concat('Matte');
     if (WEIGHT[e.id]) e.weight = WEIGHT[e.id];
     e.needsAnchor = e.equipment.some(q => /^(trx|band)/i.test(q));   // braucht Befestigungspunkt

@@ -451,7 +451,11 @@ App.Data.AREAS = [
   const WEIGHT = { schulterdruecken: 'mittel', arnold_press: 'leicht', kurzhantelrudern: 'schwer', upright_row: 'leicht', bent_over_row: 'mittel',
     bizeps_curl: 'mittel', hammer_curl: 'mittel', trizeps_kickback: 'leicht', goblet_squat: 'schwer', romanian_deadlift: 'schwer',
     kettlebell_swing: 'schwer', single_leg_deadlift: 'leicht' };
+  /* Einseitige Übungen (Seitenwechsel in der Mitte der Zeit -> Doppelping) */
+  const ONE_SIDED = ['kurzhantelrudern', 'trizeps_kickback', 'step_up', 'bulgarian_split_squat', 'single_leg_deadlift', 'ausfallschritt',
+    'seitlicher_ausfallschritt', 'einbeinstand', 'curtsy_lunge', 'side_plank', 'side_plank_reach'];
   App.Data.EXERCISES.forEach(function (e) {
+    e.oneSided = ONE_SIDED.indexOf(e.id) >= 0;
     if (MAT.indexOf(e.id) >= 0) e.equipment = e.equipment.concat('Matte');
     if (WEIGHT[e.id]) e.weight = WEIGHT[e.id];
     e.needsAnchor = e.equipment.some(q => /^(trx|band)/i.test(q));   // braucht Befestigungspunkt
@@ -527,7 +531,7 @@ App.Data.AREAS = [
 
   App.Data.STRETCHES = ROWS.map(function (r) {
     return { id: r[0], name: r[1], category: 'stretch', subCategory: r[2], targetMuscles: r[3], difficulty: 1,
-      equipment: [], description: r[4], instructions: r[5], svgAnimation: r[6] };
+      equipment: [], oneSided: /Seite wechseln/.test(r[5]), description: r[4], instructions: r[5], svgAnimation: r[6] };
   });
   ['st_gesaess', 'st_catcow', 'st_child', 'st_cobra', 'st_rotation', 'st_thread'].forEach(function (id) {
     App.Data.STRETCHES.filter(e => e.id === id)[0].equipment = ['Matte'];
@@ -1249,13 +1253,13 @@ App.UI = (function () {
   function run(program, mode, meta) {
     const blocks = App.Programs.buildBlocks(program, mode, S.offsets());
     const totalAll = App.Programs.totalSeconds(blocks);
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, ui: { lastCount: null, lastCue: null, lastRem: null } };
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, ui: { lastCount: null, lastCue: null, lastRem: null, lastEl: 0 } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
       onBlockStart: function (b) {
         if (shownEx !== b.exercise) { shownEx = b.exercise; showExercise(b); }
         App.Audio.play(b.sound);                              // Doppelping bei Start einer Übung/eines Satzes
-        session.ui.lastRem = null;
+        session.ui.lastRem = null; session.ui.lastEl = 0;
         $('tProgress').textContent = (b.exerciseIndex + 1) + ' / ' + b.exerciseCount + (b.type === 'prepare' ? ' · Vorbereitung' : '');
       },
       onBlockEnd: function (b, i) {
@@ -1268,7 +1272,11 @@ App.UI = (function () {
         $('ringFg').style.strokeDashoffset = CIRC * Math.min(1, s.elapsed / b.duration);
         if (u.lastCount !== rem) { $('count').textContent = rem; u.lastCount = rem; }
         // Einfacher Ping bei 60/30/10/3/2/1 s Restzeit (nur wenn der Block länger ist als der Schwellwert)
-        if (s.running && u.lastRem !== null && u.lastRem !== rem && PINGS.indexOf(rem) >= 0 && rem < b.duration) App.Audio.play('ping');
+        // Einseitige Übung: Doppelping in der Mitte der Übungszeit (= Seitenwechsel); ersetzt dort einen evtl. gleichzeitigen Ping
+        const mid = b.type === 'work' && b.exercise.oneSided && s.running && u.lastEl < b.duration / 2 && s.elapsed >= b.duration / 2;
+        u.lastEl = s.elapsed;
+        if (mid) App.Audio.play('double');
+        else if (s.running && u.lastRem !== null && u.lastRem !== rem && PINGS.indexOf(rem) >= 0 && rem < b.duration) App.Audio.play('ping');
         u.lastRem = rem;
         const cue = (/^(Satz|Runde)/.test(b.label) ? b.label + ' · ' : '') + s.motion.cue;
         if (u.lastCue !== cue) { $('cue').textContent = cue; u.lastCue = cue; }
@@ -1542,6 +1550,9 @@ App.SelfTest = (function () {
     const ankle = p => { pl.render(p); const pts = svg.querySelectorAll('polyline')[2].getAttribute('points').trim().split(' '); return pts[pts.length - 1].split(',').map(Number); };
     const a0 = ankle(0), a5 = ankle(0.5), a1 = ankle(1);
     check('Kniebeuge: Fuß bleibt am Boden und an derselben Stelle', [a5, a1].every(a => Math.abs(a[0] - a0[0]) < 0.2 && Math.abs(a[1] - a0[1]) < 0.2), a0 + ' / ' + a5 + ' / ' + a1);
+
+    check('Einseitige Übungen markiert (Bulgarian Split Squat, Seitstütz, Dehnung mit Seitenwechsel), Plank nicht',
+      D.byId.bulgarian_split_squat.oneSided && D.byId.side_plank.oneSided && D.byId.st_schulter.oneSided && !D.byId.plank.oneSided);
 
     // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag
     const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },

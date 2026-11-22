@@ -95,6 +95,9 @@ App.SelfTest = (function () {
     const a0 = ankle(0), a5 = ankle(0.5), a1 = ankle(1);
     check('Kniebeuge: Fuß bleibt am Boden und an derselben Stelle', [a5, a1].every(a => Math.abs(a[0] - a0[0]) < 0.2 && Math.abs(a[1] - a0[1]) < 0.2), a0 + ' / ' + a5 + ' / ' + a1);
 
+    check('Einseitige Übungen markiert (Bulgarian Split Squat, Seitstütz, Dehnung mit Seitenwechsel), Plank nicht',
+      D.byId.bulgarian_split_squat.oneSided && D.byId.side_plank.oneSided && D.byId.st_schulter.oneSided && !D.byId.plank.oneSided);
+
     // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag
     const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },
       { updatedAt: 2, levels: { a: { offset: 10, last: 'leicht', t: 20 }, b: { offset: 0, last: 'richtig', t: 40 } }, sessions: [] });

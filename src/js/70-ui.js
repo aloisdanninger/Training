@@ -123,13 +123,13 @@ App.UI = (function () {
   function run(program, mode, meta) {
     const blocks = App.Programs.buildBlocks(program, mode, S.offsets());
     const totalAll = App.Programs.totalSeconds(blocks);
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, ui: { lastCount: null, lastCue: null, lastRem: null } };
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, ui: { lastCount: null, lastCue: null, lastRem: null, lastEl: 0 } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
       onBlockStart: function (b) {
         if (shownEx !== b.exercise) { shownEx = b.exercise; showExercise(b); }
         App.Audio.play(b.sound);                              // Doppelping bei Start einer Übung/eines Satzes
-        session.ui.lastRem = null;
+        session.ui.lastRem = null; session.ui.lastEl = 0;
         $('tProgress').textContent = (b.exerciseIndex + 1) + ' / ' + b.exerciseCount + (b.type === 'prepare' ? ' · Vorbereitung' : '');
       },
       onBlockEnd: function (b, i) {
@@ -142,7 +142,11 @@ App.UI = (function () {
         $('ringFg').style.strokeDashoffset = CIRC * Math.min(1, s.elapsed / b.duration);
         if (u.lastCount !== rem) { $('count').textContent = rem; u.lastCount = rem; }
         // Einfacher Ping bei 60/30/10/3/2/1 s Restzeit (nur wenn der Block länger ist als der Schwellwert)
-        if (s.running && u.lastRem !== null && u.lastRem !== rem && PINGS.indexOf(rem) >= 0 && rem < b.duration) App.Audio.play('ping');
+        // Einseitige Übung: Doppelping in der Mitte der Übungszeit (= Seitenwechsel); ersetzt dort einen evtl. gleichzeitigen Ping
+        const mid = b.type === 'work' && b.exercise.oneSided && s.running && u.lastEl < b.duration / 2 && s.elapsed >= b.duration / 2;
+        u.lastEl = s.elapsed;
+        if (mid) App.Audio.play('double');
+        else if (s.running && u.lastRem !== null && u.lastRem !== rem && PINGS.indexOf(rem) >= 0 && rem < b.duration) App.Audio.play('ping');
         u.lastRem = rem;
         const cue = (/^(Satz|Runde)/.test(b.label) ? b.label + ' · ' : '') + s.motion.cue;
         if (u.lastCue !== cue) { $('cue').textContent = cue; u.lastCue = cue; }

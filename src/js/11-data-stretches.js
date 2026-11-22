@@ -60,7 +60,7 @@
 
   App.Data.STRETCHES = ROWS.map(function (r) {
     return { id: r[0], name: r[1], category: 'stretch', subCategory: r[2], targetMuscles: r[3], difficulty: 1,
-      equipment: [], description: r[4], instructions: r[5], svgAnimation: r[6] };
+      equipment: [], oneSided: /Seite wechseln/.test(r[5]), description: r[4], instructions: r[5], svgAnimation: r[6] };
   });
   ['st_gesaess', 'st_catcow', 'st_child', 'st_cobra', 'st_rotation', 'st_thread'].forEach(function (id) {
     App.Data.STRETCHES.filter(e => e.id === id)[0].equipment = ['Matte'];
