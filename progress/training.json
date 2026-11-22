@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795380798582,
+ "updatedAt": 1795381033906,
  "settings": {
   "areas": [
    "upper",
@@ -194,7 +194,9 @@
   "st_rotation": 5,
   "st_seitbeuge": 4,
   "trx_row": 1,
-  "face_pull": 1
+  "face_pull": 1,
+  "trx_chest_press": 1,
+  "pallof_press": 1
  },
  "levels": {
   "liegestuetz": {
