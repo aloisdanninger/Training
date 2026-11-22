@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795380557788,
+ "updatedAt": 1795380798582,
  "settings": {
   "areas": [
    "upper",
@@ -8,7 +8,7 @@
   ],
   "style": "circuit",
   "kieserSeconds": 120,
-  "programType": "standard",
+  "programType": "random",
   "sound": false
  },
  "sessions": [
@@ -192,7 +192,9 @@
   "st_child": 5,
   "st_cobra": 5,
   "st_rotation": 5,
-  "st_seitbeuge": 4
+  "st_seitbeuge": 4,
+  "trx_row": 1,
+  "face_pull": 1
  },
  "levels": {
   "liegestuetz": {
