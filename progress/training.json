@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795376050823,
+ "updatedAt": 1795376529953,
  "settings": {
   "areas": [
    "core"
@@ -65,6 +65,25 @@
    ],
    "completed": true,
    "durationSec": 28
+  },
+  {
+   "id": "s1795376489347ojf2",
+   "date": "2026-11-22T19:41:29.347Z",
+   "kind": "strength",
+   "areaIds": [
+    "core"
+   ],
+   "modeId": "kieser",
+   "programType": "standard",
+   "exerciseIds": [
+    "plank",
+    "dead_bug",
+    "superman",
+    "bird_dog",
+    "side_plank"
+   ],
+   "completed": false,
+   "durationSec": 41
   }
  ],
  "favorites": [],
