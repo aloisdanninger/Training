@@ -1,11 +1,12 @@
 {
  "version": 1,
- "updatedAt": 1795374959581,
+ "updatedAt": 1795375631917,
  "settings": {
   "areas": [],
-  "style": "kieser90",
+  "style": "kieser",
   "programType": "standard",
-  "sound": true
+  "sound": true,
+  "kieserSeconds": 90
  },
  "sessions": [
   {
@@ -46,5 +47,6 @@
   }
  ],
  "favorites": [],
- "weights": {}
+ "weights": {},
+ "ratings": {}
 }
