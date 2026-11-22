@@ -16,8 +16,7 @@
   <h1>Training</h1>
   <section><h2>Trainingsbereiche</h2><div id="areas" class="grid3"></div></section>
   <section><h2>Trainingsstil</h2><div id="styles" class="seg"></div></section>
-  <section id="kieserBox" hidden><label class="slider">Dauer pro Übung: <b id="kieserVal"></b>
-    <input type="range" id="kieserRange" aria-label="Kieser-Dauer in Sekunden"></label></section>
+  <section id="styleOpts" class="opts"></section>
   <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div></section>
   <section class="row"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label>
     <label class="slider" style="flex:1;min-width:160px">Lautstärke der Pings<input type="range" id="vol" min="0.1" max="1" step="0.1" aria-label="Lautstärke der Pings"></label></section>
@@ -82,7 +81,7 @@
   <h1 id="dTitle">Geschafft! 🎉</h1>
   <p id="dText" class="muted"></p>
   <div id="dRate" class="card" hidden>
-    <h2>Übungen bewerten</h2><p class="muted small">Gut bewertete Übungen kommen im Zufallsmodus öfter. Erneut auf den gleichen Stern tippen = unbewertet.</p>
+    <h2>Übungen bewerten</h2><p class="muted small">Sterne: Gut bewertete Übungen kommen im Zufallsmodus öfter (erneut auf den gleichen Stern tippen = unbewertet). Zu leicht / zu schwer: Die Übung wird beim nächsten Mal um 5 s länger bzw. kürzer.</p>
     <ul id="dRateList" class="ratelist"></ul>
   </div>
   <div id="dAsk" hidden>

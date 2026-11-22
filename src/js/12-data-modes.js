@@ -1,14 +1,20 @@
 /* ==========================================================================
    12-data-modes.js  –  DATEN: Trainingsstile (TrainingMode)
-   Ein Modus beschreibt, wie EINE Übung in zeitliche Blöcke zerlegt wird.
+   Ein Modus beschreibt, wie Übungen in zeitliche Blöcke zerlegt werden.
    Block = { type: 'prepare'|'work'|'rest', label, duration (s), exercise,
              motion(t) -> { p: 0..1 Bewegungsfortschritt, cue: Phasentext },
-             sound: Signal beim Start des Blocks }
-   Neuen Stil ergänzen = neuen Eintrag in App.Data.MODES (buildBlocks).
+             sound: Signal beim Start, endSound: Signal am Ende }
+   Zwei Bauarten:
+     buildBlocks(ex, ctx)   – pro Übung (Kieser, Klassisch, Dehnen); ctx.offset = Anpassung in s (Schwierigkeitsbewertung)
+     buildAll(entries)      – für das ganze Programm auf einmal (Zirkel); entries = [{ ex, offset }]
+   Die Dauer-Parameter kommen aus den Einstellungen: App.Data.modeById(id, settings).
+   Neuen Stil ergänzen = neuen Eintrag in MODES + Zweig in modeById + Regler in App.Config/UI.
    ========================================================================== */
 App.Data.MODES = (function () {
+  const C = App.Config;
   const clamp01 = x => Math.max(0, Math.min(1, x));
   const ease = x => x * x * (3 - 2 * x);
+  const dur = (secs, off) => Math.max(C.minSeconds, secs + (off || 0));
 
   /** Kieser: 4 s Belastung · 2 s Halten · 4 s Rückbewegung · 2 s Halten, wiederholt bis `total` s. */
   function kieserMotion(t) {
@@ -19,7 +25,7 @@ App.Data.MODES = (function () {
     return { p: 0, cue: 'Halten' };
   }
 
-  /** Klassisch: kontinuierliche Wiederholungen, eine Wiederholung dauert 3 s. */
+  /** Klassisch/Zirkel: kontinuierliche Wiederholungen, eine Wiederholung dauert 3 s. */
   function loopMotion(t) { const k = (t % 3) / 3; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Los!' }; }
 
   /** Dehnung: langsam in die Dehnung gleiten (6 s), dann halten. */
@@ -27,39 +33,76 @@ App.Data.MODES = (function () {
 
   const prepare = (ex, secs) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
     motion: () => ({ p: 0, cue: 'Gleich geht es los' }) });
+  const work = (ex, label, secs, motion) => ({ type: 'work', label: label, duration: secs, exercise: ex, sound: 'double', endSound: 'double', motion: motion });
+  const rest = (ex, label, secs, cue) => ({ type: 'rest', label: label, duration: secs, exercise: ex, sound: null, motion: () => ({ p: 0, cue: cue }) });
 
   function kieser(total) {
     return {
-      id: 'kieser', label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
-      buildBlocks: ex => [prepare(ex, App.Config.prepareSeconds),
-        { type: 'work', label: 'Belastung', duration: total, exercise: ex, sound: 'double', endSound: 'double', motion: kieserMotion }]
+      id: 'kieser', short: 'Kieser', label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
+      buildBlocks: (ex, ctx) => [prepare(ex, C.prepareSeconds), work(ex, 'Belastung', dur(total, ctx && ctx.offset), kieserMotion)]
     };
   }
 
-  App.Data.kieserMode = kieser;
-  return [
-    kieser(App.Config.kieser.default),
-    {
-      id: 'classic3', label: 'Klassisch 3 Sätze', kind: 'strength',
-      buildBlocks: function (ex) {
-        const out = [prepare(ex, App.Config.prepareSeconds)];
-        for (let s = 1; s <= 3; s++) {
-          out.push({ type: 'work', label: 'Satz ' + s + ' / 3', duration: 30, exercise: ex, sound: 'double', endSound: 'double', motion: loopMotion });
-          if (s < 3) out.push({ type: 'rest', label: 'Pause', duration: 10, exercise: ex, sound: null, motion: () => ({ p: 0, cue: 'Pause' }) });
+  /** Klassisch: `sets` Sätze à `secs` Sekunden mit kurzer Pause. */
+  function classic(sets, secs) {
+    return {
+      id: 'classic', short: 'Klassisch', label: 'Klassisch ' + sets + ' × ' + secs + ' s', kind: 'strength',
+      buildBlocks: function (ex, ctx) {
+        const out = [prepare(ex, C.prepareSeconds)];
+        for (let s = 1; s <= sets; s++) {
+          out.push(work(ex, 'Satz ' + s + ' / ' + sets, dur(secs, ctx && ctx.offset), loopMotion));
+          if (s < sets) out.push(rest(ex, 'Pause', C.classic.rest, 'Pause'));
         }
         return out;
       }
-    },
+    };
+  }
+
+  /**
+   * Zirkel: alle Übungen nacheinander je `secs` Sekunden, kurzer Wechsel dazwischen,
+   * nach jeder Runde eine längere Pause. Eine Übung gilt nach ihrer Arbeitsphase in der letzten Runde als erledigt.
+   */
+  function circuit(rounds, secs) {
+    return {
+      id: 'circuit', short: 'Zirkel', label: 'Zirkel ' + rounds + ' Runden × ' + secs + ' s', kind: 'strength',
+      buildAll: function (entries) {
+        const n = entries.length, out = [];
+        const tag = (b, i, end, next) => { b.exerciseIndex = i; b.exerciseCount = n; b.exerciseEnd = !!end; b.nextEx = next; return b; };
+        out.push(tag(prepare(entries[0].ex, C.prepareSeconds), 0, false, n > 1 ? entries[1].ex : null));
+        for (let r = 1; r <= rounds; r++) {
+          for (let i = 0; i < n; i++) {
+            const lastOfAll = r === rounds && i === n - 1;
+            const next = i + 1 < n ? entries[i + 1] : (r < rounds ? entries[0] : null);
+            out.push(tag(work(entries[i].ex, 'Runde ' + r + ' / ' + rounds, dur(secs, entries[i].offset), loopMotion), i, r === rounds, next && next.ex));
+            if (lastOfAll) continue;
+            if (i + 1 < n) out.push(tag(rest(entries[i + 1].ex, 'Wechsel', C.circuit.transition, 'Weiter: ' + entries[i + 1].ex.name), i + 1, false, entries[i + 1].ex));
+            else out.push(tag(rest(entries[0].ex, 'Pause', C.circuit.roundRest, 'Pause vor Runde ' + (r + 1)), 0, false, entries[0].ex));
+          }
+        }
+        return out;
+      }
+    };
+  }
+
+  App.Data.modeFactories = { kieser: kieser, classic: classic, circuit: circuit };
+  return [
+    kieser(C.kieser.def),
+    classic(C.classic.sets.def, C.classic.seconds.def),
+    circuit(C.circuit.rounds.def, C.circuit.seconds.def),
     {
-      id: 'stretch', label: 'Dehnen', kind: 'stretch',
+      id: 'stretch', short: 'Dehnen', label: 'Dehnen', kind: 'stretch',
       buildBlocks: function (ex, ctx) {
-        return [prepare(ex, 5), { type: 'work', label: 'Dehnen', duration: (ctx && ctx.secondsEach) || 60, exercise: ex, sound: 'double', endSound: 'double', motion: stretchMotion }];
+        return [prepare(ex, 5), work(ex, 'Dehnen', (ctx && ctx.secondsEach) || 60, stretchMotion)];
       }
     }
   ];
 })();
-/** Modus per ID. Für 'kieser' kann die Dauer (Sekunden) übergeben werden. */
-App.Data.modeById = function (id, kieserSeconds) {
-  if (id === 'kieser' && kieserSeconds) return App.Data.kieserMode(kieserSeconds);
+
+/** Modus per ID; `st` = Einstellungen (kieserSeconds, classicSets, classicSeconds, circuitRounds, circuitSeconds). */
+App.Data.modeById = function (id, st) {
+  const C = App.Config, f = App.Data.modeFactories; st = st || {};
+  if (id === 'kieser') return f.kieser(st.kieserSeconds || C.kieser.def);
+  if (id === 'classic') return f.classic(st.classicSets || C.classic.sets.def, st.classicSeconds || C.classic.seconds.def);
+  if (id === 'circuit') return f.circuit(st.circuitRounds || C.circuit.rounds.def, st.circuitSeconds || C.circuit.seconds.def);
   return App.Data.MODES.filter(m => m.id === id)[0];
 };

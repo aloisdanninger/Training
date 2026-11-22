@@ -10,8 +10,9 @@
    ========================================================================== */
 App.Store = (function () {
   const KEY = App.Config.storageKey;
-  const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser', kieserSeconds: App.Config.kieser.default, programType: 'standard', sound: false },
-    sessions: [], favorites: [], weights: {}, ratings: {} });
+  const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser', kieserSeconds: App.Config.kieser.def, classicSets: App.Config.classic.sets.def, classicSeconds: App.Config.classic.seconds.def,
+      circuitRounds: App.Config.circuit.rounds.def, circuitSeconds: App.Config.circuit.seconds.def, programType: 'standard', sound: false },
+    sessions: [], favorites: [], weights: {}, ratings: {}, levels: {} });   // levels: { id: { offset: s, last: 'leicht'|'richtig'|'schwer', t: ms } }
   let state = load();
 
   function load() {
@@ -25,13 +26,20 @@ App.Store = (function () {
   }
   const listeners = [];
 
+  /** Schwierigkeitsstufen je Übung: pro Übung gewinnt der jüngere Eintrag. */
+  function mergeLevels(x, y) {
+    const out = Object.assign({}, x);
+    Object.keys(y || {}).forEach(k => { if (!out[k] || (y[k].t || 0) > (out[k].t || 0)) out[k] = y[k]; });
+    return out;
+  }
+
   /** Vereinigt zwei Zustände (siehe Merge-Regel oben). */
   function merge(a, b) {
     const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, byId = {};
     (a.sessions || []).concat(b.sessions || []).forEach(s => { byId[s.id] = s; });
     const sessions = Object.keys(byId).map(k => byId[k]).sort((x, y) => x.date < y.date ? -1 : 1);
     const older = newer === a ? b : a;
-    return Object.assign(defaults(), newer, { ratings: Object.assign({}, older.ratings, newer.ratings), sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
+    return Object.assign(defaults(), newer, { ratings: Object.assign({}, older.ratings, newer.ratings), levels: mergeLevels(a.levels, b.levels), sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
   }
 
   return {
@@ -44,6 +52,10 @@ App.Store = (function () {
     setSound: v => { try { localStorage.setItem(KEY + '-sound', v ? '1' : '0'); } catch (e) { /* ignorieren */ } },
     volume: () => { try { return parseFloat(localStorage.getItem(KEY + '-vol')) || 1; } catch (e) { return 1; } },
     setVolume: v => { try { localStorage.setItem(KEY + '-vol', String(v)); } catch (e) { /* ignorieren */ } },
+    level: id => state.levels[id] || null,
+    /** Sekunden-Anpassung je Übung: { id: offset } */
+    offsets: () => { const o = {}; Object.keys(state.levels).forEach(k => { o[k] = state.levels[k].offset || 0; }); return o; },
+    setLevel: function (id, offset, last) { state.levels[id] = { offset: offset, last: last, t: Date.now() }; save(); },
     history: () => state.sessions,
     ratings: () => state.ratings,
     rating: id => state.ratings[id] || 0,

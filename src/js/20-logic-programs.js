@@ -77,11 +77,12 @@ App.Programs = (function () {
    * Programm + Modus -> flache Blockliste (TrainingSession-Ablauf).
    * Jeder Block erhält exerciseIndex/exerciseCount für die Anzeige.
    */
-  function buildBlocks(program, mode) {
-    const blocks = [];
+  function buildBlocks(program, mode, offsets) {
+    const blocks = [], off = id => (offsets && offsets[id]) || 0;
     const items = program.items || program.exerciseIds.map(id => ({ id: id }));
+    if (mode.buildAll) return mode.buildAll(items.map(it => ({ ex: D.byId[it.id], offset: off(it.id) })));   // z. B. Zirkel
     items.forEach(function (it, i) {
-      const bl = mode.buildBlocks(D.byId[it.id], { secondsEach: it.secondsEach });
+      const bl = mode.buildBlocks(D.byId[it.id], { secondsEach: it.secondsEach, offset: off(it.id) });
       bl.forEach(function (b) { b.exerciseIndex = i; b.exerciseCount = items.length; b.exerciseEnd = false; blocks.push(b); });
       bl[bl.length - 1].exerciseEnd = true;           // letzter Block einer Übung (für Zählung/Abschluss)
     });

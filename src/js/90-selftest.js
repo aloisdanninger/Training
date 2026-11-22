@@ -47,17 +47,28 @@ App.SelfTest = (function () {
     check('Hohe Bewertung kommt öfter als niedrige', hi > lo * 1.5, hi + ' vs ' + lo);
 
     // 3. Trainingsstile / Dauer
-    const ex = D.byId.plank, sum = m => App.Programs.totalSeconds(D.modeById(m).buildBlocks(ex));
-    const ks = n => App.Programs.totalSeconds(D.modeById('kieser', n).buildBlocks(ex));
+    const ex = D.byId.plank, sum = (m, o) => App.Programs.totalSeconds(D.modeById(m, o).buildBlocks(ex));
+    const ks = n => sum('kieser', { kieserSeconds: n });
     check('Kieser 90: 10 s Vorbereitung + 90 s', ks(90) === 100, ks(90));
     check('Kieser Standard 120 s: 10 s Vorbereitung + 120 s', sum('kieser') === 130 && ks(120) === 130, sum('kieser'));
-    check('Klassisch: 10 + 3×30 + 2×10 = 120 s', sum('classic3') === 120, sum('classic3'));
+    check('Klassisch Standard: 10 + 3×30 + 2×10 = 120 s', sum('classic') === 120, sum('classic'));
+    check('Klassisch wählbar: 2 Sätze × 20 s = 10 + 40 + 10 = 60 s', sum('classic', { classicSets: 2, classicSeconds: 20 }) === 60, sum('classic', { classicSets: 2, classicSeconds: 20 }));
+    // Zirkel: 3 Übungen, 2 Runden, 20 s: 10 + 6×20 + 2×(2×5) + 30 = 180 s; jede Übung genau einmal "erledigt"
+    const cm = D.modeById('circuit', { circuitRounds: 2, circuitSeconds: 20 }), cbl = App.Programs.buildBlocks({ exerciseIds: ['plank', 'bird_dog', 'superman'] }, cm);
+    check('Zirkel: Gesamtdauer 180 s', App.Programs.totalSeconds(cbl) === 180, App.Programs.totalSeconds(cbl));
+    check('Zirkel: 6 Arbeitsblöcke, je Übung ein Abschluss, Reihenfolge stimmt',
+      cbl.filter(b => b.type === 'work').length === 6 && cbl.filter(b => b.exerciseEnd).length === 3 &&
+      cbl.filter(b => b.type === 'work').map(b => b.exercise.id).join() === 'plank,bird_dog,superman,plank,bird_dog,superman');
+    const co = App.Programs.buildBlocks({ exerciseIds: ['plank', 'bird_dog'] }, D.modeById('circuit', { circuitRounds: 1, circuitSeconds: 20 }), { plank: 5, bird_dog: -5 });
+    check('Zirkel: Schwierigkeits-Anpassung ±5 s je Übung', co.filter(b => b.type === 'work').map(b => b.duration).join() === '25,15');
+    check('Schwierigkeit: Kieser +5 s, Klassisch -5 s je Satz', App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: ['plank'] }, D.modeById('kieser'), { plank: 5 })) === 135 &&
+      App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: ['plank'] }, D.modeById('classic'), { plank: -5 })) === 10 + 3 * 25 + 20);
     const km = D.modeById('kieser').buildBlocks(ex)[1].motion;
     check('Kieser-Zyklus 4/2/4/2', km(0).p === 0 && km(4).p === 1 && km(5).cue === 'Halten' && km(8).p === 0.5 && km(10).p === 0 && km(11).cue === 'Halten');
     check('Stretch-Programm 5 Übungen', App.Programs.stretchForAreas(['upper']).exerciseIds.length === 5 && App.Programs.stretchForAreas(['upper', 'core']).exerciseIds.length === 10);
 
     // 4. Timer mit simulierter Zeit
-    const events = [], blocks = App.Programs.buildBlocks({ exerciseIds: ['plank', 'bird_dog'] }, D.modeById('classic3'));
+    const events = [], blocks = App.Programs.buildBlocks({ exerciseIds: ['plank', 'bird_dog'] }, D.modeById('classic'));
     const t = App.Timer(blocks, { onBlockStart: (b, i) => events.push('s' + i), onBlockEnd: (b, i) => events.push('e' + i), onFinish: () => events.push('F') });
     const total = App.Programs.totalSeconds(blocks);
     t.advance(0); t.advance(10.5);
@@ -74,7 +85,7 @@ App.SelfTest = (function () {
     check('Material: Programm ohne Equipment liefert leere Liste', App.Programs.equipmentSummary(['wall_sit']).length === 1);   // nur freie Wand
 
     // 4c. Töne: Doppelping bei Start/Ende jedes Satzes, letzter Block jeder Übung markiert
-    const cb = App.Programs.buildBlocks({ exerciseIds: ['plank'] }, D.modeById('classic3'));
+    const cb = App.Programs.buildBlocks({ exerciseIds: ['plank'] }, D.modeById('classic'));
     check('Klassisch: 3 Sätze mit Doppelping Start/Ende', cb.filter(b => b.type === 'work' && b.sound === 'double' && b.endSound === 'double').length === 3 && cb.filter(b => b.exerciseEnd).length === 1);
 
     // 4d. Animation: Standfuß bleibt bei der Kniebeuge an derselben Stelle (kein "Hüpfen")
@@ -83,6 +94,11 @@ App.SelfTest = (function () {
     const ankle = p => { pl.render(p); const pts = svg.querySelectorAll('polyline')[2].getAttribute('points').trim().split(' '); return pts[pts.length - 1].split(',').map(Number); };
     const a0 = ankle(0), a5 = ankle(0.5), a1 = ankle(1);
     check('Kniebeuge: Fuß bleibt am Boden und an derselben Stelle', [a5, a1].every(a => Math.abs(a[0] - a0[0]) < 0.2 && Math.abs(a[1] - a0[1]) < 0.2), a0 + ' / ' + a5 + ' / ' + a1);
+
+    // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag
+    const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },
+      { updatedAt: 2, levels: { a: { offset: 10, last: 'leicht', t: 20 }, b: { offset: 0, last: 'richtig', t: 40 } }, sessions: [] });
+    check('Merge: Schwierigkeitsstufen je Übung nach Zeitstempel', ml.levels.a.offset === 10 && ml.levels.b.offset === -5);
 
     // 5. Merge der Fortschrittsdaten
     const m = App.Store.merge({ updatedAt: 1, settings: { x: 1 }, sessions: [{ id: 'a', date: '2026-01-01' }] }, { updatedAt: 2, settings: { x: 2 }, sessions: [{ id: 'a', date: '2026-01-01' }, { id: 'b', date: '2026-01-02' }] });

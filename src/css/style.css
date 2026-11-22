@@ -69,3 +69,8 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 .ovbody{display:grid;grid-template-columns:minmax(260px,1fr) 1fr;gap:20px;align-items:start}
 .ovbody svg{width:100%;background:var(--bg);border-radius:14px}
 @media (orientation:portrait),(max-width:700px){.ovbody{grid-template-columns:1fr}}
+
+/* Stil-Optionen, Schwierigkeitsbewertung */
+.opts .slider{margin-top:10px}.opts:empty{display:none}
+.lvl{display:flex;gap:8px;flex-basis:100%;margin:2px 0 6px}.lvl .btn{flex:1;min-height:44px;padding:6px 8px;font-size:.95rem}
+.ratelist li.ex{display:block}.ratelist .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}

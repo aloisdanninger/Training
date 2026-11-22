@@ -8,7 +8,13 @@ App.UI = (function () {
   const D = App.Data, S = App.Store, CIRC = 2 * Math.PI * 150;
   const STRENGTH_MODES = D.MODES.filter(m => m.kind === 'strength');
   const PTYPES = [{ id: 'standard', label: 'Standard' }, { id: 'random', label: 'Zufällig' }];
-  const CK = App.Config.kieser;
+  const CFG = App.Config;
+  /* Regler je Stil: [Einstellungs-Schlüssel, Beschriftung, Einheit, {min,max,step,def}] */
+  const STYLE_OPTS = {
+    kieser: [['kieserSeconds', 'Dauer pro Übung', 'Sekunden', CFG.kieser]],
+    classic: [['classicSets', 'Anzahl Sätze', 'Sätze', CFG.classic.sets], ['classicSeconds', 'Dauer pro Satz', 'Sekunden', CFG.classic.seconds]],
+    circuit: [['circuitRounds', 'Anzahl Runden', 'Runden', CFG.circuit.rounds], ['circuitSeconds', 'Dauer pro Übung', 'Sekunden', CFG.circuit.seconds]]
+  };
   const PINGS = [60, 30, 10, 3, 2, 1];            // verbleibende Sekunden mit einfachem Ping
   let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
@@ -22,13 +28,14 @@ App.UI = (function () {
   }
 
   /* ---------------- Startbildschirm ---------------- */
-  function currentMode() { const st = S.settings(); return D.modeById(st.style, st.kieserSeconds || CK.default); }
+  function currentMode() { return D.modeById(S.settings().style, S.settings()); }
 
   function renderHome() {
     let st = S.settings();
     if (/^kieser\d+$/.test(st.style)) {         // alter Stand (kieser90/kieser120) -> 'kieser' + Dauer
-      S.setSettings({ style: 'kieser', kieserSeconds: parseInt(st.style.slice(6), 10) || CK.default }); st = S.settings();
+      S.setSettings({ style: 'kieser', kieserSeconds: parseInt(st.style.slice(6), 10) || CFG.kieser.def }); st = S.settings();
     }
+    if (st.style === 'classic3') { S.setSettings({ style: 'classic' }); st = S.settings(); }
     const areas = $('areas'); areas.textContent = '';
     D.AREAS.forEach(a => {
       const on = st.areas.indexOf(a.id) >= 0;
@@ -38,21 +45,35 @@ App.UI = (function () {
       }, '<span class="ic">' + (on ? '☑' : '☐') + '</span><span>' + a.icon + ' ' + a.label + '</span>'));
     });
     const styles = $('styles'); styles.textContent = '';
-    STRENGTH_MODES.forEach(m => styles.appendChild(btn(m.id === 'kieser' ? 'Kieser' : m.label, 'choice', st.style === m.id, () => { S.setSettings({ style: m.id }); renderHome(); })));
-    const secs = st.kieserSeconds || CK.default, kb = $('kieserBox');
-    kb.hidden = st.style !== 'kieser'; $('kieserRange').value = secs; $('kieserVal').textContent = secs + ' Sekunden';
+    STRENGTH_MODES.forEach(m => styles.appendChild(btn(m.short, 'choice', st.style === m.id, () => { S.setSettings({ style: m.id }); renderHome(); })));
+    renderStyleOpts(st);
     const pt = $('ptype'); pt.textContent = '';
     PTYPES.forEach(p => pt.appendChild(btn(p.label, 'choice', st.programType === p.id, () => { S.setSettings({ programType: p.id }); renderHome(); })));
     $('sound').checked = S.sound();
-    const n = st.areas.length * 5;
-    const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, currentMode())) : 0;
-    $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
-    $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5;
+    updateSummary();
     const st2 = $('stretches'); st2.textContent = '';
     D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => openPreview(App.Programs.buildStretch([p.id]), D.modeById('stretch'), 'stretch'))));
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
     $('syncBtn').textContent = App.Sync.hasToken() ? '☁ Jetzt synchronisieren' : '🔑 GitHub-Sync';
+  }
+
+  /** Regler für den gewählten Stil (werden nur beim Stilwechsel neu aufgebaut, damit das Ziehen nicht abbricht). */
+  function renderStyleOpts(st) {
+    const box = $('styleOpts'); box.textContent = '';
+    (STYLE_OPTS[st.style] || []).forEach(function (o) {
+      const key = o[0], cfg = o[3], lab = document.createElement('label'), val = document.createElement('b'), inp = document.createElement('input');
+      lab.className = 'slider'; inp.type = 'range'; inp.min = cfg.min; inp.max = cfg.max; inp.step = cfg.step; inp.value = st[key] || cfg.def;
+      inp.setAttribute('aria-label', o[1]); val.textContent = inp.value + ' ' + o[2];
+      inp.oninput = function () { val.textContent = inp.value + ' ' + o[2]; S.setSettings({ [key]: +inp.value }); updateSummary(); };
+      lab.appendChild(document.createTextNode(o[1] + ': ')); lab.appendChild(val); lab.appendChild(inp); box.appendChild(lab);
+    });
+  }
+  function updateSummary() {
+    const st = S.settings(), n = st.areas.length * 5;
+    const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, currentMode())) : 0;
+    $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
+    $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5;
   }
 
   /* ---------------- Training ---------------- */
@@ -66,8 +87,8 @@ App.UI = (function () {
   function esc(t) { return String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
   function openPreview(program, mode, kind) {
     pending = { program: program, mode: mode, kind: kind };
-    const blocks = App.Programs.buildBlocks(program, mode), perEx = {};
-    blocks.forEach(b => { perEx[b.exerciseIndex] = (perEx[b.exerciseIndex] || 0) + b.duration; });
+    const blocks = App.Programs.buildBlocks(program, mode, S.offsets()), perEx = {};
+    blocks.forEach(b => { if (b.type === 'work') perEx[b.exerciseIndex] = (perEx[b.exerciseIndex] || 0) + b.duration; });
     $('pvTitle').textContent = kind === 'stretch' ? program.label : 'Dein Training';
     $('pvSummary').textContent = program.exerciseIds.length + ' Übungen · ca. ' + Math.round(App.Programs.totalSeconds(blocks) / 60) + ' Minuten · ' + mode.label +
       (program.type === 'random' ? ' · Zufallsprogramm' : '');
@@ -90,7 +111,7 @@ App.UI = (function () {
         lastCat = ex.category; const h = document.createElement('li'); h.className = 'area'; h.textContent = App.Programs.areaById(ex.category).label; ol.appendChild(h);
       }
       const li = document.createElement('li');
-      const w = ex.weight ? ' · Hantel ' + ex.weight : '';
+      const w = (ex.weight ? ' · Hantel ' + ex.weight : '') + (kind === 'strength' && S.offsets()[id] ? ' · ' + (S.offsets()[id] > 0 ? '+' : '−') + Math.abs(S.offsets()[id]) + ' s angepasst' : '');
       li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(ex.subCategory) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
       ol.appendChild(li);
     });
@@ -100,9 +121,9 @@ App.UI = (function () {
   function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }   // direkt, ohne Übersicht (Folgefrage)
 
   function run(program, mode, meta) {
-    const blocks = App.Programs.buildBlocks(program, mode);
+    const blocks = App.Programs.buildBlocks(program, mode, S.offsets());
     const totalAll = App.Programs.totalSeconds(blocks);
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], ui: { lastCount: null, lastCue: null, lastRem: null } };
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, ui: { lastCount: null, lastCue: null, lastRem: null } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
       onBlockStart: function (b) {
@@ -123,7 +144,7 @@ App.UI = (function () {
         // Einfacher Ping bei 60/30/10/3/2/1 s Restzeit (nur wenn der Block länger ist als der Schwellwert)
         if (s.running && u.lastRem !== null && u.lastRem !== rem && PINGS.indexOf(rem) >= 0 && rem < b.duration) App.Audio.play('ping');
         u.lastRem = rem;
-        const cue = (/^Satz/.test(b.label) ? b.label + ' · ' : '') + s.motion.cue;
+        const cue = (/^(Satz|Runde)/.test(b.label) ? b.label + ' · ' : '') + s.motion.cue;
         if (u.lastCue !== cue) { $('cue').textContent = cue; u.lastCue = cue; }
         player.render(s.motion.p);
         let left = s.remaining; for (let k = s.index + 1; k < blocks.length; k++) left += blocks[k].duration;
@@ -142,7 +163,8 @@ App.UI = (function () {
     $('tEquip').textContent = ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (ex.weight ? ' (Hantel ' + ex.weight + ')' : '') : 'Kein Material nötig';
     player.setExercise(ex);
     const nextIdx = b.exerciseIndex + 1, ids = session.program.exerciseIds;
-    $('tNext').textContent = nextIdx < ids.length ? 'Als Nächstes: ' + D.byId[ids[nextIdx]].name : 'Letzte Übung';
+    const nextEx = b.nextEx !== undefined ? b.nextEx : (nextIdx < ids.length ? D.byId[ids[nextIdx]] : null);   // Zirkel liefert nextEx selbst
+    $('tNext').textContent = nextEx ? 'Als Nächstes: ' + nextEx.name : 'Letzte Übung';
   }
 
   function finish(completed) {
@@ -197,12 +219,30 @@ App.UI = (function () {
   }
   function refreshStars(id) { Array.prototype.forEach.call(document.querySelectorAll('.stars'), w => { if (w.dataset.id === id) paintStars(w); }); }
 
-  /** Bewertung der vollständig durchgeführten Übungen am Trainingsende. */
+  /** Bewertung der vollständig durchgeführten Übungen am Trainingsende: Sterne + (Kraft) zu leicht / richtig / zu schwer. */
+  const LEVELS = [['leicht', 'Zu leicht', 1], ['richtig', 'Richtig', 0], ['schwer', 'Zu schwer', -1]];
   function renderRating(ids) {
     const ul = $('dRateList'); ul.textContent = ''; $('dRate').hidden = !ids.length;
     ids.forEach(function (id) {
-      const li = document.createElement('li'), n = document.createElement('span'); n.textContent = D.byId[id].name;
-      li.appendChild(n); li.appendChild(starsEl(id)); ul.appendChild(li);
+      const li = document.createElement('li'), top = document.createElement('div'), n = document.createElement('span');
+      li.className = 'ex'; top.className = 'top'; n.textContent = D.byId[id].name;
+      top.appendChild(n); top.appendChild(starsEl(id)); li.appendChild(top);
+      if (session.kind === 'strength') {
+        const row = document.createElement('div'); row.className = 'lvl';
+        LEVELS.forEach(function (l) {
+          const b = btn(l[1], 'choice', session.chosen[id] === l[0], function () {
+            if (!(id in session.base)) session.base[id] = (S.level(id) || {}).offset || 0;      // Stand vor diesem Training
+            const off = Math.max(-CFG.levelMax, Math.min(CFG.levelMax, session.base[id] + l[2] * CFG.levelStep));
+            session.chosen[id] = l[0]; S.setLevel(id, off, l[0]);
+            Array.prototype.forEach.call(row.children, (x, k) => x.setAttribute('aria-pressed', LEVELS[k][0] === l[0]));
+            hint.textContent = off === session.base[id] ? 'Dauer bleibt gleich.' : 'Nächstes Mal ' + (l[2] > 0 ? 'um ' : 'um ') + CFG.levelStep + ' s ' + (l[2] > 0 ? 'länger' : 'kürzer') + ' (gesamt ' + (off > 0 ? '+' : off < 0 ? '−' : '') + Math.abs(off) + ' s).';
+          });
+          row.appendChild(b);
+        });
+        const hint = document.createElement('small'); hint.className = 'muted'; hint.style.flexBasis = '100%';
+        li.appendChild(row); li.appendChild(hint);
+      }
+      ul.appendChild(li);
     });
   }
 
@@ -240,8 +280,6 @@ App.UI = (function () {
     $('vol').oninput = e => { S.setVolume(e.target.value); App.Audio.setVolume(e.target.value); };
     $('vol').onchange = () => { App.Audio.unlock(); App.Audio.play('double'); };   // Hörprobe
     $('start').onclick = startStrength;
-    $('kieserRange').min = CK.min; $('kieserRange').max = CK.max; $('kieserRange').step = CK.step;
-    $('kieserRange').oninput = e => { S.setSettings({ kieserSeconds: +e.target.value }); $('kieserVal').textContent = e.target.value + ' Sekunden'; renderHome(); };
     $('ovClose').onclick = closeOverlay;
     $('overlay').onclick = e => { if (e.target === $('overlay')) closeOverlay(); };
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('overlay').hidden) closeOverlay(); });
