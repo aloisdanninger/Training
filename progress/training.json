@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795376049353,
+ "updatedAt": 1795376050823,
  "settings": {
   "areas": [
    "core"
@@ -70,6 +70,6 @@
  "favorites": [],
  "weights": {},
  "ratings": {
-  "side_plank": 5
+  "side_plank": 1
  }
 }
