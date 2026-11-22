@@ -1,0 +1,107 @@
+ZWISCHENSTAND – Persönlicher Trainingsgenerator
+Stand: 22.11.2026
+Zweck dieser Datei: In einem neuen Chat weiterarbeiten. Diese Datei zuerst lesen lassen
+("Lies Zwischenstand_Training.txt im Ordner c:\Users\danninga\Training_GitRepo und arbeite daran weiter").
+
+=====================================================================
+1. PROJEKT
+=====================================================================
+Einzel-Datei-Web-App (HTML/CSS/Vanilla-JS, offline-fähig) für Mac/iPad/iPhone.
+Ursprünglicher Auftrag: Prompt_Persönlicher_Trainingsgenerator.txt (gleicher Ordner).
+- Krafttraining: Oberkörper, Rumpf, Unterkörper (Mehrfachauswahl)
+- Dehnprogramme: Oberkörper, Unterkörper, Rumpf, Rücken-Nacken-Schulter
+- Stile: Kieser (4 s Belastung, 2 s halten, 4 s zurück, 2 s halten; Dauer 90-120 s, Standard 120 s),
+         Klassisch (3 Sätze à 30 s, 10 s Pause)
+- Programmtypen: Standard (feste Liste) und Zufall (Regel 2/2/1 je Bereich, gewichtet nach Bewertung)
+- Trainingsbildschirm: SVG-Strichfigur mit Animation, Ringtimer, Zahl, Anleitung (Querformat: neben dem Bild,
+  Hochformat: darunter), optionale Töne
+- Nach dem Krafttraining: Frage nach passendem Dehnprogramm
+
+Repo:        https://github.com/aloisdanninger/Training  (Branch main = Code + docs/, Branch progress = Fortschritt)
+Lokal:       c:\Users\danninga\Training_GitRepo\
+Hosting:     Cloudflare Worker "training" (Workers Static Assets, wrangler.jsonc, liefert docs/ aus),
+             Deploy automatisch bei Push auf main. Zugriffsschutz: Cloudflare Access (One-time PIN,
+             E-Mail alois.danninger@gmx.at). Beschreibung: SETUP.md
+Git-Autor:   Danninger <alois.danninger@gmx.at> (im Repo lokal konfiguriert)
+Fortschritt: JSON-Datei progress/training.json auf Branch "progress", Sync über GitHub Contents API.
+             Token (Fine-grained, Contents: Read+Write, nur Repo Training) wird pro Gerät in der App
+             unter "GitHub-Sync" eingegeben (localStorage). Funktioniert laut Nutzer.
+
+=====================================================================
+2. ARCHITEKTUR (modular, wird zu EINER HTML-Datei gebaut)
+=====================================================================
+Quellen:  src/js/*.js (alphabetisch zusammengefügt), src/css/style.css, src/template.html
+Build:    python -I build/build.py   -> docs/training.html (+ docs/index.html als Weiterleitung)
+Test:     Selbsttest im Browser: docs/training.html#selftest (Ergebnis im Seitentitel "SELFTEST PASS/FAIL")
+          Headless:  msedge.exe --headless --dump-dom ...#selftest  (tests/run-selftest.py hängt gelegentlich,
+          direkter Edge-Aufruf mit timeout geht). Screenshots: --screenshot mit explizitem Windows-Pfad.
+Namespace App, Module:
+  00-config.js          Config (Version, Keys, GitHub, prepareSeconds, excludeAnchored, kieser{min,max,step,default}, Stage)
+  05-pose.js            Posensystem (absolute Winkel, 0=oben, 90=rechts, 180=unten; Vorwärtskinematik)
+  10-data-exercises.js  AREAS (Regeln 2/2/1, Standardlisten) + 43 Kraftübungen (Zeile pro Übung);
+                        Matte/Gewicht (leicht/mittel/schwer) werden ergänzt; needsAnchor = Band/TRX
+  11-data-stretches.js  20 Dehnübungen + 4 Dehnprogramme
+  12-data-modes.js      Trainingsstile; App.Data.kieserMode(sek); modeById(id, kieserSekunden)
+  20-logic-programs.js  buildProgram (Zufall gewichtet nach Bewertung/zuletzt trainiert), buildStretch,
+                        buildBlocks, totalSeconds, equipmentSummary (Materialübersicht)
+  30-timer.js           Timer mit Blöcken (prepare/work/rest), zeitstempelbasiert, testbar
+  40-animation.js       SVG-Figur: Gesicht (Auge+Nase), Fuß-Verankerung (anchor 'foot'/'free'), Requisiten
+  50-audio.js           WebAudio-Pings (ping, double, finish) + iOS-Fix (audioSession 'playback', stiller Loop)
+  60-storage.js         App.Store (Einstellungen, Sessions, Bewertungen, Sound lokal) + App.Sync (GitHub)
+  70-ui.js              Startseite, Übersicht vor Start, Training, Abschluss + Bewertung, Katalog + Overlay
+  90-selftest.js        Eingebauter Test (Daten, Regeln, Dauer, Timer, Material, Töne, Bewertung, Kniebeuge)
+  99-main.js            Einstieg
+Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Eintrag in MODES.
+
+=====================================================================
+3. UMGESETZTE FUNKTIONEN (alle Nutzerwünsche bisher)
+=====================================================================
+- Übersicht vor dem Start: Übungsliste + Material (Matte, Hanteln nach leicht/mittel/schwer, Hocker, ...),
+  "Neu würfeln" bei Zufallsprogramm
+- Timer-Töne: einfacher Ping bei 60/30/10/3/2/1 s Restzeit, Doppelping bei Start/Ende von Übung bzw. Satz
+- Figuren mit Gesicht (Bauch-/Rückenlage erkennbar), Liegeübungen mit "Rückenlage/Bauchlage" in der Anleitung
+- Kniebeuge u. a.: Füße bleiben am Boden (Fuß-Verankerung)
+- Anleitung neben dem Bild (Querformat), darunter nur im Hochformat
+- Bewertung 1-5 Sterne (0 = unbewertet) im Katalog, im Overlay und am Trainingsende für die vollständig
+  durchgeführten Übungen; erneuter Tipp auf denselben Stern = zurück auf 0.
+  Gewichtung im Zufallsmodus: 1=0,25 2=0,6 3(=unbewertet)=1 4=1,8 5=3; kürzlich trainierte zusätzlich x0,25
+- Kieser: Standard 120 s, Schieberegler 90-120 s (5er-Schritte); alte Einstellungen kieser90/120 werden migriert
+- Band/TRX-Übungen (Face Pull, Pallof Press, TRX Rows, TRX Chest Press) werden nicht vorgeschlagen
+  (Config.excludeAnchored = true; auf false setzen, wenn ein Ankerpunkt vorhanden ist). Im Katalog sichtbar mit
+  Hinweis "Befestigung nötig". Standard Oberkörper: TRX Rows ersetzt durch Bent Over Row.
+- Katalog (#gallery): Tipp auf Übung öffnet Overlay mit Animation, Beschreibung, Anleitung, Material, Sternen
+- Ton-Einstellung ist geräteabhängig (nicht synchronisiert), weil iPhone und iPad sie sich sonst überschrieben
+
+=====================================================================
+4. GIT-STAND
+=====================================================================
+Gepusht auf origin/main: bis Commit 7aed53c (Bewertung, Kieser-Regler, Band/TRX, Overlay, iOS-Ton-Fix).
+LOKAL, NOCH NICHT GEPUSHT: Commit 8a78dd8 "Ton-Einstellung geräteabhängig statt synchronisiert".
+-> Vor weiterer Arbeit: git status / git log prüfen; Push nur nach ausdrücklichem OK des Nutzers.
+Diese Datei (Zwischenstand_Training.txt) ist nicht committet.
+Training-token.txt im Repo-Ordner (vermutlich GitHub-Token) steht in .gitignore und darf nie committet werden.
+
+=====================================================================
+5. OFFENE PUNKTE / MÖGLICHE NÄCHSTE SCHRITTE
+=====================================================================
+- Ton + Musik: Audio-Modus ist iOS "ambient" (Pings mischen sich über Musik; Stumm-Schalter wirkt dann wieder). Ein früherer Fix mit "playback" + stillem Loop verdrängte die Musik und wurde entfernt.
+- iPad-Ton: Nutzer hatte am iPad keinen Ton, am iPhone schon. Vermutete Ursachen: Ton-Schalter in der App
+  (pro Gerät/Home-Bildschirm-App eigener Speicher), Stumm im Kontrollzentrum, Lautstärke, Bluetooth,
+  Home-Bildschirm-App vs. Safari. Nutzer meldet "funktioniert soweit" – Ton am iPad nach dem Fix erneut bestätigen lassen.
+- Commit 8a78dd8 pushen (nach OK).
+- README.md kurz ergänzen (Bewertung, Kieser-Regler, excludeAnchored), falls gewünscht.
+- tests/run-selftest.py reparieren (hängender Edge-Aufruf), optional.
+- Ideen (nicht beauftragt): Favoriten, Gewichtsverlauf pro Übung (Platzhalter favorites/weights im Datenmodell),
+  Übungen ausblenden/sperren, Statistik-Ansicht.
+
+=====================================================================
+6. ARBEITSHINWEISE FÜR DEN NÄCHSTEN CHAT
+=====================================================================
+- Sprache mit dem Nutzer: Deutsch.
+- Nach Codeänderungen: python -I build/build.py, dann Selbsttest (#selftest) -> "SELFTEST PASS" erwartet.
+- Commit-Nachrichten enden mit: Co-Authored-By: <aktuelles Claude-Modell> <noreply@anthropic.com>
+- Nie alle msedge-Prozesse beenden (würde die Browserfenster des Nutzers schließen); für Screenshots eigenes
+  temporäres Profil (--user-data-dir) nutzen.
+- Beim Screenshot-Skripten: Oberkörper ist Standard-vorgewählt (Klick auf Bereich würde abwählen); Skript per
+  setTimeout (~200 ms) nach DOMContentLoaded einspritzen; explizite Windows-Ausgabepfade verwenden
+  (Bash-Funktion mit "\\$3.png" legte eine Datei "out$3.png" an).
