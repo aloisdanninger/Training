@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795377985991,
+ "updatedAt": 1795379815002,
  "settings": {
   "areas": [
    "upper",
@@ -121,6 +121,31 @@
    ],
    "completed": false,
    "durationSec": 64
+  },
+  {
+   "id": "s17953788006550z2h",
+   "date": "2026-11-22T20:20:00.655Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper",
+    "core"
+   ],
+   "modeId": "circuit",
+   "programType": "standard",
+   "exerciseIds": [
+    "liegestuetz",
+    "schulterdruecken",
+    "bent_over_row",
+    "kurzhantelrudern",
+    "bizeps_curl",
+    "plank",
+    "dead_bug",
+    "superman",
+    "bird_dog",
+    "side_plank"
+   ],
+   "completed": true,
+   "durationSec": 1014
   }
  ],
  "favorites": [],
