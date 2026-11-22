@@ -1,12 +1,14 @@
 {
  "version": 1,
- "updatedAt": 1795375631917,
+ "updatedAt": 1795376049353,
  "settings": {
-  "areas": [],
+  "areas": [
+   "core"
+  ],
   "style": "kieser",
   "programType": "standard",
   "sound": true,
-  "kieserSeconds": 90
+  "kieserSeconds": 120
  },
  "sessions": [
   {
@@ -44,9 +46,30 @@
    ],
    "completed": true,
    "durationSec": 3
+  },
+  {
+   "id": "s1795376021408ih5x",
+   "date": "2026-11-22T19:33:41.408Z",
+   "kind": "strength",
+   "areaIds": [
+    "core"
+   ],
+   "modeId": "kieser",
+   "programType": "standard",
+   "exerciseIds": [
+    "plank",
+    "dead_bug",
+    "superman",
+    "bird_dog",
+    "side_plank"
+   ],
+   "completed": true,
+   "durationSec": 28
   }
  ],
  "favorites": [],
  "weights": {},
- "ratings": {}
+ "ratings": {
+  "side_plank": 5
+ }
 }
