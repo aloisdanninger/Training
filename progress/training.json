@@ -1,12 +1,14 @@
 {
  "version": 1,
- "updatedAt": 1795376779838,
+ "updatedAt": 1795377445743,
  "settings": {
-  "areas": [],
-  "style": "kieser",
+  "areas": [
+   "upper"
+  ],
+  "style": "circuit",
+  "kieserSeconds": 120,
   "programType": "standard",
-  "sound": true,
-  "kieserSeconds": 120
+  "sound": false
  },
  "sessions": [
   {
@@ -105,5 +107,6 @@
  "weights": {},
  "ratings": {
   "side_plank": 1
- }
+ },
+ "levels": {}
 }
