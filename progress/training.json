@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795376677174,
+ "updatedAt": 1795376779838,
  "settings": {
   "areas": [],
   "style": "kieser",
@@ -82,6 +82,23 @@
    ],
    "completed": false,
    "durationSec": 41
+  },
+  {
+   "id": "s1795376715449xw05",
+   "date": "2026-11-22T19:45:15.449Z",
+   "kind": "stretch",
+   "areaIds": [],
+   "modeId": "stretch",
+   "programType": "stretch",
+   "exerciseIds": [
+    "st_waden",
+    "st_quad",
+    "st_hamstring",
+    "st_hueftbeuger",
+    "st_gesaess"
+   ],
+   "completed": false,
+   "durationSec": 64
   }
  ],
  "favorites": [],
