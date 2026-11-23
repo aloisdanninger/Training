@@ -34,6 +34,7 @@ App.UI = (function () {
   }
 
   /* ---------------- Startbildschirm ---------------- */
+  let stretchSel = [];   // gewählte Dehnprogramme (nur für diese Sitzung)
   const isRef = () => S.settings().programType === 'reference';
   function currentMode() { return isRef() ? D.modeById('reference') : D.modeById(S.settings().style, S.settings()); }
   const hiitMode = () => D.modeById('hiit', S.settings());
@@ -87,7 +88,16 @@ App.UI = (function () {
     $('sound').checked = S.sound();
     updateSummary();
     const st2 = $('stretches'); st2.textContent = '';
-    D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => openPreview(App.Programs.buildStretch([p.id]), D.modeById('stretch'), 'stretch'))));
+    const sel = stretchSel.filter(id => D.STRETCH_PROGRAMS.some(p => p.id === id));
+    D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn((sel.indexOf(p.id) >= 0 ? '✓ ' : '🧘 ') + p.label, '', sel.indexOf(p.id) >= 0, () => {
+      stretchSel = sel.indexOf(p.id) >= 0 ? sel.filter(x => x !== p.id) : sel.concat(p.id); renderHome();
+    })));
+    const ss = $('stretchStart'), sp = sel.length ? App.Programs.buildStretch(sel) : null;
+    ss.hidden = !sp;
+    if (sp) {
+      ss.textContent = 'Dehnprogramm starten · ' + sp.exerciseIds.length + ' Übungen · ca. ' + Math.max(1, Math.round(App.Programs.totalSeconds(blocksOf(sp, D.modeById('stretch'))) / 60)) + ' Min.';
+      ss.onclick = () => openPreview(sp, D.modeById('stretch'), 'stretch');
+    }
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
     $('profileBtn').textContent = '👤 ' + App.Profile.label();

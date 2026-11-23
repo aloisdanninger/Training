@@ -33,6 +33,8 @@ App.SelfTest = (function () {
     }));
     check('Dehnprogramme referenzieren existierende Übungen', D.STRETCH_PROGRAMS.length === 6 && D.STRETCH_PROGRAMS.every(p => p.exerciseIds.length >= 5 && p.exerciseIds.every(id => D.byId[id] && D.byId[id].category === 'stretch')));
     const mb = D.modeById('stretch').buildBlocks(D.byId.m_9090_switch, { secondsEach: 45 }), sb0 = D.modeById('stretch').buildBlocks(D.byId.st_brust, {});
+    const sm = App.Programs.buildStretch(['mob_hip', 'mob_spine', 'stretch_upper']);
+    check('Mehrere Dehnprogramme: verbunden, ohne doppelte Übungen', sm.exerciseIds.length === new Set(sm.exerciseIds).size && sm.exerciseIds.length > 17 && sm.items.length === sm.exerciseIds.length, sm.exerciseIds.length);
     check('Mobilität: dynamisch wiederholt (6 s), Dehnung gleitet und hält', mb[1].duration === 45 && mb[1].motion(3).p === 1 && mb[1].motion(6).p === 0 && sb0[1].motion(30).p === 1);
     const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);
     check('Referenztraining: 12 Übungen, je 4 aus Oberkörper/Rumpf/Unterkörper, alle Unterkategorien',

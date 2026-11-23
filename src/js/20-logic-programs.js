@@ -107,7 +107,7 @@ App.Programs = (function () {
   function buildStretch(programIds) {
     const progs = programIds.map(id => D.STRETCH_PROGRAMS.filter(p => p.id === id)[0]).filter(Boolean);
     const items = [];
-    progs.forEach(p => p.exerciseIds.forEach(id => items.push({ id: id, secondsEach: p.secondsEach })));
+    progs.forEach(p => p.exerciseIds.forEach(id => { if (!items.some(i => i.id === id)) items.push({ id: id, secondsEach: p.secondsEach }); }));   // gemeinsame Übungen nur einmal
     return { id: 'stretch-' + Date.now(), type: 'stretch', label: progs.map(p => p.label).join(' + '),
       areaIds: [], exerciseIds: items.map(i => i.id), items: items };
   }

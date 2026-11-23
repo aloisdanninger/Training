@@ -114,7 +114,8 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
     <label class="slider" style="flex:1;min-width:160px">Lautstärke der Pings<input type="range" id="vol" min="0.1" max="1" step="0.1" aria-label="Lautstärke der Pings"></label></section>
   <p id="summary" class="muted"></p>
   <button id="start" class="btn primary big">Training starten</button>
-  <section><h2>Nur dehnen</h2><div id="stretches" class="grid2"></div></section>
+  <section><h2>Nur dehnen</h2><p class="muted small">Ein oder mehrere Programme wählen – sie werden zu einem längeren Programm verbunden.</p><div id="stretches" class="grid2"></div>
+    <button id="stretchStart" class="btn primary big" hidden></button></section>
   <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
     <div class="row wrap"><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
     <label class="btn">⬆ Import<input type="file" id="importFile" accept="application/json" hidden></label><a class="btn" href="#gallery">Übungskatalog</a></div>
@@ -1194,7 +1195,7 @@ App.Programs = (function () {
   function buildStretch(programIds) {
     const progs = programIds.map(id => D.STRETCH_PROGRAMS.filter(p => p.id === id)[0]).filter(Boolean);
     const items = [];
-    progs.forEach(p => p.exerciseIds.forEach(id => items.push({ id: id, secondsEach: p.secondsEach })));
+    progs.forEach(p => p.exerciseIds.forEach(id => { if (!items.some(i => i.id === id)) items.push({ id: id, secondsEach: p.secondsEach }); }));   // gemeinsame Übungen nur einmal
     return { id: 'stretch-' + Date.now(), type: 'stretch', label: progs.map(p => p.label).join(' + '),
       areaIds: [], exerciseIds: items.map(i => i.id), items: items };
   }
@@ -1680,6 +1681,7 @@ App.UI = (function () {
   }
 
   /* ---------------- Startbildschirm ---------------- */
+  let stretchSel = [];   // gewählte Dehnprogramme (nur für diese Sitzung)
   const isRef = () => S.settings().programType === 'reference';
   function currentMode() { return isRef() ? D.modeById('reference') : D.modeById(S.settings().style, S.settings()); }
   const hiitMode = () => D.modeById('hiit', S.settings());
@@ -1733,7 +1735,16 @@ App.UI = (function () {
     $('sound').checked = S.sound();
     updateSummary();
     const st2 = $('stretches'); st2.textContent = '';
-    D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => openPreview(App.Programs.buildStretch([p.id]), D.modeById('stretch'), 'stretch'))));
+    const sel = stretchSel.filter(id => D.STRETCH_PROGRAMS.some(p => p.id === id));
+    D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn((sel.indexOf(p.id) >= 0 ? '✓ ' : '🧘 ') + p.label, '', sel.indexOf(p.id) >= 0, () => {
+      stretchSel = sel.indexOf(p.id) >= 0 ? sel.filter(x => x !== p.id) : sel.concat(p.id); renderHome();
+    })));
+    const ss = $('stretchStart'), sp = sel.length ? App.Programs.buildStretch(sel) : null;
+    ss.hidden = !sp;
+    if (sp) {
+      ss.textContent = 'Dehnprogramm starten · ' + sp.exerciseIds.length + ' Übungen · ca. ' + Math.max(1, Math.round(App.Programs.totalSeconds(blocksOf(sp, D.modeById('stretch'))) / 60)) + ' Min.';
+      ss.onclick = () => openPreview(sp, D.modeById('stretch'), 'stretch');
+    }
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
     $('profileBtn').textContent = '👤 ' + App.Profile.label();
@@ -2126,6 +2137,8 @@ App.SelfTest = (function () {
     }));
     check('Dehnprogramme referenzieren existierende Übungen', D.STRETCH_PROGRAMS.length === 6 && D.STRETCH_PROGRAMS.every(p => p.exerciseIds.length >= 5 && p.exerciseIds.every(id => D.byId[id] && D.byId[id].category === 'stretch')));
     const mb = D.modeById('stretch').buildBlocks(D.byId.m_9090_switch, { secondsEach: 45 }), sb0 = D.modeById('stretch').buildBlocks(D.byId.st_brust, {});
+    const sm = App.Programs.buildStretch(['mob_hip', 'mob_spine', 'stretch_upper']);
+    check('Mehrere Dehnprogramme: verbunden, ohne doppelte Übungen', sm.exerciseIds.length === new Set(sm.exerciseIds).size && sm.exerciseIds.length > 17 && sm.items.length === sm.exerciseIds.length, sm.exerciseIds.length);
     check('Mobilität: dynamisch wiederholt (6 s), Dehnung gleitet und hält', mb[1].duration === 45 && mb[1].motion(3).p === 1 && mb[1].motion(6).p === 0 && sb0[1].motion(30).p === 1);
     const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);
     check('Referenztraining: 12 Übungen, je 4 aus Oberkörper/Rumpf/Unterkörper, alle Unterkategorien',
