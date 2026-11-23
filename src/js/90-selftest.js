@@ -98,6 +98,10 @@ App.SelfTest = (function () {
     check('Einseitige Übungen markiert (Bulgarian Split Squat, Seitstütz, Dehnung mit Seitenwechsel), Plank nicht',
       D.byId.bulgarian_split_squat.oneSided && D.byId.side_plank.oneSided && D.byId.st_schulter.oneSided && !D.byId.plank.oneSided);
 
+    check('Profile: Standard = alte Schlüssel/Datei, Name -> eigener Schlüssel und Datei',
+      App.Profile.slugOf('Änna Müller!') === 'anna-muller' && App.Profile.slugOf('') === '' &&
+      (App.Profile.slug() !== '' || (App.Profile.storageKey() === App.Config.storageKey && App.Profile.remotePath() === 'progress/training.json')));
+
     // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag
     const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },
       { updatedAt: 2, levels: { a: { offset: 10, last: 'leicht', t: 20 }, b: { offset: 0, last: 'richtig', t: 40 } }, sessions: [] });

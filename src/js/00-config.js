@@ -8,6 +8,7 @@ App.Config = {
   version: 1,
   storageKey: 'training-state-v1',
   tokenKey: 'training-gh-token',
+  profileKey: 'training-profile',   // gewähltes Profil (pro Gerät); leer = Standardprofil (bisherige Daten)
   /* GitHub-Sync: Fortschritt liegt als JSON auf eigenem Branch "progress" */
   github: { owner: 'aloisdanninger', repo: 'Training', branch: 'progress', path: 'progress/training.json' },
   /* Sekunden Vorbereitung zwischen zwei Übungen */

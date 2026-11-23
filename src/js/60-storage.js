@@ -8,8 +8,26 @@
                 kommen vom Stand mit dem neueren `updatedAt`.
    Zusätzlich: Export/Import als Datei (z. B. für OneDrive).
    ========================================================================== */
+/**
+ * Profile: getrennte Daten je Benutzer. Das Profil wird pro Gerät gespeichert.
+ * Standardprofil (leer) = bisheriger Schlüssel + progress/training.json; Profil "anna" = Schlüssel ...-p-anna + progress/training-anna.json.
+ */
+App.Profile = (function () {
+  const C = App.Config;
+  const slugOf = n => String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+  const name = () => { try { return (localStorage.getItem(C.profileKey) || '').trim(); } catch (e) { return ''; } };
+  const slug = () => slugOf(name());
+  return {
+    slugOf: slugOf, name: name, slug: slug,
+    label: () => name() || 'Standard',
+    storageKey: () => C.storageKey + (slug() ? '-p-' + slug() : ''),
+    remotePath: () => slug() ? C.github.path.replace(/\.json$/, '-' + slug() + '.json') : C.github.path,
+    set: function (n) { try { n = (n || '').trim(); n ? localStorage.setItem(C.profileKey, n) : localStorage.removeItem(C.profileKey); } catch (e) { /* ignorieren */ } }
+  };
+})();
+
 App.Store = (function () {
-  const KEY = App.Config.storageKey;
+  const KEY = App.Profile.storageKey(), DEV = App.Config.storageKey;   // KEY: Daten je Profil, DEV: Geräteeinstellungen (Ton)
   const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser', kieserSeconds: App.Config.kieser.def, classicSets: App.Config.classic.sets.def, classicSeconds: App.Config.classic.seconds.def,
       circuitRounds: App.Config.circuit.rounds.def, circuitSeconds: App.Config.circuit.seconds.def, programType: 'standard', sound: false },
     sessions: [], favorites: [], weights: {}, ratings: {}, levels: {} });   // levels: { id: { offset: s, last: 'leicht'|'richtig'|'schwer', t: ms } }
@@ -48,10 +66,10 @@ App.Store = (function () {
     setSettings: function (patch) { Object.assign(state.settings, patch); save(); },
     addSession: function (s) { state.sessions.push(s); save(); },
     /* Ton ist geräteabhängig (nicht synchronisiert): iPhone und iPad dürfen unterschiedlich eingestellt sein */
-    sound: () => { try { return localStorage.getItem(KEY + '-sound') === '1'; } catch (e) { return false; } },
-    setSound: v => { try { localStorage.setItem(KEY + '-sound', v ? '1' : '0'); } catch (e) { /* ignorieren */ } },
-    volume: () => { try { return parseFloat(localStorage.getItem(KEY + '-vol')) || 1; } catch (e) { return 1; } },
-    setVolume: v => { try { localStorage.setItem(KEY + '-vol', String(v)); } catch (e) { /* ignorieren */ } },
+    sound: () => { try { return localStorage.getItem(DEV + '-sound') === '1'; } catch (e) { return false; } },
+    setSound: v => { try { localStorage.setItem(DEV + '-sound', v ? '1' : '0'); } catch (e) { /* ignorieren */ } },
+    volume: () => { try { return parseFloat(localStorage.getItem(DEV + '-vol')) || 1; } catch (e) { return 1; } },
+    setVolume: v => { try { localStorage.setItem(DEV + '-vol', String(v)); } catch (e) { /* ignorieren */ } },
     level: id => state.levels[id] || null,
     /** Sekunden-Anpassung je Übung: { id: offset } */
     offsets: () => { const o = {}; Object.keys(state.levels).forEach(k => { o[k] = state.levels[k].offset || 0; }); return o; },
@@ -72,7 +90,7 @@ App.Sync = (function () {
   const G = App.Config.github;
   let sha = null, busy = false, again = false, status = { text: '', cls: '' }, onStatus = function () {};
   const token = () => { try { return localStorage.getItem(App.Config.tokenKey) || ''; } catch (e) { return ''; } };
-  const url = () => 'https://api.github.com/repos/' + G.owner + '/' + G.repo + '/contents/' + G.path;
+  const url = () => 'https://api.github.com/repos/' + G.owner + '/' + G.repo + '/contents/' + App.Profile.remotePath();
   const headers = () => ({ 'Authorization': 'Bearer ' + token(), 'Accept': 'application/vnd.github+json' });
   const enc = s => btoa(unescape(encodeURIComponent(s)));
   const dec = s => decodeURIComponent(escape(atob(s.replace(/\s/g, ''))));
@@ -87,7 +105,7 @@ App.Sync = (function () {
   }
 
   function put() {
-    const body = { message: 'progress training', content: enc(App.Store.exportJson()), branch: G.branch };
+    const body = { message: 'progress training' + (App.Profile.slug() ? ' (' + App.Profile.slug() + ')' : ''), content: enc(App.Store.exportJson()), branch: G.branch };
     if (sha) body.sha = sha;
     return fetch(url(), { method: 'PUT', headers: headers(), body: JSON.stringify(body) }).then(function (r) {
       if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }

@@ -55,6 +55,7 @@ App.UI = (function () {
     D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => openPreview(App.Programs.buildStretch([p.id]), D.modeById('stretch'), 'stretch'))));
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
+    $('profileLbl').textContent = 'Profil: ' + App.Profile.label();
     $('syncBtn').textContent = App.Sync.hasToken() ? '☁ Jetzt synchronisieren' : '🔑 GitHub-Sync';
   }
 
@@ -301,6 +302,12 @@ App.UI = (function () {
         if (!t) return; App.Sync.setToken(t.trim());
       }
       App.Sync.sync().then(renderHome);
+    };
+    $('profileBtn').onclick = function () {
+      const n = prompt('Profilname (leer = Standardprofil). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());
+      if (n === null) return;
+      if (n.trim() && !App.Profile.slugOf(n)) { alert('Bitte Buchstaben oder Ziffern verwenden.'); return; }
+      App.Profile.set(n); location.reload();       // Neu laden, damit der Zustand des gewählten Profils geladen wird
     };
     $('exportBtn').onclick = function () {
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([S.exportJson()], { type: 'application/json' }));

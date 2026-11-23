@@ -102,6 +102,7 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
   <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
     <div class="row wrap"><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
     <label class="btn">⬆ Import<input type="file" id="importFile" accept="application/json" hidden></label><a class="btn" href="#gallery">Übungskatalog</a></div>
+    <div class="row wrap"><span id="profileLbl" class="muted small"></span><button id="profileBtn" class="btn">👤 Profil wechseln</button></div>
     <p id="syncInfo" class="muted small"></p></section>
 </main>
 
@@ -195,6 +196,7 @@ App.Config = {
   version: 1,
   storageKey: 'training-state-v1',
   tokenKey: 'training-gh-token',
+  profileKey: 'training-profile',   // gewähltes Profil (pro Gerät); leer = Standardprofil (bisherige Daten)
   /* GitHub-Sync: Fortschritt liegt als JSON auf eigenem Branch "progress" */
   github: { owner: 'aloisdanninger', repo: 'Training', branch: 'progress', path: 'progress/training.json' },
   /* Sekunden Vorbereitung zwischen zwei Übungen */
@@ -1034,8 +1036,26 @@ App.Audio = (function () {
                 kommen vom Stand mit dem neueren `updatedAt`.
    Zusätzlich: Export/Import als Datei (z. B. für OneDrive).
    ========================================================================== */
+/**
+ * Profile: getrennte Daten je Benutzer. Das Profil wird pro Gerät gespeichert.
+ * Standardprofil (leer) = bisheriger Schlüssel + progress/training.json; Profil "anna" = Schlüssel ...-p-anna + progress/training-anna.json.
+ */
+App.Profile = (function () {
+  const C = App.Config;
+  const slugOf = n => String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+  const name = () => { try { return (localStorage.getItem(C.profileKey) || '').trim(); } catch (e) { return ''; } };
+  const slug = () => slugOf(name());
+  return {
+    slugOf: slugOf, name: name, slug: slug,
+    label: () => name() || 'Standard',
+    storageKey: () => C.storageKey + (slug() ? '-p-' + slug() : ''),
+    remotePath: () => slug() ? C.github.path.replace(/\.json$/, '-' + slug() + '.json') : C.github.path,
+    set: function (n) { try { n = (n || '').trim(); n ? localStorage.setItem(C.profileKey, n) : localStorage.removeItem(C.profileKey); } catch (e) { /* ignorieren */ } }
+  };
+})();
+
 App.Store = (function () {
-  const KEY = App.Config.storageKey;
+  const KEY = App.Profile.storageKey(), DEV = App.Config.storageKey;   // KEY: Daten je Profil, DEV: Geräteeinstellungen (Ton)
   const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser', kieserSeconds: App.Config.kieser.def, classicSets: App.Config.classic.sets.def, classicSeconds: App.Config.classic.seconds.def,
       circuitRounds: App.Config.circuit.rounds.def, circuitSeconds: App.Config.circuit.seconds.def, programType: 'standard', sound: false },
     sessions: [], favorites: [], weights: {}, ratings: {}, levels: {} });   // levels: { id: { offset: s, last: 'leicht'|'richtig'|'schwer', t: ms } }
@@ -1074,10 +1094,10 @@ App.Store = (function () {
     setSettings: function (patch) { Object.assign(state.settings, patch); save(); },
     addSession: function (s) { state.sessions.push(s); save(); },
     /* Ton ist geräteabhängig (nicht synchronisiert): iPhone und iPad dürfen unterschiedlich eingestellt sein */
-    sound: () => { try { return localStorage.getItem(KEY + '-sound') === '1'; } catch (e) { return false; } },
-    setSound: v => { try { localStorage.setItem(KEY + '-sound', v ? '1' : '0'); } catch (e) { /* ignorieren */ } },
-    volume: () => { try { return parseFloat(localStorage.getItem(KEY + '-vol')) || 1; } catch (e) { return 1; } },
-    setVolume: v => { try { localStorage.setItem(KEY + '-vol', String(v)); } catch (e) { /* ignorieren */ } },
+    sound: () => { try { return localStorage.getItem(DEV + '-sound') === '1'; } catch (e) { return false; } },
+    setSound: v => { try { localStorage.setItem(DEV + '-sound', v ? '1' : '0'); } catch (e) { /* ignorieren */ } },
+    volume: () => { try { return parseFloat(localStorage.getItem(DEV + '-vol')) || 1; } catch (e) { return 1; } },
+    setVolume: v => { try { localStorage.setItem(DEV + '-vol', String(v)); } catch (e) { /* ignorieren */ } },
     level: id => state.levels[id] || null,
     /** Sekunden-Anpassung je Übung: { id: offset } */
     offsets: () => { const o = {}; Object.keys(state.levels).forEach(k => { o[k] = state.levels[k].offset || 0; }); return o; },
@@ -1098,7 +1118,7 @@ App.Sync = (function () {
   const G = App.Config.github;
   let sha = null, busy = false, again = false, status = { text: '', cls: '' }, onStatus = function () {};
   const token = () => { try { return localStorage.getItem(App.Config.tokenKey) || ''; } catch (e) { return ''; } };
-  const url = () => 'https://api.github.com/repos/' + G.owner + '/' + G.repo + '/contents/' + G.path;
+  const url = () => 'https://api.github.com/repos/' + G.owner + '/' + G.repo + '/contents/' + App.Profile.remotePath();
   const headers = () => ({ 'Authorization': 'Bearer ' + token(), 'Accept': 'application/vnd.github+json' });
   const enc = s => btoa(unescape(encodeURIComponent(s)));
   const dec = s => decodeURIComponent(escape(atob(s.replace(/\s/g, ''))));
@@ -1113,7 +1133,7 @@ App.Sync = (function () {
   }
 
   function put() {
-    const body = { message: 'progress training', content: enc(App.Store.exportJson()), branch: G.branch };
+    const body = { message: 'progress training' + (App.Profile.slug() ? ' (' + App.Profile.slug() + ')' : ''), content: enc(App.Store.exportJson()), branch: G.branch };
     if (sha) body.sha = sha;
     return fetch(url(), { method: 'PUT', headers: headers(), body: JSON.stringify(body) }).then(function (r) {
       if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
@@ -1204,6 +1224,7 @@ App.UI = (function () {
     D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => openPreview(App.Programs.buildStretch([p.id]), D.modeById('stretch'), 'stretch'))));
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
+    $('profileLbl').textContent = 'Profil: ' + App.Profile.label();
     $('syncBtn').textContent = App.Sync.hasToken() ? '☁ Jetzt synchronisieren' : '🔑 GitHub-Sync';
   }
 
@@ -1451,6 +1472,12 @@ App.UI = (function () {
       }
       App.Sync.sync().then(renderHome);
     };
+    $('profileBtn').onclick = function () {
+      const n = prompt('Profilname (leer = Standardprofil). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());
+      if (n === null) return;
+      if (n.trim() && !App.Profile.slugOf(n)) { alert('Bitte Buchstaben oder Ziffern verwenden.'); return; }
+      App.Profile.set(n); location.reload();       // Neu laden, damit der Zustand des gewählten Profils geladen wird
+    };
     $('exportBtn').onclick = function () {
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([S.exportJson()], { type: 'application/json' }));
       a.download = 'training-fortschritt.json'; a.click();
@@ -1572,6 +1599,10 @@ App.SelfTest = (function () {
 
     check('Einseitige Übungen markiert (Bulgarian Split Squat, Seitstütz, Dehnung mit Seitenwechsel), Plank nicht',
       D.byId.bulgarian_split_squat.oneSided && D.byId.side_plank.oneSided && D.byId.st_schulter.oneSided && !D.byId.plank.oneSided);
+
+    check('Profile: Standard = alte Schlüssel/Datei, Name -> eigener Schlüssel und Datei',
+      App.Profile.slugOf('Änna Müller!') === 'anna-muller' && App.Profile.slugOf('') === '' &&
+      (App.Profile.slug() !== '' || (App.Profile.storageKey() === App.Config.storageKey && App.Profile.remotePath() === 'progress/training.json')));
 
     // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag
     const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },
