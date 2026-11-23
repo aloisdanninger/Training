@@ -1,13 +1,13 @@
 {
  "version": 1,
- "updatedAt": 1795413615075,
+ "updatedAt": 1795454802390,
  "settings": {
   "areas": [
    "upper"
   ],
   "style": "circuit",
   "kieserSeconds": 120,
-  "programType": "random",
+  "programType": "reference",
   "sound": true
  },
  "sessions": [
