@@ -78,7 +78,7 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
   Hinweis "Befestigung nötig". Standard Oberkörper: TRX Rows ersetzt durch Bent Over Row.
 - Katalog (#gallery): Tipp auf Übung öffnet Overlay mit Animation, Beschreibung, Anleitung, Material, Sternen
 - Profile (App.Profile, 60-storage.js): Button "Profil wechseln" auf der Startseite; Profil wird pro Gerät gespeichert.
-  Standardprofil = alte Daten (training-state-v1, progress/training.json); Profil "anna" = training-state-v1-p-anna + progress/training-anna.json.
+  Profil "Lois" (auch ohne Auswahl) = alte Daten (training-state-v1, progress/training.json); 2. Profil "Elke"; Profil "anna" = training-state-v1-p-anna + progress/training-anna.json.
   Token bleibt pro Gerät gleich; Ton/Lautstärke bleiben geräteabhängig.
 - Ton-Einstellung ist geräteabhängig (nicht synchronisiert), weil iPhone und iPad sie sich sonst überschrieben
 

@@ -31,15 +31,16 @@ App.Data.MODES = (function () {
   /** Dehnung: langsam in die Dehnung gleiten (9 s), dann halten. */
   function stretchMotion(t) { return { p: ease(clamp01(t / 9)), cue: t < 9 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
 
-  const prepare = (ex, secs) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
-    motion: () => ({ p: 0, cue: 'Gleich geht es los' }) });
+  /** Vorbereitungsphase: Die Animation der Übung läuft schon durch (Vorschau der Bewegung), Text bleibt "Gleich geht es los". */
+  const prepare = (ex, secs, motion) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
+    motion: t => ({ p: motion(t).p, cue: 'Gleich geht es los' }) });
   const work = (ex, label, secs, motion) => ({ type: 'work', label: label, duration: secs, exercise: ex, sound: 'double', endSound: 'double', motion: motion });
   const rest = (ex, label, secs, cue) => ({ type: 'rest', label: label, duration: secs, exercise: ex, sound: null, motion: () => ({ p: 0, cue: cue }) });
 
   function kieser(total) {
     return {
       id: 'kieser', short: 'Kieser', label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
-      buildBlocks: (ex, ctx) => [prepare(ex, C.prepareSeconds), work(ex, 'Belastung', dur(total, ctx && ctx.offset), kieserMotion)]
+      buildBlocks: (ex, ctx) => [prepare(ex, C.prepareSeconds, kieserMotion), work(ex, 'Belastung', dur(total, ctx && ctx.offset), kieserMotion)]
     };
   }
 
@@ -48,7 +49,7 @@ App.Data.MODES = (function () {
     return {
       id: 'classic', short: 'Klassisch', label: 'Klassisch ' + sets + ' × ' + secs + ' s', kind: 'strength',
       buildBlocks: function (ex, ctx) {
-        const out = [prepare(ex, C.prepareSeconds)];
+        const out = [prepare(ex, C.prepareSeconds, loopMotion)];
         for (let s = 1; s <= sets; s++) {
           out.push(work(ex, 'Satz ' + s + ' / ' + sets, dur(secs, ctx && ctx.offset), loopMotion));
           if (s < sets) out.push(rest(ex, 'Pause', C.classic.rest, 'Pause'));
@@ -68,7 +69,7 @@ App.Data.MODES = (function () {
       buildAll: function (entries) {
         const n = entries.length, out = [];
         const tag = (b, i, end, next) => { b.exerciseIndex = i; b.exerciseCount = n; b.exerciseEnd = !!end; b.nextEx = next; return b; };
-        out.push(tag(prepare(entries[0].ex, C.prepareSeconds), 0, false, n > 1 ? entries[1].ex : null));
+        out.push(tag(prepare(entries[0].ex, C.prepareSeconds, loopMotion), 0, false, n > 1 ? entries[1].ex : null));
         for (let r = 1; r <= rounds; r++) {
           for (let i = 0; i < n; i++) {
             const lastOfAll = r === rounds && i === n - 1;
@@ -92,7 +93,7 @@ App.Data.MODES = (function () {
     {
       id: 'stretch', short: 'Dehnen', label: 'Dehnen', kind: 'stretch',
       buildBlocks: function (ex, ctx) {
-        return [prepare(ex, 5), work(ex, 'Dehnen', (ctx && ctx.secondsEach) || 60, stretchMotion)];
+        return [prepare(ex, 5, stretchMotion), work(ex, 'Dehnen', (ctx && ctx.secondsEach) || 60, stretchMotion)];
       }
     }
   ];

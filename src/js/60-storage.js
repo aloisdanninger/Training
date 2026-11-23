@@ -10,16 +10,17 @@
    ========================================================================== */
 /**
  * Profile: getrennte Daten je Benutzer. Das Profil wird pro Gerät gespeichert.
- * Standardprofil (leer) = bisheriger Schlüssel + progress/training.json; Profil "anna" = Schlüssel ...-p-anna + progress/training-anna.json.
+ * Profil "Lois" (= Standard, auch ohne Auswahl) = bisheriger Schlüssel + progress/training.json; Profil "anna" = Schlüssel ...-p-anna + progress/training-anna.json.
  */
 App.Profile = (function () {
   const C = App.Config;
   const slugOf = n => String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
-  const name = () => { try { return (localStorage.getItem(C.profileKey) || '').trim(); } catch (e) { return ''; } };
-  const slug = () => slugOf(name());
+  const OWNER = 'lois';   // Profil "Lois" = Standardprofil mit den bisherigen Daten (alter Schlüssel, progress/training.json)
+  const name = () => { try { return (localStorage.getItem(C.profileKey) || '').trim() || 'Lois'; } catch (e) { return 'Lois'; } };
+  const slug = () => { const s = slugOf(name()); return s === OWNER ? '' : s; };
   return {
     slugOf: slugOf, name: name, slug: slug,
-    label: () => name() || 'Standard',
+    label: name,
     storageKey: () => C.storageKey + (slug() ? '-p-' + slug() : ''),
     remotePath: () => slug() ? C.github.path.replace(/\.json$/, '-' + slug() + '.json') : C.github.path,
     set: function (n) { try { n = (n || '').trim(); n ? localStorage.setItem(C.profileKey, n) : localStorage.removeItem(C.profileKey); } catch (e) { /* ignorieren */ } }

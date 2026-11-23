@@ -304,7 +304,7 @@ App.UI = (function () {
       App.Sync.sync().then(renderHome);
     };
     $('profileBtn').onclick = function () {
-      const n = prompt('Profilname (leer = Standardprofil). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());
+      const n = prompt('Profilname (z. B. Lois oder Elke). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());
       if (n === null) return;
       if (n.trim() && !App.Profile.slugOf(n)) { alert('Bitte Buchstaben oder Ziffern verwenden.'); return; }
       App.Profile.set(n); location.reload();       // Neu laden, damit der Zustand des gewählten Profils geladen wird

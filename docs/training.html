@@ -592,15 +592,16 @@ App.Data.MODES = (function () {
   /** Dehnung: langsam in die Dehnung gleiten (9 s), dann halten. */
   function stretchMotion(t) { return { p: ease(clamp01(t / 9)), cue: t < 9 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
 
-  const prepare = (ex, secs) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
-    motion: () => ({ p: 0, cue: 'Gleich geht es los' }) });
+  /** Vorbereitungsphase: Die Animation der Übung läuft schon durch (Vorschau der Bewegung), Text bleibt "Gleich geht es los". */
+  const prepare = (ex, secs, motion) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
+    motion: t => ({ p: motion(t).p, cue: 'Gleich geht es los' }) });
   const work = (ex, label, secs, motion) => ({ type: 'work', label: label, duration: secs, exercise: ex, sound: 'double', endSound: 'double', motion: motion });
   const rest = (ex, label, secs, cue) => ({ type: 'rest', label: label, duration: secs, exercise: ex, sound: null, motion: () => ({ p: 0, cue: cue }) });
 
   function kieser(total) {
     return {
       id: 'kieser', short: 'Kieser', label: 'Kieser ' + total + ' Sekunden', kind: 'strength',
-      buildBlocks: (ex, ctx) => [prepare(ex, C.prepareSeconds), work(ex, 'Belastung', dur(total, ctx && ctx.offset), kieserMotion)]
+      buildBlocks: (ex, ctx) => [prepare(ex, C.prepareSeconds, kieserMotion), work(ex, 'Belastung', dur(total, ctx && ctx.offset), kieserMotion)]
     };
   }
 
@@ -609,7 +610,7 @@ App.Data.MODES = (function () {
     return {
       id: 'classic', short: 'Klassisch', label: 'Klassisch ' + sets + ' × ' + secs + ' s', kind: 'strength',
       buildBlocks: function (ex, ctx) {
-        const out = [prepare(ex, C.prepareSeconds)];
+        const out = [prepare(ex, C.prepareSeconds, loopMotion)];
         for (let s = 1; s <= sets; s++) {
           out.push(work(ex, 'Satz ' + s + ' / ' + sets, dur(secs, ctx && ctx.offset), loopMotion));
           if (s < sets) out.push(rest(ex, 'Pause', C.classic.rest, 'Pause'));
@@ -629,7 +630,7 @@ App.Data.MODES = (function () {
       buildAll: function (entries) {
         const n = entries.length, out = [];
         const tag = (b, i, end, next) => { b.exerciseIndex = i; b.exerciseCount = n; b.exerciseEnd = !!end; b.nextEx = next; return b; };
-        out.push(tag(prepare(entries[0].ex, C.prepareSeconds), 0, false, n > 1 ? entries[1].ex : null));
+        out.push(tag(prepare(entries[0].ex, C.prepareSeconds, loopMotion), 0, false, n > 1 ? entries[1].ex : null));
         for (let r = 1; r <= rounds; r++) {
           for (let i = 0; i < n; i++) {
             const lastOfAll = r === rounds && i === n - 1;
@@ -653,7 +654,7 @@ App.Data.MODES = (function () {
     {
       id: 'stretch', short: 'Dehnen', label: 'Dehnen', kind: 'stretch',
       buildBlocks: function (ex, ctx) {
-        return [prepare(ex, 5), work(ex, 'Dehnen', (ctx && ctx.secondsEach) || 60, stretchMotion)];
+        return [prepare(ex, 5, stretchMotion), work(ex, 'Dehnen', (ctx && ctx.secondsEach) || 60, stretchMotion)];
       }
     }
   ];
@@ -1038,16 +1039,17 @@ App.Audio = (function () {
    ========================================================================== */
 /**
  * Profile: getrennte Daten je Benutzer. Das Profil wird pro Gerät gespeichert.
- * Standardprofil (leer) = bisheriger Schlüssel + progress/training.json; Profil "anna" = Schlüssel ...-p-anna + progress/training-anna.json.
+ * Profil "Lois" (= Standard, auch ohne Auswahl) = bisheriger Schlüssel + progress/training.json; Profil "anna" = Schlüssel ...-p-anna + progress/training-anna.json.
  */
 App.Profile = (function () {
   const C = App.Config;
   const slugOf = n => String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
-  const name = () => { try { return (localStorage.getItem(C.profileKey) || '').trim(); } catch (e) { return ''; } };
-  const slug = () => slugOf(name());
+  const OWNER = 'lois';   // Profil "Lois" = Standardprofil mit den bisherigen Daten (alter Schlüssel, progress/training.json)
+  const name = () => { try { return (localStorage.getItem(C.profileKey) || '').trim() || 'Lois'; } catch (e) { return 'Lois'; } };
+  const slug = () => { const s = slugOf(name()); return s === OWNER ? '' : s; };
   return {
     slugOf: slugOf, name: name, slug: slug,
-    label: () => name() || 'Standard',
+    label: name,
     storageKey: () => C.storageKey + (slug() ? '-p-' + slug() : ''),
     remotePath: () => slug() ? C.github.path.replace(/\.json$/, '-' + slug() + '.json') : C.github.path,
     set: function (n) { try { n = (n || '').trim(); n ? localStorage.setItem(C.profileKey, n) : localStorage.removeItem(C.profileKey); } catch (e) { /* ignorieren */ } }
@@ -1473,7 +1475,7 @@ App.UI = (function () {
       App.Sync.sync().then(renderHome);
     };
     $('profileBtn').onclick = function () {
-      const n = prompt('Profilname (leer = Standardprofil). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());
+      const n = prompt('Profilname (z. B. Lois oder Elke). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());
       if (n === null) return;
       if (n.trim() && !App.Profile.slugOf(n)) { alert('Bitte Buchstaben oder Ziffern verwenden.'); return; }
       App.Profile.set(n); location.reload();       // Neu laden, damit der Zustand des gewählten Profils geladen wird
@@ -1603,6 +1605,10 @@ App.SelfTest = (function () {
     check('Profile: Standard = alte Schlüssel/Datei, Name -> eigener Schlüssel und Datei',
       App.Profile.slugOf('Änna Müller!') === 'anna-muller' && App.Profile.slugOf('') === '' &&
       (App.Profile.slug() !== '' || (App.Profile.storageKey() === App.Config.storageKey && App.Profile.remotePath() === 'progress/training.json')));
+
+    const pb = D.modeById('classic').buildBlocks(D.byId.plank)[0];
+    check('Vorbereitung: Animation läuft durch, Text bleibt', pb.type === 'prepare' && pb.motion(1.25).p > 0 && pb.motion(1.25).cue === 'Gleich geht es los');
+    check('Profil Lois = Standarddaten, Elke eigene', App.Profile.slugOf('Elke') === 'elke' && App.Profile.slugOf('Lois') === 'lois');
 
     // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag
     const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },

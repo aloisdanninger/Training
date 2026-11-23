@@ -102,6 +102,10 @@ App.SelfTest = (function () {
       App.Profile.slugOf('Änna Müller!') === 'anna-muller' && App.Profile.slugOf('') === '' &&
       (App.Profile.slug() !== '' || (App.Profile.storageKey() === App.Config.storageKey && App.Profile.remotePath() === 'progress/training.json')));
 
+    const pb = D.modeById('classic').buildBlocks(D.byId.plank)[0];
+    check('Vorbereitung: Animation läuft durch, Text bleibt', pb.type === 'prepare' && pb.motion(1.25).p > 0 && pb.motion(1.25).cue === 'Gleich geht es los');
+    check('Profil Lois = Standarddaten, Elke eigene', App.Profile.slugOf('Elke') === 'elke' && App.Profile.slugOf('Lois') === 'lois');
+
     // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag
     const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },
       { updatedAt: 2, levels: { a: { offset: 10, last: 'leicht', t: 20 }, b: { offset: 0, last: 'richtig', t: 40 } }, sessions: [] });
