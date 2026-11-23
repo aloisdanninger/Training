@@ -1,15 +1,15 @@
 {
  "version": 1,
- "updatedAt": 1795381033906,
+ "updatedAt": 1795410300601,
  "settings": {
   "areas": [
-   "upper",
-   "core"
+   "core",
+   "upper"
   ],
   "style": "circuit",
   "kieserSeconds": 120,
   "programType": "random",
-  "sound": false
+  "sound": true
  },
  "sessions": [
   {
@@ -121,6 +121,31 @@
    ],
    "completed": false,
    "durationSec": 64
+  },
+  {
+   "id": "s1795378326729i84n",
+   "date": "2026-11-22T20:12:06.729Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper",
+    "core"
+   ],
+   "modeId": "kieser",
+   "programType": "standard",
+   "exerciseIds": [
+    "liegestuetz",
+    "schulterdruecken",
+    "bent_over_row",
+    "kurzhantelrudern",
+    "bizeps_curl",
+    "plank",
+    "dead_bug",
+    "superman",
+    "bird_dog",
+    "side_plank"
+   ],
+   "completed": false,
+   "durationSec": 38
   },
   {
    "id": "s17953788006550z2h",
