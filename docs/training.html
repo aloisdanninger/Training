@@ -94,6 +94,10 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 .chips{display:flex;flex-wrap:wrap;gap:8px}.chips .btn{min-height:44px;padding:6px 14px;font-size:.95rem;font-weight:600}
 .chips .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .kg{display:flex;align-items:center;gap:10px;margin:2px 0 6px}.kg select{font:inherit;min-height:44px;padding:6px 10px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+#tDetails>summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center;list-style:none}
+#tDetails>summary::-webkit-details-marker{display:none}
+#tDetails>summary::before{content:"▾";margin-right:8px;color:var(--muted)}#tDetails:not([open])>summary::before{content:"▸"}
+#tDetails[open]>summary{margin-bottom:4px}
 
 </style>
 </head>
@@ -155,10 +159,13 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
       <div id="cue" class="cue"></div>
     </div>
     <section class="tinfo card">
-      <p id="tDesc" class="lead"></p>
-      <h2>Anleitung</h2>
-      <p id="tInstr"></p>
-      <p id="tEquip" class="muted"></p>
+      <details id="tDetails" open>
+        <summary>Beschreibung &amp; Anleitung</summary>
+        <p id="tDesc" class="lead"></p>
+        <h2>Anleitung</h2>
+        <p id="tInstr"></p>
+        <p id="tEquip" class="muted"></p>
+      </details>
       <p id="tNext" class="muted"></p>
     </section>
     <div class="controls tctrl">
@@ -2069,6 +2076,10 @@ App.UI = (function () {
     $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
     $('pvReroll').onclick = () => openPreview(buildStrength(), pending.mode, 'strength');
     $('pvBack').onclick = () => { show('home'); renderHome(); };
+    // Beschreibung einklappbar (pro Gerät gemerkt, damit der Pause-Knopf im eigenen Layout gut erreichbar ist)
+    const det = $('tDetails'), DK = 'training-info-collapsed';
+    try { det.open = localStorage.getItem(DK) !== '1'; } catch (e) { /* ignorieren */ }
+    det.ontoggle = () => { try { localStorage.setItem(DK, det.open ? '0' : '1'); } catch (e) { /* ignorieren */ } };
     $('pauseBtn').onclick = () => { if (timer.isRunning()) timer.pause(); else timer.start(); };
     $('skipBtn').onclick = () => timer.skip();
     $('stopBtn').onclick = () => { if (confirm('Training abbrechen?')) { timer.stop(); finish(false); } };

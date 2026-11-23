@@ -415,6 +415,10 @@ App.UI = (function () {
     $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
     $('pvReroll').onclick = () => openPreview(buildStrength(), pending.mode, 'strength');
     $('pvBack').onclick = () => { show('home'); renderHome(); };
+    // Beschreibung einklappbar (pro Gerät gemerkt, damit der Pause-Knopf im eigenen Layout gut erreichbar ist)
+    const det = $('tDetails'), DK = 'training-info-collapsed';
+    try { det.open = localStorage.getItem(DK) !== '1'; } catch (e) { /* ignorieren */ }
+    det.ontoggle = () => { try { localStorage.setItem(DK, det.open ? '0' : '1'); } catch (e) { /* ignorieren */ } };
     $('pauseBtn').onclick = () => { if (timer.isRunning()) timer.pause(); else timer.start(); };
     $('skipBtn').onclick = () => timer.skip();
     $('stopBtn').onclick = () => { if (confirm('Training abbrechen?')) { timer.stop(); finish(false); } };
