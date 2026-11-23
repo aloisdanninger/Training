@@ -9,7 +9,8 @@ Zweck dieser Datei: In einem neuen Chat weiterarbeiten. Diese Datei zuerst lesen
 Einzel-Datei-Web-App (HTML/CSS/Vanilla-JS, offline-fähig) für Mac/iPad/iPhone.
 Ursprünglicher Auftrag: Prompt_Persönlicher_Trainingsgenerator.txt (gleicher Ordner).
 - Krafttraining: Oberkörper, Rumpf, Unterkörper (Mehrfachauswahl)
-- Dehnprogramme: Oberkörper, Unterkörper, Rumpf, Rücken-Nacken-Schulter
+- Dehnprogramme: Oberkörper, Unterkörper, Rumpf, Rücken-Nacken-Schulter, Mobilität Hüfte & Sprunggelenk,
+  Mobilität Wirbelsäule & Schulter (dynamisch: mobilityMotion, 6-s-Wiederholung)
 - Stile: Zirkel, Kieser (4 s Belastung, 2 s halten, 4 s zurück, 2 s halten; Dauer 60-120 s, Standard 120 s),
          Klassisch (Standard 3 Sätze à 30 s, 10 s Pause; wählbar)
 - Bereiche: HIIT (zuerst, Cardio 3 + Ganzkörper 2), Oberkörper, Rumpf, Unterkörper. HIIT läuft immer zuerst im
@@ -43,9 +44,10 @@ Test:     Selbsttest im Browser: docs/training.html#selftest (Ergebnis im Seiten
 Namespace App, Module:
   00-config.js          Config (Version, Keys, GitHub, prepareSeconds, excludeAnchored, kieser{min,max,step,default}, Stage)
   05-pose.js            Posensystem (absolute Winkel, 0=oben, 90=rechts, 180=unten; Vorwärtskinematik); svgAnimation.view='front' = Frontalansicht (Seitübungen: Seitl. Ausfallschritt, Curtsy Lunge, Side Plank (+Reach), Seitbeuge, Latissimus-, Schulter-, Levator-Dehnung)
-  10-data-exercises.js  AREAS (hiit/upper/core/lower) + REFERENCE + 74 Übungen (13 HIIT) (Zeile pro Übung);
-                        Matte/Gewicht (leicht/mittel/schwer) werden ergänzt; needsAnchor = Band/TRX
-  11-data-stretches.js  20 Dehnübungen + 4 Dehnprogramme
+  10-data-exercises.js  AREAS (hiit/full/upper/core/lower) + REFERENCE + 111 Übungen (24 HIIT) (Zeile pro Übung);
+                        Matte/Gewicht werden ergänzt; needsAnchor = befestigtes Band (face_pull, pallof_press);
+                        Attribute pattern/position/load/flags (PATTERN, POSITION, FLAGS, loadOf) + *_LABEL
+  11-data-stretches.js  35 Dehn-/Mobilitätsübungen (DYNAMIC = Mobilität) + 6 Programme
   12-data-modes.js      Trainingsstile; App.Data.kieserMode(sek); modeById(id, kieserSekunden)
   20-logic-programs.js  buildProgram (Zufall gewichtet nach Bewertung/zuletzt trainiert), buildStretch,
                         buildBlocks, totalSeconds, equipmentSummary (Materialübersicht)
@@ -78,7 +80,7 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
 - Schwierigkeit je Übung (Trainingsende): Zu leicht / Richtig / Zu schwer -> kumulativer Offset +5/0/-5 s
   (Config.levelStep, levelMax 60, minSeconds 10), gespeichert in JSON unter levels {id:{offset,last,t}},
   Merge: jüngerer Zeitstempel je Übung. Wird bei der nächsten Auswahl auf die Dauer angewendet (Übersicht zeigt "± s angepasst").
-- Band/TRX-Übungen (Face Pull, Pallof Press, TRX Rows, TRX Chest Press) werden nicht vorgeschlagen
+- TRX-Übungen entfernt (23.11.2026). Befestigte Band-Übungen (Face Pull, Pallof Press) werden nicht vorgeschlagen
   (Config.excludeAnchored = true; auf false setzen, wenn ein Ankerpunkt vorhanden ist). Im Katalog sichtbar mit
   Hinweis "Befestigung nötig". Standard Oberkörper: TRX Rows ersetzt durch Bent Over Row.
 - Katalog (#gallery): Tipp auf Übung öffnet Overlay mit Animation, Beschreibung, Anleitung, Material, Sternen
@@ -91,12 +93,21 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
   B7 Kniebeugung, F2.1 Bauch, F3.1 Rückenstreckung, C1 Überzug (196 kg, stark), C3 Armzug, C5 Rudern, D6 Brustdrücken
   (nur ~40 kg, stagniert), E2 Seitheben. -> Zug/Rücken/Rumpf stark, Drücken/Trizeps schwach (kein Liegestütz).
   Daher Liegestütz-Aufbau: Wand -> Schräg -> Knie -> Negativ -> Liegestütz, plus Trizeps über Kopf, Bodendrücken, KB Press.
+- Ganzkörper-Bereich (23.11.2026): Slots nach Bewegungsmuster Squat/Lunge, Drücken, Hüftbeuge, Ziehen, Tragen, Rumpf
+  (aus allen Nicht-HIIT-Übungen; Program.areaOf). Gleiches Muster im Bereich x0.3, keine Doppelten über Bereiche.
+- Rahmenbedingungen auf der Startseite (Settings noJump/kneeFriendly/wristFriendly/gear): Ohne Springen, Knieschonend,
+  Handgelenke schonen; Material KH/KB/Gummiband/Klimmzugstange/Hocker (Std: KH, KB, Hocker an). App.Programs.allowed.
+  Zu wenig Übungen im Slot -> Auffüllen aus dem Bereich. Kein Zeitziel ("25 min") - Dauer ergibt sich aus Stil.
+- Gewicht je Übung am Trainingsende (Auswahlliste, KH 1-4 kg, KB 8/12/16 kg, Config.kg; App.Programs.kgOptions),
+  Standard = zuletzt verwendet (Store.weight/setWeight, synchronisiert, Merge per Zeitstempel), Session.kg.
+- Pose-Option y (ganze Figur heben, z. B. Wadenheben), Props 'kb' und 'bar'. Thruster-Animation korrigiert.
+- Nicht umgesetzt: Short Foot, Toe Yoga, Pallof Hold/Step-out (Befestigung), Wall Angels (= Schulterblatt-Dehnung).
 - Kettlebell: Swing, Press, High Pull, Holzhacker, Windmill, Kreuzheben, Sumo-Kniebeuge.
 
 =====================================================================
 4. GIT-STAND
 =====================================================================
-Alles gepusht bis Commit c4a392e (HIIT, Referenztraining, 31 neue Übungen).
+Alles gepusht bis Commit 9ae92fc (Ganzkörper, Rahmenbedingungen, Gewichtsauswahl, 39 neue Übungen + 15 Mobilität).
 Nicht committen: Training-token.txt, 20261123_151638474_iOS.jpg, "Medizinische Trainingsmaschinen_ Kieser Österreich.pdf".
 
 =====================================================================
