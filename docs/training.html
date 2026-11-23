@@ -1207,7 +1207,7 @@ App.Programs = (function () {
     // Je Programm zufällige Reihenfolge; Programme mit `pick` (Mobilität) ziehen nur so viele Übungen aus ihrem größeren Pool
     progs.forEach(p => shuffled(p.exerciseIds, rnd || Math.random).slice(0, p.pick || 99).forEach(id => { if (!items.some(i => i.id === id)) items.push({ id: id, secondsEach: p.secondsEach }); }));   // gemeinsame Übungen nur einmal
     return { id: 'stretch-' + Date.now(), type: 'stretch', label: progs.map(p => p.label).join(' + '),
-      areaIds: [], exerciseIds: items.map(i => i.id), items: items };
+      areaIds: [], programIds: programIds, exerciseIds: items.map(i => i.id), items: items };
   }
 
   /**
@@ -1829,7 +1829,7 @@ App.UI = (function () {
       li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(what) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
       ol.appendChild(li);
     });
-    $('pvReroll').hidden = !(kind === 'strength' && program.type === 'random');
+    $('pvReroll').hidden = !((kind === 'strength' && program.type === 'random') || (kind === 'stretch' && program.programIds));
     show('preview');
   }
   function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }   // direkt, ohne Übersicht (Folgefrage)
@@ -2074,7 +2074,7 @@ App.UI = (function () {
     $('overlay').onclick = e => { if (e.target === $('overlay')) closeOverlay(); };
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('overlay').hidden) closeOverlay(); });
     $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
-    $('pvReroll').onclick = () => openPreview(buildStrength(), pending.mode, 'strength');
+    $('pvReroll').onclick = () => pending.kind === 'stretch' ? openPreview(App.Programs.buildStretch(pending.program.programIds), pending.mode, 'stretch') : openPreview(buildStrength(), pending.mode, 'strength');
     $('pvBack').onclick = () => { show('home'); renderHome(); };
     // Beschreibung einklappbar (pro Gerät gemerkt, damit der Pause-Knopf im eigenen Layout gut erreichbar ist)
     const det = $('tDetails'), DK = 'training-info-collapsed';
@@ -2164,6 +2164,7 @@ App.SelfTest = (function () {
       if (a.join() !== D.STRETCH_PROGRAMS[0].exerciseIds.join()) diff = true;
     }
     check('Dehnen: zufällige Reihenfolge, Mobilität zieht 6 aus dem Pool', shOk && diff);
+    check('Dehnprogramm merkt seine Programme (Neu würfeln)', sm.programIds.join() === 'mob_hip,mob_spine,stretch_upper');
     check('Dehnen: 12 s Vorbereitung zwischen den Übungen', D.modeById('stretch').buildBlocks(D.byId.st_brust, {})[0].duration === 12);
     check('Mobilität: dynamisch wiederholt (6 s), Dehnung gleitet und hält', mb[1].duration === 45 && mb[1].motion(3).p === 1 && mb[1].motion(6).p === 0 && sb0[1].motion(30).p === 1);
     const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);

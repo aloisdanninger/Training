@@ -168,7 +168,7 @@ App.UI = (function () {
       li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(what) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
       ol.appendChild(li);
     });
-    $('pvReroll').hidden = !(kind === 'strength' && program.type === 'random');
+    $('pvReroll').hidden = !((kind === 'strength' && program.type === 'random') || (kind === 'stretch' && program.programIds));
     show('preview');
   }
   function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }   // direkt, ohne Übersicht (Folgefrage)
@@ -413,7 +413,7 @@ App.UI = (function () {
     $('overlay').onclick = e => { if (e.target === $('overlay')) closeOverlay(); };
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('overlay').hidden) closeOverlay(); });
     $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
-    $('pvReroll').onclick = () => openPreview(buildStrength(), pending.mode, 'strength');
+    $('pvReroll').onclick = () => pending.kind === 'stretch' ? openPreview(App.Programs.buildStretch(pending.program.programIds), pending.mode, 'stretch') : openPreview(buildStrength(), pending.mode, 'strength');
     $('pvBack').onclick = () => { show('home'); renderHome(); };
     // Beschreibung einklappbar (pro Gerät gemerkt, damit der Pause-Knopf im eigenen Layout gut erreichbar ist)
     const det = $('tDetails'), DK = 'training-info-collapsed';

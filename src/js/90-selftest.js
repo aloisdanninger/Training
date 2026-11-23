@@ -42,6 +42,7 @@ App.SelfTest = (function () {
       if (a.join() !== D.STRETCH_PROGRAMS[0].exerciseIds.join()) diff = true;
     }
     check('Dehnen: zufällige Reihenfolge, Mobilität zieht 6 aus dem Pool', shOk && diff);
+    check('Dehnprogramm merkt seine Programme (Neu würfeln)', sm.programIds.join() === 'mob_hip,mob_spine,stretch_upper');
     check('Dehnen: 12 s Vorbereitung zwischen den Übungen', D.modeById('stretch').buildBlocks(D.byId.st_brust, {})[0].duration === 12);
     check('Mobilität: dynamisch wiederholt (6 s), Dehnung gleitet und hält', mb[1].duration === 45 && mb[1].motion(3).p === 1 && mb[1].motion(6).p === 0 && sb0[1].motion(30).p === 1);
     const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);

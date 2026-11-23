@@ -112,7 +112,7 @@ App.Programs = (function () {
     // Je Programm zufällige Reihenfolge; Programme mit `pick` (Mobilität) ziehen nur so viele Übungen aus ihrem größeren Pool
     progs.forEach(p => shuffled(p.exerciseIds, rnd || Math.random).slice(0, p.pick || 99).forEach(id => { if (!items.some(i => i.id === id)) items.push({ id: id, secondsEach: p.secondsEach }); }));   // gemeinsame Übungen nur einmal
     return { id: 'stretch-' + Date.now(), type: 'stretch', label: progs.map(p => p.label).join(' + '),
-      areaIds: [], exerciseIds: items.map(i => i.id), items: items };
+      areaIds: [], programIds: programIds, exerciseIds: items.map(i => i.id), items: items };
   }
 
   /**
