@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795461919111,
+ "updatedAt": 1795462290210,
  "settings": {
   "areas": [
    "full"
@@ -202,6 +202,24 @@
    ],
    "completed": true,
    "durationSec": 650
+  },
+  {
+   "id": "s17954622565566cx0",
+   "date": "2026-11-23T19:30:56.556Z",
+   "kind": "stretch",
+   "areaIds": [],
+   "modeId": "stretch",
+   "programType": "stretch",
+   "exerciseIds": [
+    "st_rotation",
+    "st_catcow",
+    "st_cobra",
+    "st_seitbeuge",
+    "st_child"
+   ],
+   "completed": false,
+   "durationSec": 34,
+   "t": 1795462290210
   }
  ],
  "favorites": [],
