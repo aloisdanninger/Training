@@ -1,14 +1,24 @@
 {
  "version": 1,
- "updatedAt": 1795454802390,
+ "updatedAt": 1795458733185,
  "settings": {
   "areas": [
-   "upper"
+   "full"
   ],
   "style": "circuit",
   "kieserSeconds": 120,
-  "programType": "reference",
-  "sound": true
+  "programType": "random",
+  "sound": true,
+  "noJump": true,
+  "kneeFriendly": true,
+  "wristFriendly": true,
+  "gear": {
+   "KH": true,
+   "KB": true,
+   "Band": true,
+   "Stange": false,
+   "Stuhl": true
+  }
  },
  "sessions": [
   {
