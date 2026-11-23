@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795461775645,
+ "updatedAt": 1795461861576,
  "settings": {
   "areas": [
    "full"
@@ -259,7 +259,18 @@
   "trx_row": 1,
   "face_pull": 1,
   "trx_chest_press": 1,
-  "pallof_press": 1
+  "pallof_press": 1,
+  "st_nacken": 5,
+  "st_levator": 5,
+  "st_brustoeffner": 5,
+  "st_schulterblatt": 5,
+  "st_thread": 5,
+  "m_open_book": 4,
+  "m_tspine_rot": 5,
+  "m_wall_rotation": 4,
+  "m_chair_ext": 2,
+  "m_shoulder_cars": 5,
+  "m_arm_circles": 5
  },
  "levels": {
   "liegestuetz": {
