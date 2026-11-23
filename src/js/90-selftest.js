@@ -34,7 +34,15 @@ App.SelfTest = (function () {
     check('Dehnprogramme referenzieren existierende Übungen', D.STRETCH_PROGRAMS.length === 6 && D.STRETCH_PROGRAMS.every(p => p.exerciseIds.length >= 5 && p.exerciseIds.every(id => D.byId[id] && D.byId[id].category === 'stretch')));
     const mb = D.modeById('stretch').buildBlocks(D.byId.m_9090_switch, { secondsEach: 45 }), sb0 = D.modeById('stretch').buildBlocks(D.byId.st_brust, {});
     const sm = App.Programs.buildStretch(['mob_hip', 'mob_spine', 'stretch_upper']);
-    check('Mehrere Dehnprogramme: verbunden, ohne doppelte Übungen', sm.exerciseIds.length === new Set(sm.exerciseIds).size && sm.exerciseIds.length > 17 && sm.items.length === sm.exerciseIds.length, sm.exerciseIds.length);
+    check('Mehrere Dehnprogramme: verbunden, ohne doppelte Übungen', sm.exerciseIds.length === new Set(sm.exerciseIds).size && sm.exerciseIds.length >= 12 && sm.exerciseIds.length <= 17 && sm.items.length === sm.exerciseIds.length, sm.exerciseIds.length);
+    let shOk = true, diff = false;
+    for (let i = 0; i < 60; i++) {
+      const a = App.Programs.buildStretch(['stretch_upper']).exerciseIds, b = App.Programs.buildStretch(['mob_hip']).exerciseIds;
+      if (a.slice().sort().join() !== D.STRETCH_PROGRAMS[0].exerciseIds.slice().sort().join() || b.length !== 6 || new Set(b).size !== 6 || !b.every(id => D.STRETCH_PROGRAMS[4].exerciseIds.indexOf(id) >= 0)) shOk = false;
+      if (a.join() !== D.STRETCH_PROGRAMS[0].exerciseIds.join()) diff = true;
+    }
+    check('Dehnen: zufällige Reihenfolge, Mobilität zieht 6 aus dem Pool', shOk && diff);
+    check('Dehnen: 12 s Vorbereitung zwischen den Übungen', D.modeById('stretch').buildBlocks(D.byId.st_brust, {})[0].duration === 12);
     check('Mobilität: dynamisch wiederholt (6 s), Dehnung gleitet und hält', mb[1].duration === 45 && mb[1].motion(3).p === 1 && mb[1].motion(6).p === 0 && sb0[1].motion(30).p === 1);
     const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);
     check('Referenztraining: 12 Übungen, je 4 aus Oberkörper/Rumpf/Unterkörper, alle Unterkategorien',

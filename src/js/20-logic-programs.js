@@ -103,11 +103,14 @@ App.Programs = (function () {
     return buildStretch(progs.map(p => p.id));
   }
 
+  const shuffled = (a, rnd) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+
   /** StretchProgram aus einer oder mehreren Programm-IDs. */
-  function buildStretch(programIds) {
+  function buildStretch(programIds, rnd) {
     const progs = programIds.map(id => D.STRETCH_PROGRAMS.filter(p => p.id === id)[0]).filter(Boolean);
     const items = [];
-    progs.forEach(p => p.exerciseIds.forEach(id => { if (!items.some(i => i.id === id)) items.push({ id: id, secondsEach: p.secondsEach }); }));   // gemeinsame Übungen nur einmal
+    // Je Programm zufällige Reihenfolge; Programme mit `pick` (Mobilität) ziehen nur so viele Übungen aus ihrem größeren Pool
+    progs.forEach(p => shuffled(p.exerciseIds, rnd || Math.random).slice(0, p.pick || 99).forEach(id => { if (!items.some(i => i.id === id)) items.push({ id: id, secondsEach: p.secondsEach }); }));   // gemeinsame Übungen nur einmal
     return { id: 'stretch-' + Date.now(), type: 'stretch', label: progs.map(p => p.label).join(' + '),
       areaIds: [], exerciseIds: items.map(i => i.id), items: items };
   }

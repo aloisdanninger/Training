@@ -109,7 +109,7 @@ App.Data.MODES = (function () {
       id: 'stretch', short: 'Dehnen', label: 'Dehnen', kind: 'stretch',
       buildBlocks: function (ex, ctx) {
         const m = ex.dynamic ? mobilityMotion : stretchMotion;      // Mobilität = Bewegung, Dehnung = gleiten + halten
-        return [prepare(ex, 5, m), work(ex, ex.dynamic ? 'Mobilität' : 'Dehnen', (ctx && ctx.secondsEach) || 60, m)];
+        return [prepare(ex, 12, m), work(ex, ex.dynamic ? 'Mobilität' : 'Dehnen', (ctx && ctx.secondsEach) || 60, m)];
       }
     }
   ];

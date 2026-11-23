@@ -118,9 +118,9 @@
     { id: 'stretch_rns', label: 'Rücken · Nacken · Schulter', forAreas: [], secondsEach: 75,
       exerciseIds: ['st_nacken', 'st_levator', 'st_brustoeffner', 'st_schulterblatt', 'st_thread'] },
     /* Mobilität: überwiegend dynamisch (langsame Wiederholungen), ideal zum Aufwärmen oder an trainingsfreien Tagen */
-    { id: 'mob_hip', label: 'Mobilität Hüfte & Sprunggelenk', forAreas: [], secondsEach: 45,
+    { id: 'mob_hip', label: 'Mobilität Hüfte & Sprunggelenk', forAreas: [], secondsEach: 45, pick: 6,
       exerciseIds: ['m_9090_switch', 'm_9090_stretch', 'm_adductor_rock', 'm_frog', 'm_wgs', 'm_cossack', 'm_knee_to_wall', 'm_ankle_circles', 'm_calf_dynamic'] },
-    { id: 'mob_spine', label: 'Mobilität Wirbelsäule & Schulter', forAreas: [], secondsEach: 45,
+    { id: 'mob_spine', label: 'Mobilität Wirbelsäule & Schulter', forAreas: [], secondsEach: 45, pick: 6,
       exerciseIds: ['m_open_book', 'm_tspine_rot', 'st_catcow', 'm_wall_rotation', 'm_chair_ext', 'st_schulterblatt', 'm_shoulder_cars', 'm_arm_circles'] }
   ];
 })();
