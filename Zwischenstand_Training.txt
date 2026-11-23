@@ -103,11 +103,20 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
 - Pose-Option y (ganze Figur heben, z. B. Wadenheben), Props 'kb' und 'bar'. Thruster-Animation korrigiert.
 - Nicht umgesetzt: Short Foot, Toe Yoga, Pallof Hold/Step-out (Befestigung), Wall Angels (= Schulterblatt-Dehnung).
 - Kettlebell: Swing, Press, High Pull, Holzhacker, Windmill, Kreuzheben, Sumo-Kniebeuge.
+- Profile: Lois (Standard, auch ohne Auswahl) -> progress/training-lois.json, Elke -> training-elke.json,
+  Test -> training.json (für alle Tests verwenden!). Abgebrochene Sessions in training.json einmalig bereinigt.
+- Nur dehnen: Mehrfachauswahl (Programme werden verbunden, Duplikate entfernt), Übungen zufällig gemischt,
+  Mobilität Hüfte/Wirbelsäule ziehen je 6 (pick), 12 s Vorbereitung, "Neu würfeln" auch für Dehnen.
+- Übungsbeschreibung während der Übung einklappbar (#tDetails, Zustand pro Gerät in localStorage).
+- Faszienrolle (eigener Abschnitt unter Dehnen): 14 Übungen (13-data-foam.js, Kategorie 'foam'),
+  Bereiche wie Trainingsbereiche (Ganzkörper = je 2 Unter/Rumpf/Ober, Einzelbereich bis 5, Mehrfachauswahl,
+  Auswahl in settings.foamAreas). Modus 'foam': 12 s Vorbereitung, 60 s bzw. 90 s bei einseitigen Übungen
+  (Seite wechseln), Zyklus 24 s rollen + 6 s Druckpunkt halten. Animation: Anker 'roller' (Rolle unter Körpersegment).
 
 =====================================================================
 4. GIT-STAND
 =====================================================================
-Alles gepusht bis Commit 9ae92fc (Ganzkörper, Rahmenbedingungen, Gewichtsauswahl, 39 neue Übungen + 15 Mobilität).
+Alles gepusht bis Commit b1c51cb (Faszienrolle). Davor: Profile, Dehnen-Mehrfachauswahl, einklappbare Beschreibung.
 Nicht committen: Training-token.txt, 20261123_151638474_iOS.jpg, "Medizinische Trainingsmaschinen_ Kieser Österreich.pdf".
 
 =====================================================================
