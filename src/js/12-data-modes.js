@@ -37,6 +37,12 @@ App.Data.MODES = (function () {
   /** Mobilität (dynamisch): langsame, kontrollierte Wiederholungen, eine Wiederholung dauert 6 s. */
   function mobilityMotion(t) { const k = (t % 6) / 6; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Langsam & kontrolliert' }; }
 
+  /** Faszienrolle: 4 langsame Rollbewegungen à 6 s, dann 6 s an einem Druckpunkt halten (Zyklus 30 s). */
+  function rollMotion(t) {
+    const s = t % 30, k = (s % 6) / 6;
+    return s < 24 ? { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Langsam rollen' } : { p: 0, cue: 'Druckpunkt halten & atmen' };
+  }
+
   /** Vorbereitungsphase: Die Animation der Übung läuft schon durch (Vorschau der Bewegung), Text bleibt "Gleich geht es los". */
   const prepare = (ex, secs, motion) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
     motion: t => ({ p: motion(t).p, cue: 'Gleich geht es los' }) });
@@ -111,6 +117,10 @@ App.Data.MODES = (function () {
         const m = ex.dynamic ? mobilityMotion : stretchMotion;      // Mobilität = Bewegung, Dehnung = gleiten + halten
         return [prepare(ex, 12, m), work(ex, ex.dynamic ? 'Mobilität' : 'Dehnen', (ctx && ctx.secondsEach) || 60, m)];
       }
+    },
+    {
+      id: 'foam', short: 'Faszienrolle', label: 'Faszienrolle', kind: 'foam',
+      buildBlocks: (ex, ctx) => [prepare(ex, 12, rollMotion), work(ex, 'Rollen', (ctx && ctx.secondsEach) || ex.secondsEach || 60, rollMotion)]
     }
   ];
 })();

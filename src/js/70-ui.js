@@ -98,6 +98,19 @@ App.UI = (function () {
       ss.textContent = 'Dehnprogramm starten · ' + sp.exerciseIds.length + ' Übungen · ca. ' + Math.max(1, Math.round(App.Programs.totalSeconds(blocksOf(sp, D.modeById('stretch'))) / 60)) + ' Min.';
       ss.onclick = () => openPreview(sp, D.modeById('stretch'), 'stretch');
     }
+    // Faszienrolle: Bereiche (Mehrfachauswahl, gespeichert) -> Zufallsprogramm
+    const fa = (st.foamAreas || ['full']).filter(id => D.FOAM_AREAS.some(a => a.id === id)), fbox = $('foams'); fbox.textContent = '';
+    D.FOAM_AREAS.forEach(a => {
+      const on = fa.indexOf(a.id) >= 0;
+      fbox.appendChild(btn('', 'choice', on, () => { S.setSettings({ foamAreas: on ? fa.filter(x => x !== a.id) : fa.concat(a.id) }); renderHome(); },
+        '<span class="ic">' + (on ? '☑' : '☐') + '</span><span>' + a.icon + ' ' + a.label + '</span>'));
+    });
+    const fs = $('foamStart'), fp = fa.length ? App.Programs.buildFoam(fa) : null;
+    fs.hidden = !fp;
+    if (fp) {
+      fs.textContent = 'Faszienrolle starten · ' + fp.exerciseIds.length + ' Übungen · ca. ' + Math.max(1, Math.round(App.Programs.totalSeconds(blocksOf(fp, D.modeById('foam'))) / 60)) + ' Min.';
+      fs.onclick = () => openPreview(fp, D.modeById('foam'), 'foam');
+    }
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
     $('profileBtn').textContent = '👤 ' + App.Profile.label();
@@ -138,7 +151,7 @@ App.UI = (function () {
     pending = { program: program, mode: mode, kind: kind };
     const blocks = blocksOf(program, mode), perEx = {};
     blocks.forEach(b => { if (b.type === 'work') perEx[b.exerciseIndex] = (perEx[b.exerciseIndex] || 0) + b.duration; });
-    $('pvTitle').textContent = kind === 'stretch' ? program.label : program.type === 'reference' ? '📋 Referenztraining' : 'Dein Training';
+    $('pvTitle').textContent = kind === 'stretch' || kind === 'foam' ? program.label : program.type === 'reference' ? '📋 Referenztraining' : 'Dein Training';
     const hasH = program.exerciseIds.some(id => D.byId[id].category === 'hiit'), hasK = program.exerciseIds.some(id => D.byId[id].category !== 'hiit');
     const label = kind !== 'strength' ? mode.label : [hasH ? hiitMode().label : '', hasK ? mode.label : ''].filter(Boolean).join(' + ');
     $('pvSummary').textContent = program.exerciseIds.length + ' Übungen · ca. ' + Math.round(App.Programs.totalSeconds(blocks) / 60) + ' Minuten · ' + label +
@@ -164,11 +177,11 @@ App.UI = (function () {
       }
       const li = document.createElement('li'), kt = kgTxt(ex);
       const w = (kt ? ' · ' + kt : '') + (kind === 'strength' && S.offsets()[id] ? ' · ' + (S.offsets()[id] > 0 ? '+' : '−') + Math.abs(S.offsets()[id]) + ' s angepasst' : '');
-      const what = cat === 'full' && ex.pattern ? D.PATTERN_LABEL[ex.pattern] : ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.subCategory;
+      const what = cat === 'full' && ex.pattern ? D.PATTERN_LABEL[ex.pattern] : ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.category === 'foam' ? 'Faszienrolle · ' + ex.subCategory : ex.subCategory;
       li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(what) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
       ol.appendChild(li);
     });
-    $('pvReroll').hidden = !((kind === 'strength' && program.type === 'random') || (kind === 'stretch' && program.programIds));
+    $('pvReroll').hidden = !((kind === 'strength' && program.type === 'random') || (kind === 'stretch' && program.programIds) || (kind === 'foam' && program.foamAreas));
     show('preview');
   }
   function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }   // direkt, ohne Übersicht (Folgefrage)
@@ -257,9 +270,9 @@ App.UI = (function () {
   /* ---------------- Katalog (Kontrolle aller Animationen) ---------------- */
   function renderGallery() {
     const grid = $('galleryGrid'); if (grid.firstChild) return;
-    D.EXERCISES.concat(D.STRETCHES).forEach(ex => {
+    D.EXERCISES.concat(D.STRETCHES, D.FOAM).forEach(ex => {
       const c = document.createElement('div'); c.className = 'gcell';
-      const sc = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.subCategory;
+      const sc = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.category === 'foam' ? 'Faszienrolle · ' + ex.subCategory : ex.subCategory;
       c.innerHTML = '<b>' + ex.name + '</b><small class="muted">' + sc + (ex.needsAnchor ? ' · Befestigung nötig' : '') + '</small><br>';
       c.tabIndex = 0; c.setAttribute('role', 'button'); c.onclick = () => openOverlay(ex);
       c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOverlay(ex); } };
@@ -379,7 +392,7 @@ App.UI = (function () {
     $('ovEquip').textContent = (ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (kgTxt(ex) ? ' (' + kgTxt(ex) + ')' : '') : 'Kein Material nötig') +
       (ex.needsAnchor ? ' · braucht einen Befestigungspunkt' : '');
     const fl = Object.keys(ex.flags || {}).map(k => D.FLAG_LABEL[k]);
-    $('ovAttr').textContent = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität: langsam wiederholen' : 'Dehnung: in die Position gleiten und halten') :
+    $('ovAttr').textContent = ex.category === 'foam' ? 'Faszienrolle: langsam rollen (ca. 2–3 cm pro Sekunde), an Druckpunkten 20–30 s halten und atmen' + (ex.oneSided ? ' · je Seite' : '') : ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität: langsam wiederholen' : 'Dehnung: in die Position gleiten und halten') :
       [ex.pattern ? 'Muster: ' + D.PATTERN_LABEL[ex.pattern] : '', 'Position: ' + ex.position, 'Belastung: ' + D.LOAD_LABEL[ex.load], 'Niveau: ' + D.LEVEL_LABEL[ex.difficulty],
         fl.length ? fl.join(', ') : (ex.category !== 'hiit' || !ex.flags.jump ? 'ohne Sprünge' : '')].filter(Boolean).join(' · ');
     const sb = $('ovStars'); sb.textContent = ''; sb.appendChild(starsEl(ex.id));
@@ -413,7 +426,7 @@ App.UI = (function () {
     $('overlay').onclick = e => { if (e.target === $('overlay')) closeOverlay(); };
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('overlay').hidden) closeOverlay(); });
     $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
-    $('pvReroll').onclick = () => pending.kind === 'stretch' ? openPreview(App.Programs.buildStretch(pending.program.programIds), pending.mode, 'stretch') : openPreview(buildStrength(), pending.mode, 'strength');
+    $('pvReroll').onclick = () => pending.kind === 'foam' ? openPreview(App.Programs.buildFoam(pending.program.foamAreas), pending.mode, 'foam') : pending.kind === 'stretch' ? openPreview(App.Programs.buildStretch(pending.program.programIds), pending.mode, 'stretch') : openPreview(buildStrength(), pending.mode, 'strength');
     $('pvBack').onclick = () => { show('home'); renderHome(); };
     // Beschreibung einklappbar (pro Gerät gemerkt, damit der Pause-Knopf im eigenen Layout gut erreichbar ist)
     const det = $('tDetails'), DK = 'training-info-collapsed';

@@ -13,6 +13,8 @@
    Bodenkontakt (svgAnimation.anchor):
      'foot' – Standfuß bleibt am Boden und an derselben Stelle (Kniebeuge, Ausfallschritt ...)
      'free' – Figur wird über beide Posen gemeinsam zentriert/aufgesetzt (Liegestütz, Plank ...)
+     'roller' – Faszienrolle liegt fest am Boden; svgAnimation.roll = { seg, f: [von, bis] } legt fest, welche Stelle
+                des Körpers gerade auf der Rolle liegt (p = 0..1) -> die Figur gleitet über die Rolle.
      (ohne Angabe: 'foot', wenn in Pose a die Beine nach unten gestreckt sind, sonst 'free')
    ========================================================================== */
 App.Animation = (function () {
@@ -47,15 +49,24 @@ App.Animation = (function () {
       bars: [el(svg, 'line', { 'class': 'fig-limb torso' }), el(svg, 'line', { 'class': 'fig-limb torso' })],
       front: el(svg, 'g', { 'class': 'fig-prop' })
     };
-    let A, B, front = false, ex = null, propEls = [], mode = 'free', footLimb = 'near', commonOff = [0, 0], x0 = 0, offA = [0, 0];
+    let A, B, front = false, ex = null, propEls = [], mode = 'free', footLimb = 'near', commonOff = [0, 0], x0 = 0, offA = [0, 0], roller = null;
+    const RR = 10, ROLL_TOP = C.stage.floorY - 20;   // Rollenradius; Höhe der Körperlinie auf der Rolle
+    const SEG = { shin: j => [j.near.leg[1], j.near.leg[2]], thigh: j => [j.near.leg[0], j.near.leg[1]], torso: j => [j.hip, j.neck],
+      upperArm: j => [j.near.arm[0], j.near.arm[1]], foreArm: j => [j.near.arm[1], j.near.arm[2]] };
+    /** Punkt des Körpers, der bei Fortschritt k auf der Rolle liegt. */
+    function contact(j, k) {
+      const r = ex.svgAnimation.roll, s = SEG[r.seg](j), f = r.f[0] + (r.f[1] - r.f[0]) * k;
+      return [s[0][0] + (s[1][0] - s[0][0]) * f, s[0][1] + (s[1][1] - s[0][1]) * f];
+    }
 
     const jt = p => Pose.joints(p, front);
     const lowest = j => Math.max(j.near.leg[2][1], j.far.leg[2][1]);
 
     /** Verschiebung (dx, dy) für eine Pose – abhängig vom Bodenkontakt-Modus. */
-    function offsetFor(p) {
+    function offsetFor(p, k) {
       if (mode === 'free') return commonOff;
       const j = jt(p);
+      if (mode === 'roller') { const c = contact(j, k || 0); return [x0 - c[0], ROLL_TOP - c[1]]; }
       return [x0 - j[footLimb].leg[2][0], C.stage.floorY - lowest(j)];
     }
 
@@ -68,18 +79,21 @@ App.Animation = (function () {
       x0 = 0;
       for (let i = 0; i <= 10; i++) {
         const p = Pose.mix(A, B, i / 10), j = jt(p);
-        const o = mode === 'free' ? [0, 0] : offsetFor(p);
+        const o = mode === 'free' ? [0, 0] : offsetFor(p, i / 10);
         [j.head, j.neck, j.hip].concat(j.near.arm, j.near.leg, j.far.arm, j.far.leg).forEach(pt => {
           minX = Math.min(minX, pt[0] + o[0]); maxX = Math.max(maxX, pt[0] + o[0]); maxY = Math.max(maxY, pt[1]);
         });
       }
       const cx = C.stage.w / 2 - (minX + maxX) / 2;
       if (mode === 'free') commonOff = [cx, C.stage.floorY - maxY]; else x0 = cx;
-      offA = offsetFor(A);
+      offA = offsetFor(A, 0);
     }
 
     function buildProps() {
-      g.props.textContent = ''; g.front.textContent = ''; propEls = [];
+      g.props.textContent = ''; g.front.textContent = ''; propEls = []; roller = null;
+      if (mode === 'roller') {   // Faszienrolle: Kreis am Boden + Markierung, die sich beim Rollen mitdreht
+        roller = { c: el(g.props, 'circle', { 'class': 'fig-roller', r: RR, cx: x0, cy: C.stage.floorY + 3 - RR }), m: el(g.props, 'line', { 'class': 'fig-roller-mark' }) };
+      }
       const sh = p => [p[0] + offA[0], p[1] + offA[1]];
       ((ex.svgAnimation.props) || []).forEach(function (pr) {
         const jA = jt(A), ank = sh(jA.near.leg[2]), hip = sh(jA.hip);
@@ -99,7 +113,11 @@ App.Animation = (function () {
 
     function render(p) {
       if (!ex) return;
-      const pose = Pose.mix(A, B, Math.max(0, Math.min(1, p))), j = jt(pose), off = offsetFor(pose);
+      const pk = Math.max(0, Math.min(1, p)), pose = Pose.mix(A, B, pk), j = jt(pose), off = offsetFor(pose, pk);
+      if (roller) {
+        const a = (off[0] - offA[0]) / RR, cy = C.stage.floorY + 3 - RR, d = [Math.sin(a) * (RR - 3), -Math.cos(a) * (RR - 3)];
+        line(roller.m, [x0 - d[0], cy - d[1]], [x0 + d[0], cy + d[1]]);
+      }
       const sh = q => [q[0] + off[0], q[1] + off[1]];
       const hip = sh(j.hip), neck = sh(j.neck), head = sh(j.head);
       poly(g.farArm, j.far.arm.map(sh)); poly(g.farLeg, j.far.leg.map(sh));

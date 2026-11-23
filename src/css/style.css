@@ -89,3 +89,4 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 #tDetails>summary::-webkit-details-marker{display:none}
 #tDetails>summary::before{content:"▾";margin-right:8px;color:var(--muted)}#tDetails:not([open])>summary::before{content:"▸"}
 #tDetails[open]>summary{margin-bottom:4px}
+.fig-roller{fill:var(--accent);opacity:.35;stroke:var(--accent);stroke-width:2}.fig-roller-mark{stroke:var(--accent);stroke-width:2;stroke-linecap:round}

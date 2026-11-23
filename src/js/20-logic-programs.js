@@ -116,6 +116,22 @@ App.Programs = (function () {
   }
 
   /**
+   * Faszienrollen-Programm aus Bereichen (App.Data.FOAM_AREAS): zufällige Auswahl je Bereich, keine Doppelten.
+   * Reihenfolge: Unterkörper -> Rumpf -> Oberkörper (von unten nach oben).
+   */
+  function buildFoam(areaIds, rnd) {
+    rnd = rnd || Math.random;
+    const want = {}, areas = D.FOAM_AREAS.filter(a => areaIds.indexOf(a.id) >= 0);
+    areas.forEach(a => Object.keys(a.from).forEach(k => { want[k] = Math.max(want[k] || 0, a.from[k]); }));
+    const items = [];
+    ['lower', 'core', 'upper'].forEach(k => {
+      if (want[k]) shuffled(D.FOAM.filter(e => e.area === k), rnd).slice(0, want[k]).forEach(e => items.push({ id: e.id, secondsEach: e.secondsEach }));
+    });
+    return { id: 'foam-' + Date.now(), type: 'foam', label: '🧽 Faszienrolle · ' + areas.map(a => a.label).join(' + '),
+      areaIds: [], foamAreas: areas.map(a => a.id), exerciseIds: items.map(i => i.id), items: items };
+  }
+
+  /**
    * Programm + Modus -> flache Blockliste (TrainingSession-Ablauf).
    * Jeder Block erhält exerciseIndex/exerciseCount für die Anzeige.
    */
@@ -147,7 +163,7 @@ App.Programs = (function () {
 
   /** Kanonische Materialnamen (Schreibvarianten in den Daten werden zusammengeführt). */
   const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe|stuhl)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Band / Kabel (befestigt)'], [/^gummiband/i, 'Gummiband'],
-    [/^matte/i, 'Matte'], [/^klimmzug/i, 'Klimmzugstange'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand']];
+    [/^matte/i, 'Matte'], [/^klimmzug/i, 'Klimmzugstange'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand'], [/^faszienrolle/i, 'Faszienrolle']];
   const canon = n => { const c = CANON.filter(x => x[0].test(n))[0]; return c ? c[1] : n.replace(/\s*\(optional\)/, ''); };
 
   /**
@@ -171,6 +187,6 @@ App.Programs = (function () {
     return order.map(k => map[k]).sort((a, b) => (rank[a.item] == null ? 9 : rank[a.item]) - (rank[b.item] == null ? 9 : rank[b.item]));
   }
 
-  return { allowed: allowed, kgOptions: kgOptions, slotCount: slotCount, buildProgram: buildProgram, buildStretch: buildStretch, stretchForAreas: stretchForAreas,
+  return { allowed: allowed, kgOptions: kgOptions, slotCount: slotCount, buildProgram: buildProgram, buildStretch: buildStretch, buildFoam: buildFoam, stretchForAreas: stretchForAreas,
     buildBlocks: buildBlocks, totalSeconds: totalSeconds, equipmentSummary: equipmentSummary, ratingWeight: ratingWeight, areaById: areaById };
 })();

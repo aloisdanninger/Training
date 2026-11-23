@@ -43,6 +43,21 @@ App.SelfTest = (function () {
     }
     check('Dehnen: zufällige Reihenfolge, Mobilität zieht 6 aus dem Pool', shOk && diff);
     check('Dehnprogramm merkt seine Programme (Neu würfeln)', sm.programIds.join() === 'mob_hip,mob_spine,stretch_upper');
+    check('Faszienrolle: 14 Übungen (Ober 4, Rumpf 4, Unter 6), Rolle als Material, eigener Modus', D.FOAM.length === 14 &&
+      ['upper', 'core', 'lower'].map(k => D.FOAM.filter(e => e.area === k).length).join() === '4,4,6' && D.FOAM.every(e => D.byId[e.id] === e && e.equipment[0] === 'Faszienrolle' && e.svgAnimation.anchor === 'roller') &&
+      D.modeById('foam').kind === 'foam' && D.modeById('foam').buildBlocks(D.byId.fr_lat, { secondsEach: 90 })[1].duration === 90 && D.modeById('foam').buildBlocks(D.byId.fr_waden, {})[0].duration === 12);
+    let foOk = true, foInfo = '';
+    for (let i = 0; i < 100 && foOk; i++) {
+      const fg = App.Programs.buildFoam(['full']), fu = App.Programs.buildFoam(['lower', 'upper']), fx = App.Programs.buildFoam(['full', 'core', 'lower', 'upper']);
+      const ar = p => p.exerciseIds.map(id => D.byId[id].area);
+      if (fg.exerciseIds.length !== 6 || ar(fg).join() !== 'lower,lower,core,core,upper,upper') { foOk = false; foInfo = fg.exerciseIds.join(); }
+      if (fu.exerciseIds.length !== 9 || ar(fu).filter(a => a === 'core').length) { foOk = false; foInfo = fu.exerciseIds.join(); }
+      if (fx.exerciseIds.length !== 13 || new Set(fx.exerciseIds).size !== 13) { foOk = false; foInfo = 'alle: ' + fx.exerciseIds.length; }
+    }
+    check('Faszienrolle: Ganzkörper je 2 (unten -> oben), Bereiche kombinierbar, keine Doppelten', foOk, foInfo);
+    const fz = App.Programs.buildFoam(['lower']), fzb = App.Programs.buildBlocks(fz, D.modeById('foam'));
+    check('Faszienrolle: Zeiten 60 s / einseitig 90 s, Rollen + Druckpunkt halten', fz.items.every(it => it.secondsEach === (D.byId[it.id].oneSided ? 90 : 60)) &&
+      fzb.filter(b => b.type === 'work').length === fz.exerciseIds.length && fzb[1].motion(3).p === 1 && fzb[1].motion(26).cue === 'Druckpunkt halten & atmen');
     check('Dehnen: 12 s Vorbereitung zwischen den Übungen', D.modeById('stretch').buildBlocks(D.byId.st_brust, {})[0].duration === 12);
     check('Mobilität: dynamisch wiederholt (6 s), Dehnung gleitet und hält', mb[1].duration === 45 && mb[1].motion(3).p === 1 && mb[1].motion(6).p === 0 && sb0[1].motion(30).p === 1);
     const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);
@@ -160,6 +175,18 @@ App.SelfTest = (function () {
     const a0 = ankle(0), a5 = ankle(0.5), a1 = ankle(1);
     check('Kniebeuge: Fuß bleibt am Boden und an derselben Stelle', [a5, a1].every(a => Math.abs(a[0] - a0[0]) < 0.2 && Math.abs(a[1] - a0[1]) < 0.2), a0 + ' / ' + a5 + ' / ' + a1);
 
+    // Faszienrolle: Körperstelle bleibt auf der Rolle, Stütze (Hände/Füße/Knie) nahe am Boden
+    let rollOk = true, rollInfo = '';
+    D.FOAM.forEach(function (e) {
+      pl.setExercise(e);
+      [0, 0.5, 1].forEach(function (p) {
+        pl.render(p);
+        const lows = Array.prototype.map.call(svg.querySelectorAll('polyline.fig-limb'), l => Math.max.apply(null, l.getAttribute('points').split(' ').map(q => +q.split(',')[1])));
+        const low = Math.max.apply(null, lows);
+        if (low < App.Config.stage.floorY - 6 || low > App.Config.stage.floorY + 6) { rollOk = false; rollInfo += e.id + '@' + p + ':' + low.toFixed(0) + ' '; }
+      });
+    });
+    check('Faszienrolle: Figur liegt auf der Rolle und stützt am Boden', rollOk, rollInfo);
     pl.setExercise(D.byId.thruster);
     const t0 = ankle(0), t1 = ankle(1);
     check('Thruster: Füße bleiben in Hocke und Streckung am Boden', Math.abs(t0[1] - t1[1]) < 0.2 && Math.abs(t0[1] - (App.Config.stage.floorY)) < 0.5, t0 + ' / ' + t1);

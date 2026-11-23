@@ -98,6 +98,7 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 #tDetails>summary::-webkit-details-marker{display:none}
 #tDetails>summary::before{content:"▾";margin-right:8px;color:var(--muted)}#tDetails:not([open])>summary::before{content:"▸"}
 #tDetails[open]>summary{margin-bottom:4px}
+.fig-roller{fill:var(--accent);opacity:.35;stroke:var(--accent);stroke-width:2}.fig-roller-mark{stroke:var(--accent);stroke-width:2;stroke-linecap:round}
 
 </style>
 </head>
@@ -120,6 +121,9 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
   <button id="start" class="btn primary big">Training starten</button>
   <section><h2>Nur dehnen</h2><p class="muted small">Ein oder mehrere Programme wählen – sie werden zu einem längeren Programm verbunden.</p><div id="stretches" class="grid2"></div>
     <button id="stretchStart" class="btn primary big" hidden></button></section>
+  <section><h2>Faszienrolle</h2><p class="muted small">Bereiche wählen – die Übungen werden zufällig zusammengestellt. Langsam rollen, an Druckpunkten kurz halten, nicht über Knochen und Gelenke.</p>
+    <div id="foams" class="areas"></div>
+    <button id="foamStart" class="btn primary big" hidden></button></section>
   <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
     <div class="row wrap"><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
     <label class="btn">⬆ Import<input type="file" id="importFile" accept="application/json" hidden></label><a class="btn" href="#gallery">Übungskatalog</a></div>
@@ -1002,6 +1006,12 @@ App.Data.MODES = (function () {
   /** Mobilität (dynamisch): langsame, kontrollierte Wiederholungen, eine Wiederholung dauert 6 s. */
   function mobilityMotion(t) { const k = (t % 6) / 6; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Langsam & kontrolliert' }; }
 
+  /** Faszienrolle: 4 langsame Rollbewegungen à 6 s, dann 6 s an einem Druckpunkt halten (Zyklus 30 s). */
+  function rollMotion(t) {
+    const s = t % 30, k = (s % 6) / 6;
+    return s < 24 ? { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Langsam rollen' } : { p: 0, cue: 'Druckpunkt halten & atmen' };
+  }
+
   /** Vorbereitungsphase: Die Animation der Übung läuft schon durch (Vorschau der Bewegung), Text bleibt "Gleich geht es los". */
   const prepare = (ex, secs, motion) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
     motion: t => ({ p: motion(t).p, cue: 'Gleich geht es los' }) });
@@ -1076,6 +1086,10 @@ App.Data.MODES = (function () {
         const m = ex.dynamic ? mobilityMotion : stretchMotion;      // Mobilität = Bewegung, Dehnung = gleiten + halten
         return [prepare(ex, 12, m), work(ex, ex.dynamic ? 'Mobilität' : 'Dehnen', (ctx && ctx.secondsEach) || 60, m)];
       }
+    },
+    {
+      id: 'foam', short: 'Faszienrolle', label: 'Faszienrolle', kind: 'foam',
+      buildBlocks: (ex, ctx) => [prepare(ex, 12, rollMotion), work(ex, 'Rollen', (ctx && ctx.secondsEach) || ex.secondsEach || 60, rollMotion)]
     }
   ];
 })();
@@ -1090,6 +1104,92 @@ App.Data.modeById = function (id, st) {
   if (id === 'reference') return f.kieser(C.reference.seconds);      // Referenztraining: immer gleicher Stil
   return App.Data.MODES.filter(m => m.id === id)[0];
 };
+
+
+/* ===== 13-data-foam.js ===== */
+/* ==========================================================================
+   13-data-foam.js  –  DATEN: Faszienrolle (Übungen + Bereiche)
+   Gleiche Struktur wie die anderen Übungen (category = 'foam', area = 'upper'|'core'|'lower').
+   Animation: anchor 'roller' – die Rolle liegt fest am Boden, die Figur gleitet darüber.
+     roll.seg = Körperteil auf der Rolle ('shin' Unterschenkel, 'thigh' Oberschenkel, 'torso' Rumpf,
+                'upperArm' Oberarm, 'foreArm' Unterarm), roll.f = [von, bis] Position entlang des Körperteils
+                (0 = körpernahes Gelenk, 1 = körperfernes Gelenk bzw. Hals).
+   Dauer: 60 s, einseitige Übungen 90 s (Seitenwechsel nach der halben Zeit).
+   ========================================================================== */
+(function () {
+  const P = App.Pose.P;
+  const SIT = P(-55, [190, 190], [90, 90], { hd: -20 });                      // Sitz, Hände hinten, Beine lang
+  const PRONE = P(90, [180, 90], [270, 270], { hd: 100 });                   // Unterarmstütz, Bauchlage
+  const SUP = P(280, [315, 170], [70, 170], { hd: 280 });                     // Rückenlage, Hände am Hinterkopf, Füße aufgestellt
+
+  /* [id, name, area, muscles, description, instructions, animation] */
+  const ROWS = [
+    /* Unterkörper */
+    ['fr_waden', 'Waden rollen', 'lower', ['Waden', 'Achillessehne'], 'Im Sitz die Waden über die Rolle bewegen.',
+      'Sitzen, Rolle unter den Waden, Hände hinter dem Körper aufstützen, Gesäß anheben. Langsam von der Ferse bis unter die Kniekehle rollen. Mehr Druck: ein Bein auf das andere legen.',
+      { anchor: 'roller', roll: { seg: 'shin', f: [0.85, 0.15] }, a: SIT, b: SIT }],
+    ['fr_schienbein', 'Schienbein vorne rollen', 'lower', ['Schienbeinmuskel', 'Fußheber'], 'Im Vierfüßlerstand die Schienbeine vorne rollen.',
+      'Vierfüßlerstand, Rolle unter den Schienbeinen, Hände unter den Schultern. Knie leicht anheben und die Schienbeine langsam vom Sprunggelenk bis unter das Knie rollen. Nicht direkt auf dem Knochen, leicht nach außen drehen.',
+      { anchor: 'roller', roll: { seg: 'shin', f: [0.8, 0.2] }, a: P(80, [180, 180], [235, 270], { hd: 90 }), b: P(80, [180, 180], [235, 270], { hd: 90 }) }],
+    ['fr_quad', 'Oberschenkel vorne rollen', 'lower', ['vordere Oberschenkel', 'Hüftbeuger'], 'Im Unterarmstütz die Oberschenkel vorne rollen.',
+      'Bauchlage im Unterarmstütz, Rolle unter den Oberschenkeln. Bauch fest, Körper gerade. Langsam von oberhalb des Knies bis zur Hüfte rollen. Mehr Druck: nur ein Bein auf der Rolle.',
+      { anchor: 'roller', roll: { seg: 'thigh', f: [0.85, 0.15] }, a: PRONE, b: PRONE }],
+    ['fr_hamstring', 'Oberschenkel hinten rollen', 'lower', ['hintere Oberschenkel'], 'Im Sitz die Oberschenkelrückseite rollen.',
+      'Sitzen, Rolle unter den Oberschenkeln, Hände hinten aufstützen, Gesäß anheben. Langsam von der Kniekehle bis zum Gesäß rollen. Füße locker, Zehen zeigen leicht nach außen und innen.',
+      { anchor: 'roller', roll: { seg: 'thigh', f: [0.85, 0.15] }, a: SIT, b: SIT }],
+    ['fr_itband', 'Oberschenkel außen rollen', 'lower', ['Oberschenkel außen (Tractus)', 'Hüfte außen'], 'In Seitenlage die Außenseite des Oberschenkels rollen.',
+      'Seitlich auf die Rolle legen, Unterarm stützt, oberes Bein vorne aufgestellt. Langsam von oberhalb des Knies bis zur Hüfte rollen. Druck über das obere Bein dosieren. Nach der halben Zeit Seite wechseln.',
+      { anchor: 'roller', roll: { seg: 'thigh', f: [0.85, 0.2] }, a: P(80, [180, 90], [270, 270], { r: [92, 140], hd: 80 }), b: P(80, [180, 90], [270, 270], { r: [92, 140], hd: 80 }) }],
+    ['fr_gesaess', 'Gesäß rollen', 'lower', ['Gesäß', 'Piriformis'], 'Auf der Rolle sitzen, ein Bein überschlagen.',
+      'Auf die Rolle setzen, Hände hinten aufstützen. Einen Knöchel auf das andere Knie legen und das Gewicht auf diese Gesäßseite verlagern. Langsam vor und zurück rollen. Nach der halben Zeit Seite wechseln.',
+      { anchor: 'roller', roll: { seg: 'torso', f: [-0.15, 0.15] }, a: P(-55, [190, 190], [80, 175], { r: [40, 120], hd: -15 }), b: P(-55, [190, 190], [80, 175], { r: [40, 120], hd: -15 }) }],
+
+    /* Rumpf */
+    ['fr_bws', 'Oberen Rücken rollen', 'core', ['oberer Rücken', 'Brustwirbelsäule', 'Rautenmuskel'], 'In Rückenlage den oberen Rücken über die Rolle bewegen.',
+      'Rolle quer unter den oberen Rücken, Hände stützen den Kopf, Füße aufgestellt, Gesäß angehoben. Mit den Beinen langsam vom unteren Rand der Schulterblätter bis zu den Schultern rollen. Nicht in den unteren Rücken rollen.',
+      { anchor: 'roller', roll: { seg: 'torso', f: [0.45, 0.85] }, a: SUP, b: SUP }],
+    ['fr_bws_ext', 'Brustwirbelsäule strecken', 'core', ['Brustwirbelsäule', 'Brust', 'Bauch'], 'Über die Rolle nach hinten strecken.',
+      'Rolle quer unter dem oberen Rücken, Gesäß am Boden, Hände stützen den Kopf. Langsam über die Rolle nach hinten strecken, Ellbogen öffnen, ausatmen. Wieder aufrichten. Rolle eine Handbreit versetzen und wiederholen.',
+      { anchor: 'roller', roll: { seg: 'torso', f: [0.6, 0.6] }, a: SUP, b: P(255, [250, 250], [90, 190], { hd: 240 }) }],
+    ['fr_flanke', 'Seitlichen Rumpf rollen', 'core', ['seitlicher Rumpf', 'Latissimus unten'], 'In Seitenlage die Flanke zwischen Becken und Rippen rollen.',
+      'Seitenlage, Rolle unter der Flanke oberhalb des Beckens, Unterarm stützt, oberes Bein vorne aufgestellt. Sanft und langsam zwischen Becken und Rippen rollen, nicht auf die Rippen drücken. Nach der halben Zeit Seite wechseln.',
+      { anchor: 'roller', roll: { seg: 'torso', f: [0.25, 0.55] }, a: P(75, [180, 90], [254, 254], { r: [90, 120], hd: 75 }), b: P(75, [180, 90], [254, 254], { r: [90, 120], hd: 75 }) }],
+    ['fr_hueftbeuger', 'Hüftbeuger rollen', 'core', ['Hüftbeuger', 'Leiste'], 'In Bauchlage die Vorderseite der Hüfte rollen.',
+      'Unterarmstütz in Bauchlage, Rolle unter der Hüftvorderseite. Anderes Bein seitlich angewinkelt ablegen. Kleine, langsame Bewegungen zwischen Hüftknochen und oberem Oberschenkel. Nach der halben Zeit Seite wechseln.',
+      { anchor: 'roller', roll: { seg: 'torso', f: [-0.1, 0.25] }, a: P(90, [180, 90], [248, 248], { hd: 100 }), b: P(90, [180, 90], [248, 248], { hd: 100 }) }],
+
+    /* Oberkörper */
+    ['fr_lat', 'Latissimus rollen', 'upper', ['Latissimus', 'seitlicher Rücken', 'Achsel'], 'In Seitenlage unter der Achsel rollen, Arm lang.',
+      'Seitenlage, Rolle unter der Achsel, unterer Arm lang über den Kopf, oberer Arm stützt vorne. Langsam von der Achsel bis zur Mitte des Brustkorbs rollen, dabei leicht vor und zurück drehen. Nach der halben Zeit Seite wechseln.',
+      { anchor: 'roller', roll: { seg: 'torso', f: [0.95, 0.7] }, a: P(54, [54, 54], [270, 270], { b: [110, 145], hd: 54 }), b: P(54, [54, 54], [270, 270], { b: [110, 145], hd: 54 }) }],
+    ['fr_trizeps', 'Trizeps rollen', 'upper', ['Trizeps', 'hintere Schulter'], 'In Seitenlage den Oberarm hinten rollen.',
+      'Seitenlage, Arm über den Kopf gestreckt, Rolle unter dem Oberarm hinten. Mit dem anderen Arm abstützen und langsam vom Ellbogen bis zur Achsel rollen. Nach der halben Zeit Seite wechseln.',
+      { anchor: 'roller', roll: { seg: 'upperArm', f: [0.45, 0.1] }, a: P(65, [50, 50], [272, 272], { b: [100, 120], hd: 70 }), b: P(65, [50, 50], [272, 272], { b: [100, 120], hd: 70 }) }],
+    ['fr_unterarm', 'Unterarm rollen', 'upper', ['Unterarm', 'Handgelenkbeuger und -strecker'], 'Im Kniestand den Unterarm über die Rolle bewegen.',
+      'Kniestand, Unterarm auf der Rolle, Handfläche nach unten. Mit dem Körper Druck geben und langsam vom Handgelenk bis zum Ellbogen rollen. Dann Handfläche nach oben drehen. Nach der halben Zeit Seite wechseln.',
+      { anchor: 'roller', roll: { seg: 'foreArm', f: [0.9, 0.1] }, a: P(70, [175, 90], [180, 270], { b: [175, 90], hd: 80 }), b: P(70, [175, 90], [180, 270], { b: [175, 90], hd: 80 }) }],
+    ['fr_brust', 'Brust & Schulter vorne rollen', 'upper', ['Brust', 'vordere Schulter'], 'In Bauchlage die Brust nahe der Schulter rollen.',
+      'Bauchlage, Rolle schräg unter der Brust nahe der Schulter, Arm seitlich ausgestreckt, anderer Arm stützt. Mit kleinen Bewegungen zwischen Brustbein und Schulter rollen. Nach der halben Zeit Seite wechseln.',
+      { anchor: 'roller', roll: { seg: 'torso', f: [0.75, 0.95] }, a: P(70, [100, 95], [260, 260], { b: [160, 90], hd: 100 }), b: P(70, [100, 95], [260, 260], { b: [160, 90], hd: 100 }) }]
+  ];
+  const AREA_LABEL = { upper: 'Oberkörper', core: 'Rumpf', lower: 'Unterkörper' };
+
+  App.Data.FOAM = ROWS.map(function (r) {
+    const one = /Seite wechseln/.test(r[5]);
+    return { id: r[0], name: r[1], category: 'foam', area: r[2], subCategory: AREA_LABEL[r[2]], targetMuscles: r[3], difficulty: 1,
+      equipment: ['Faszienrolle', 'Matte (optional)'], oneSided: one, secondsEach: one ? 90 : 60, description: r[4], instructions: r[5], svgAnimation: r[6],
+      flags: {}, pattern: null, position: null, load: 'BW' };
+  });
+  App.Data.register(App.Data.FOAM);
+
+  /* Bereiche zur Auswahl (wie Trainingsbereiche); Ganzkörper = je 2 aus Oberkörper, Rumpf, Unterkörper */
+  App.Data.FOAM_AREAS = [
+    { id: 'full', label: 'Ganzkörper', icon: '⚡', from: { upper: 2, core: 2, lower: 2 } },
+    { id: 'upper', label: 'Oberkörper', icon: '💪', from: { upper: 5 } },
+    { id: 'core', label: 'Rumpf', icon: '🎯', from: { core: 5 } },
+    { id: 'lower', label: 'Unterkörper', icon: '🦵', from: { lower: 5 } }
+  ];
+})();
 
 
 /* ===== 20-logic-programs.js ===== */
@@ -1211,6 +1311,22 @@ App.Programs = (function () {
   }
 
   /**
+   * Faszienrollen-Programm aus Bereichen (App.Data.FOAM_AREAS): zufällige Auswahl je Bereich, keine Doppelten.
+   * Reihenfolge: Unterkörper -> Rumpf -> Oberkörper (von unten nach oben).
+   */
+  function buildFoam(areaIds, rnd) {
+    rnd = rnd || Math.random;
+    const want = {}, areas = D.FOAM_AREAS.filter(a => areaIds.indexOf(a.id) >= 0);
+    areas.forEach(a => Object.keys(a.from).forEach(k => { want[k] = Math.max(want[k] || 0, a.from[k]); }));
+    const items = [];
+    ['lower', 'core', 'upper'].forEach(k => {
+      if (want[k]) shuffled(D.FOAM.filter(e => e.area === k), rnd).slice(0, want[k]).forEach(e => items.push({ id: e.id, secondsEach: e.secondsEach }));
+    });
+    return { id: 'foam-' + Date.now(), type: 'foam', label: '🧽 Faszienrolle · ' + areas.map(a => a.label).join(' + '),
+      areaIds: [], foamAreas: areas.map(a => a.id), exerciseIds: items.map(i => i.id), items: items };
+  }
+
+  /**
    * Programm + Modus -> flache Blockliste (TrainingSession-Ablauf).
    * Jeder Block erhält exerciseIndex/exerciseCount für die Anzeige.
    */
@@ -1242,7 +1358,7 @@ App.Programs = (function () {
 
   /** Kanonische Materialnamen (Schreibvarianten in den Daten werden zusammengeführt). */
   const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe|stuhl)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Band / Kabel (befestigt)'], [/^gummiband/i, 'Gummiband'],
-    [/^matte/i, 'Matte'], [/^klimmzug/i, 'Klimmzugstange'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand']];
+    [/^matte/i, 'Matte'], [/^klimmzug/i, 'Klimmzugstange'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand'], [/^faszienrolle/i, 'Faszienrolle']];
   const canon = n => { const c = CANON.filter(x => x[0].test(n))[0]; return c ? c[1] : n.replace(/\s*\(optional\)/, ''); };
 
   /**
@@ -1266,7 +1382,7 @@ App.Programs = (function () {
     return order.map(k => map[k]).sort((a, b) => (rank[a.item] == null ? 9 : rank[a.item]) - (rank[b.item] == null ? 9 : rank[b.item]));
   }
 
-  return { allowed: allowed, kgOptions: kgOptions, slotCount: slotCount, buildProgram: buildProgram, buildStretch: buildStretch, stretchForAreas: stretchForAreas,
+  return { allowed: allowed, kgOptions: kgOptions, slotCount: slotCount, buildProgram: buildProgram, buildStretch: buildStretch, buildFoam: buildFoam, stretchForAreas: stretchForAreas,
     buildBlocks: buildBlocks, totalSeconds: totalSeconds, equipmentSummary: equipmentSummary, ratingWeight: ratingWeight, areaById: areaById };
 })();
 
@@ -1339,6 +1455,8 @@ App.Timer = function (blocks, cb) {
    Bodenkontakt (svgAnimation.anchor):
      'foot' – Standfuß bleibt am Boden und an derselben Stelle (Kniebeuge, Ausfallschritt ...)
      'free' – Figur wird über beide Posen gemeinsam zentriert/aufgesetzt (Liegestütz, Plank ...)
+     'roller' – Faszienrolle liegt fest am Boden; svgAnimation.roll = { seg, f: [von, bis] } legt fest, welche Stelle
+                des Körpers gerade auf der Rolle liegt (p = 0..1) -> die Figur gleitet über die Rolle.
      (ohne Angabe: 'foot', wenn in Pose a die Beine nach unten gestreckt sind, sonst 'free')
    ========================================================================== */
 App.Animation = (function () {
@@ -1373,15 +1491,24 @@ App.Animation = (function () {
       bars: [el(svg, 'line', { 'class': 'fig-limb torso' }), el(svg, 'line', { 'class': 'fig-limb torso' })],
       front: el(svg, 'g', { 'class': 'fig-prop' })
     };
-    let A, B, front = false, ex = null, propEls = [], mode = 'free', footLimb = 'near', commonOff = [0, 0], x0 = 0, offA = [0, 0];
+    let A, B, front = false, ex = null, propEls = [], mode = 'free', footLimb = 'near', commonOff = [0, 0], x0 = 0, offA = [0, 0], roller = null;
+    const RR = 10, ROLL_TOP = C.stage.floorY - 20;   // Rollenradius; Höhe der Körperlinie auf der Rolle
+    const SEG = { shin: j => [j.near.leg[1], j.near.leg[2]], thigh: j => [j.near.leg[0], j.near.leg[1]], torso: j => [j.hip, j.neck],
+      upperArm: j => [j.near.arm[0], j.near.arm[1]], foreArm: j => [j.near.arm[1], j.near.arm[2]] };
+    /** Punkt des Körpers, der bei Fortschritt k auf der Rolle liegt. */
+    function contact(j, k) {
+      const r = ex.svgAnimation.roll, s = SEG[r.seg](j), f = r.f[0] + (r.f[1] - r.f[0]) * k;
+      return [s[0][0] + (s[1][0] - s[0][0]) * f, s[0][1] + (s[1][1] - s[0][1]) * f];
+    }
 
     const jt = p => Pose.joints(p, front);
     const lowest = j => Math.max(j.near.leg[2][1], j.far.leg[2][1]);
 
     /** Verschiebung (dx, dy) für eine Pose – abhängig vom Bodenkontakt-Modus. */
-    function offsetFor(p) {
+    function offsetFor(p, k) {
       if (mode === 'free') return commonOff;
       const j = jt(p);
+      if (mode === 'roller') { const c = contact(j, k || 0); return [x0 - c[0], ROLL_TOP - c[1]]; }
       return [x0 - j[footLimb].leg[2][0], C.stage.floorY - lowest(j)];
     }
 
@@ -1394,18 +1521,21 @@ App.Animation = (function () {
       x0 = 0;
       for (let i = 0; i <= 10; i++) {
         const p = Pose.mix(A, B, i / 10), j = jt(p);
-        const o = mode === 'free' ? [0, 0] : offsetFor(p);
+        const o = mode === 'free' ? [0, 0] : offsetFor(p, i / 10);
         [j.head, j.neck, j.hip].concat(j.near.arm, j.near.leg, j.far.arm, j.far.leg).forEach(pt => {
           minX = Math.min(minX, pt[0] + o[0]); maxX = Math.max(maxX, pt[0] + o[0]); maxY = Math.max(maxY, pt[1]);
         });
       }
       const cx = C.stage.w / 2 - (minX + maxX) / 2;
       if (mode === 'free') commonOff = [cx, C.stage.floorY - maxY]; else x0 = cx;
-      offA = offsetFor(A);
+      offA = offsetFor(A, 0);
     }
 
     function buildProps() {
-      g.props.textContent = ''; g.front.textContent = ''; propEls = [];
+      g.props.textContent = ''; g.front.textContent = ''; propEls = []; roller = null;
+      if (mode === 'roller') {   // Faszienrolle: Kreis am Boden + Markierung, die sich beim Rollen mitdreht
+        roller = { c: el(g.props, 'circle', { 'class': 'fig-roller', r: RR, cx: x0, cy: C.stage.floorY + 3 - RR }), m: el(g.props, 'line', { 'class': 'fig-roller-mark' }) };
+      }
       const sh = p => [p[0] + offA[0], p[1] + offA[1]];
       ((ex.svgAnimation.props) || []).forEach(function (pr) {
         const jA = jt(A), ank = sh(jA.near.leg[2]), hip = sh(jA.hip);
@@ -1425,7 +1555,11 @@ App.Animation = (function () {
 
     function render(p) {
       if (!ex) return;
-      const pose = Pose.mix(A, B, Math.max(0, Math.min(1, p))), j = jt(pose), off = offsetFor(pose);
+      const pk = Math.max(0, Math.min(1, p)), pose = Pose.mix(A, B, pk), j = jt(pose), off = offsetFor(pose, pk);
+      if (roller) {
+        const a = (off[0] - offA[0]) / RR, cy = C.stage.floorY + 3 - RR, d = [Math.sin(a) * (RR - 3), -Math.cos(a) * (RR - 3)];
+        line(roller.m, [x0 - d[0], cy - d[1]], [x0 + d[0], cy + d[1]]);
+      }
       const sh = q => [q[0] + off[0], q[1] + off[1]];
       const hip = sh(j.hip), neck = sh(j.neck), head = sh(j.head);
       poly(g.farArm, j.far.arm.map(sh)); poly(g.farLeg, j.far.leg.map(sh));
@@ -1759,6 +1893,19 @@ App.UI = (function () {
       ss.textContent = 'Dehnprogramm starten · ' + sp.exerciseIds.length + ' Übungen · ca. ' + Math.max(1, Math.round(App.Programs.totalSeconds(blocksOf(sp, D.modeById('stretch'))) / 60)) + ' Min.';
       ss.onclick = () => openPreview(sp, D.modeById('stretch'), 'stretch');
     }
+    // Faszienrolle: Bereiche (Mehrfachauswahl, gespeichert) -> Zufallsprogramm
+    const fa = (st.foamAreas || ['full']).filter(id => D.FOAM_AREAS.some(a => a.id === id)), fbox = $('foams'); fbox.textContent = '';
+    D.FOAM_AREAS.forEach(a => {
+      const on = fa.indexOf(a.id) >= 0;
+      fbox.appendChild(btn('', 'choice', on, () => { S.setSettings({ foamAreas: on ? fa.filter(x => x !== a.id) : fa.concat(a.id) }); renderHome(); },
+        '<span class="ic">' + (on ? '☑' : '☐') + '</span><span>' + a.icon + ' ' + a.label + '</span>'));
+    });
+    const fs = $('foamStart'), fp = fa.length ? App.Programs.buildFoam(fa) : null;
+    fs.hidden = !fp;
+    if (fp) {
+      fs.textContent = 'Faszienrolle starten · ' + fp.exerciseIds.length + ' Übungen · ca. ' + Math.max(1, Math.round(App.Programs.totalSeconds(blocksOf(fp, D.modeById('foam'))) / 60)) + ' Min.';
+      fs.onclick = () => openPreview(fp, D.modeById('foam'), 'foam');
+    }
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
     $('profileBtn').textContent = '👤 ' + App.Profile.label();
@@ -1799,7 +1946,7 @@ App.UI = (function () {
     pending = { program: program, mode: mode, kind: kind };
     const blocks = blocksOf(program, mode), perEx = {};
     blocks.forEach(b => { if (b.type === 'work') perEx[b.exerciseIndex] = (perEx[b.exerciseIndex] || 0) + b.duration; });
-    $('pvTitle').textContent = kind === 'stretch' ? program.label : program.type === 'reference' ? '📋 Referenztraining' : 'Dein Training';
+    $('pvTitle').textContent = kind === 'stretch' || kind === 'foam' ? program.label : program.type === 'reference' ? '📋 Referenztraining' : 'Dein Training';
     const hasH = program.exerciseIds.some(id => D.byId[id].category === 'hiit'), hasK = program.exerciseIds.some(id => D.byId[id].category !== 'hiit');
     const label = kind !== 'strength' ? mode.label : [hasH ? hiitMode().label : '', hasK ? mode.label : ''].filter(Boolean).join(' + ');
     $('pvSummary').textContent = program.exerciseIds.length + ' Übungen · ca. ' + Math.round(App.Programs.totalSeconds(blocks) / 60) + ' Minuten · ' + label +
@@ -1825,11 +1972,11 @@ App.UI = (function () {
       }
       const li = document.createElement('li'), kt = kgTxt(ex);
       const w = (kt ? ' · ' + kt : '') + (kind === 'strength' && S.offsets()[id] ? ' · ' + (S.offsets()[id] > 0 ? '+' : '−') + Math.abs(S.offsets()[id]) + ' s angepasst' : '');
-      const what = cat === 'full' && ex.pattern ? D.PATTERN_LABEL[ex.pattern] : ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.subCategory;
+      const what = cat === 'full' && ex.pattern ? D.PATTERN_LABEL[ex.pattern] : ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.category === 'foam' ? 'Faszienrolle · ' + ex.subCategory : ex.subCategory;
       li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(what) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
       ol.appendChild(li);
     });
-    $('pvReroll').hidden = !((kind === 'strength' && program.type === 'random') || (kind === 'stretch' && program.programIds));
+    $('pvReroll').hidden = !((kind === 'strength' && program.type === 'random') || (kind === 'stretch' && program.programIds) || (kind === 'foam' && program.foamAreas));
     show('preview');
   }
   function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }   // direkt, ohne Übersicht (Folgefrage)
@@ -1918,9 +2065,9 @@ App.UI = (function () {
   /* ---------------- Katalog (Kontrolle aller Animationen) ---------------- */
   function renderGallery() {
     const grid = $('galleryGrid'); if (grid.firstChild) return;
-    D.EXERCISES.concat(D.STRETCHES).forEach(ex => {
+    D.EXERCISES.concat(D.STRETCHES, D.FOAM).forEach(ex => {
       const c = document.createElement('div'); c.className = 'gcell';
-      const sc = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.subCategory;
+      const sc = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.category === 'foam' ? 'Faszienrolle · ' + ex.subCategory : ex.subCategory;
       c.innerHTML = '<b>' + ex.name + '</b><small class="muted">' + sc + (ex.needsAnchor ? ' · Befestigung nötig' : '') + '</small><br>';
       c.tabIndex = 0; c.setAttribute('role', 'button'); c.onclick = () => openOverlay(ex);
       c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOverlay(ex); } };
@@ -2040,7 +2187,7 @@ App.UI = (function () {
     $('ovEquip').textContent = (ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (kgTxt(ex) ? ' (' + kgTxt(ex) + ')' : '') : 'Kein Material nötig') +
       (ex.needsAnchor ? ' · braucht einen Befestigungspunkt' : '');
     const fl = Object.keys(ex.flags || {}).map(k => D.FLAG_LABEL[k]);
-    $('ovAttr').textContent = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität: langsam wiederholen' : 'Dehnung: in die Position gleiten und halten') :
+    $('ovAttr').textContent = ex.category === 'foam' ? 'Faszienrolle: langsam rollen (ca. 2–3 cm pro Sekunde), an Druckpunkten 20–30 s halten und atmen' + (ex.oneSided ? ' · je Seite' : '') : ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität: langsam wiederholen' : 'Dehnung: in die Position gleiten und halten') :
       [ex.pattern ? 'Muster: ' + D.PATTERN_LABEL[ex.pattern] : '', 'Position: ' + ex.position, 'Belastung: ' + D.LOAD_LABEL[ex.load], 'Niveau: ' + D.LEVEL_LABEL[ex.difficulty],
         fl.length ? fl.join(', ') : (ex.category !== 'hiit' || !ex.flags.jump ? 'ohne Sprünge' : '')].filter(Boolean).join(' · ');
     const sb = $('ovStars'); sb.textContent = ''; sb.appendChild(starsEl(ex.id));
@@ -2074,7 +2221,7 @@ App.UI = (function () {
     $('overlay').onclick = e => { if (e.target === $('overlay')) closeOverlay(); };
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('overlay').hidden) closeOverlay(); });
     $('pvStart').onclick = () => { App.Audio.unlock(); run(pending.program, pending.mode, { kind: pending.kind }); };
-    $('pvReroll').onclick = () => pending.kind === 'stretch' ? openPreview(App.Programs.buildStretch(pending.program.programIds), pending.mode, 'stretch') : openPreview(buildStrength(), pending.mode, 'strength');
+    $('pvReroll').onclick = () => pending.kind === 'foam' ? openPreview(App.Programs.buildFoam(pending.program.foamAreas), pending.mode, 'foam') : pending.kind === 'stretch' ? openPreview(App.Programs.buildStretch(pending.program.programIds), pending.mode, 'stretch') : openPreview(buildStrength(), pending.mode, 'strength');
     $('pvBack').onclick = () => { show('home'); renderHome(); };
     // Beschreibung einklappbar (pro Gerät gemerkt, damit der Pause-Knopf im eigenen Layout gut erreichbar ist)
     const det = $('tDetails'), DK = 'training-info-collapsed';
@@ -2165,6 +2312,21 @@ App.SelfTest = (function () {
     }
     check('Dehnen: zufällige Reihenfolge, Mobilität zieht 6 aus dem Pool', shOk && diff);
     check('Dehnprogramm merkt seine Programme (Neu würfeln)', sm.programIds.join() === 'mob_hip,mob_spine,stretch_upper');
+    check('Faszienrolle: 14 Übungen (Ober 4, Rumpf 4, Unter 6), Rolle als Material, eigener Modus', D.FOAM.length === 14 &&
+      ['upper', 'core', 'lower'].map(k => D.FOAM.filter(e => e.area === k).length).join() === '4,4,6' && D.FOAM.every(e => D.byId[e.id] === e && e.equipment[0] === 'Faszienrolle' && e.svgAnimation.anchor === 'roller') &&
+      D.modeById('foam').kind === 'foam' && D.modeById('foam').buildBlocks(D.byId.fr_lat, { secondsEach: 90 })[1].duration === 90 && D.modeById('foam').buildBlocks(D.byId.fr_waden, {})[0].duration === 12);
+    let foOk = true, foInfo = '';
+    for (let i = 0; i < 100 && foOk; i++) {
+      const fg = App.Programs.buildFoam(['full']), fu = App.Programs.buildFoam(['lower', 'upper']), fx = App.Programs.buildFoam(['full', 'core', 'lower', 'upper']);
+      const ar = p => p.exerciseIds.map(id => D.byId[id].area);
+      if (fg.exerciseIds.length !== 6 || ar(fg).join() !== 'lower,lower,core,core,upper,upper') { foOk = false; foInfo = fg.exerciseIds.join(); }
+      if (fu.exerciseIds.length !== 9 || ar(fu).filter(a => a === 'core').length) { foOk = false; foInfo = fu.exerciseIds.join(); }
+      if (fx.exerciseIds.length !== 13 || new Set(fx.exerciseIds).size !== 13) { foOk = false; foInfo = 'alle: ' + fx.exerciseIds.length; }
+    }
+    check('Faszienrolle: Ganzkörper je 2 (unten -> oben), Bereiche kombinierbar, keine Doppelten', foOk, foInfo);
+    const fz = App.Programs.buildFoam(['lower']), fzb = App.Programs.buildBlocks(fz, D.modeById('foam'));
+    check('Faszienrolle: Zeiten 60 s / einseitig 90 s, Rollen + Druckpunkt halten', fz.items.every(it => it.secondsEach === (D.byId[it.id].oneSided ? 90 : 60)) &&
+      fzb.filter(b => b.type === 'work').length === fz.exerciseIds.length && fzb[1].motion(3).p === 1 && fzb[1].motion(26).cue === 'Druckpunkt halten & atmen');
     check('Dehnen: 12 s Vorbereitung zwischen den Übungen', D.modeById('stretch').buildBlocks(D.byId.st_brust, {})[0].duration === 12);
     check('Mobilität: dynamisch wiederholt (6 s), Dehnung gleitet und hält', mb[1].duration === 45 && mb[1].motion(3).p === 1 && mb[1].motion(6).p === 0 && sb0[1].motion(30).p === 1);
     const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);
@@ -2282,6 +2444,18 @@ App.SelfTest = (function () {
     const a0 = ankle(0), a5 = ankle(0.5), a1 = ankle(1);
     check('Kniebeuge: Fuß bleibt am Boden und an derselben Stelle', [a5, a1].every(a => Math.abs(a[0] - a0[0]) < 0.2 && Math.abs(a[1] - a0[1]) < 0.2), a0 + ' / ' + a5 + ' / ' + a1);
 
+    // Faszienrolle: Körperstelle bleibt auf der Rolle, Stütze (Hände/Füße/Knie) nahe am Boden
+    let rollOk = true, rollInfo = '';
+    D.FOAM.forEach(function (e) {
+      pl.setExercise(e);
+      [0, 0.5, 1].forEach(function (p) {
+        pl.render(p);
+        const lows = Array.prototype.map.call(svg.querySelectorAll('polyline.fig-limb'), l => Math.max.apply(null, l.getAttribute('points').split(' ').map(q => +q.split(',')[1])));
+        const low = Math.max.apply(null, lows);
+        if (low < App.Config.stage.floorY - 6 || low > App.Config.stage.floorY + 6) { rollOk = false; rollInfo += e.id + '@' + p + ':' + low.toFixed(0) + ' '; }
+      });
+    });
+    check('Faszienrolle: Figur liegt auf der Rolle und stützt am Boden', rollOk, rollInfo);
     pl.setExercise(D.byId.thruster);
     const t0 = ankle(0), t1 = ankle(1);
     check('Thruster: Füße bleiben in Hocke und Streckung am Boden', Math.abs(t0[1] - t1[1]) < 0.2 && Math.abs(t0[1] - (App.Config.stage.floorY)) < 0.5, t0 + ' / ' + t1);
