@@ -12,7 +12,12 @@ Ursprünglicher Auftrag: Prompt_Persönlicher_Trainingsgenerator.txt (gleicher O
 - Dehnprogramme: Oberkörper, Unterkörper, Rumpf, Rücken-Nacken-Schulter
 - Stile: Zirkel, Kieser (4 s Belastung, 2 s halten, 4 s zurück, 2 s halten; Dauer 60-120 s, Standard 120 s),
          Klassisch (Standard 3 Sätze à 30 s, 10 s Pause; wählbar)
-- Programmtypen: Standard (feste Liste) und Zufall (Regel 2/2/1 je Bereich, gewichtet nach Bewertung)
+- Bereiche: HIIT (zuerst, Cardio 3 + Ganzkörper 2), Oberkörper, Rumpf, Unterkörper. HIIT läuft immer zuerst im
+  HIIT-Intervall (Regler Runden 1-4 / Belastung 20-45 s / Pause 10-30 s, 60 s Rundenpause), danach Kraft im gewählten Stil.
+- Programmtypen: Zufällig (Regel 2/2/1 je Bereich, gewichtet nach Bewertung) und Referenztraining
+  (12 feste Übungen App.Data.REFERENCE, je 4 aus Oberkörper/Rumpf/Unterkörper, immer Kieser 90 s + persönliche Offsets;
+  Erinnerung auf der Startseite alle 30 Tage; danach Bewertung + Vergleichstabelle mit letztem Referenztraining:
+  Dauer alt -> neu, Empfinden alt -> neu, Trend). "Standard" wurde entfernt (alte Einstellung -> Zufällig).
 - Trainingsbildschirm: SVG-Strichfigur mit Animation, Ringtimer, Zahl, Anleitung (Querformat: neben dem Bild,
   Hochformat: darunter), optionale Töne
 - Nach dem Krafttraining: Frage nach passendem Dehnprogramm
@@ -38,7 +43,7 @@ Test:     Selbsttest im Browser: docs/training.html#selftest (Ergebnis im Seiten
 Namespace App, Module:
   00-config.js          Config (Version, Keys, GitHub, prepareSeconds, excludeAnchored, kieser{min,max,step,default}, Stage)
   05-pose.js            Posensystem (absolute Winkel, 0=oben, 90=rechts, 180=unten; Vorwärtskinematik); svgAnimation.view='front' = Frontalansicht (Seitübungen: Seitl. Ausfallschritt, Curtsy Lunge, Side Plank (+Reach), Seitbeuge, Latissimus-, Schulter-, Levator-Dehnung)
-  10-data-exercises.js  AREAS (Regeln 2/2/1, Standardlisten) + 43 Kraftübungen (Zeile pro Übung);
+  10-data-exercises.js  AREAS (hiit/upper/core/lower) + REFERENCE + 74 Übungen (13 HIIT) (Zeile pro Übung);
                         Matte/Gewicht (leicht/mittel/schwer) werden ergänzt; needsAnchor = Band/TRX
   11-data-stretches.js  20 Dehnübungen + 4 Dehnprogramme
   12-data-modes.js      Trainingsstile; App.Data.kieserMode(sek); modeById(id, kieserSekunden)
@@ -82,14 +87,17 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
   Token bleibt pro Gerät gleich; Ton/Lautstärke bleiben geräteabhängig.
 - Ton-Einstellung ist geräteabhängig (nicht synchronisiert), weil iPhone und iPad sie sich sonst überschrieben
 
+- Kieser-Analyse (Karte 23.11.2026 + PDF): Maschinen CE Nacken, G1 Schulterheben, A3 Abduktion, B1 Kniestreckung,
+  B7 Kniebeugung, F2.1 Bauch, F3.1 Rückenstreckung, C1 Überzug (196 kg, stark), C3 Armzug, C5 Rudern, D6 Brustdrücken
+  (nur ~40 kg, stagniert), E2 Seitheben. -> Zug/Rücken/Rumpf stark, Drücken/Trizeps schwach (kein Liegestütz).
+  Daher Liegestütz-Aufbau: Wand -> Schräg -> Knie -> Negativ -> Liegestütz, plus Trizeps über Kopf, Bodendrücken, KB Press.
+- Kettlebell: Swing, Press, High Pull, Holzhacker, Windmill, Kreuzheben, Sumo-Kniebeuge.
+
 =====================================================================
 4. GIT-STAND
 =====================================================================
-Gepusht auf origin/main: bis Commit 7aed53c (Bewertung, Kieser-Regler, Band/TRX, Overlay, iOS-Ton-Fix).
-LOKAL, NOCH NICHT GEPUSHT: Commit 8a78dd8 "Ton-Einstellung geräteabhängig statt synchronisiert".
--> Vor weiterer Arbeit: git status / git log prüfen; Push nur nach ausdrücklichem OK des Nutzers.
-Diese Datei (Zwischenstand_Training.txt) ist nicht committet.
-Training-token.txt im Repo-Ordner (vermutlich GitHub-Token) steht in .gitignore und darf nie committet werden.
+Alles gepusht bis Commit c4a392e (HIIT, Referenztraining, 31 neue Übungen).
+Nicht committen: Training-token.txt, 20261123_151638474_iOS.jpg, "Medizinische Trainingsmaschinen_ Kieser Österreich.pdf".
 
 =====================================================================
 5. OFFENE PUNKTE / MÖGLICHE NÄCHSTE SCHRITTE
@@ -98,7 +106,9 @@ Training-token.txt im Repo-Ordner (vermutlich GitHub-Token) steht in .gitignore 
 - iPad-Ton: Nutzer hatte am iPad keinen Ton, am iPhone schon. Vermutete Ursachen: Ton-Schalter in der App
   (pro Gerät/Home-Bildschirm-App eigener Speicher), Stumm im Kontrollzentrum, Lautstärke, Bluetooth,
   Home-Bildschirm-App vs. Safari. Nutzer meldet "funktioniert soweit" – Ton am iPad nach dem Fix erneut bestätigen lassen.
-- Alles bis 673e368 ist gepusht. Nutzerwunsch: künftig nach Test + Commit sofort pushen (nur dieses Repo, main).
+- Nutzerwunsch: künftig nach Test + Commit sofort pushen (nur dieses Repo, main).
+- Feedback zu HIIT/Referenztraining und Posen der neuen Übungen abwarten.
+- Katalog ist nach Datenreihenfolge sortiert (neue Übungen am Ende), ggf. nach Kategorie gruppieren.
 - README.md kurz ergänzen (Bewertung, Kieser-Regler, excludeAnchored), falls gewünscht.
 - tests/run-selftest.py reparieren (hängender Edge-Aufruf), optional.
 - Ideen (nicht beauftragt): Favoriten, Gewichtsverlauf pro Übung (Platzhalter favorites/weights im Datenmodell),
