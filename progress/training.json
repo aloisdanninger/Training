@@ -1,287 +1,207 @@
 {
- "version": 1,
- "updatedAt": 1795459924189,
- "settings": {
-  "areas": [
-   "full"
+  "version": 1,
+  "updatedAt": 1795460310050,
+  "settings": {
+    "areas": [
+      "full"
+    ],
+    "style": "circuit",
+    "kieserSeconds": 120,
+    "programType": "random",
+    "sound": true,
+    "noJump": true,
+    "kneeFriendly": true,
+    "wristFriendly": true,
+    "gear": {
+      "KH": true,
+      "KB": false,
+      "Band": false,
+      "Stange": false,
+      "Stuhl": true
+    }
+  },
+  "sessions": [
+    {
+      "id": "s1795374445461n100",
+      "date": "2026-11-22T19:07:25.461Z",
+      "kind": "strength",
+      "areaIds": [
+        "upper"
+      ],
+      "modeId": "kieser90",
+      "programType": "standard",
+      "exerciseIds": [
+        "liegestuetz",
+        "schulterdruecken",
+        "trx_row",
+        "kurzhantelrudern",
+        "bizeps_curl"
+      ],
+      "completed": true,
+      "durationSec": 37
+    },
+    {
+      "id": "s1795374486476cc0f",
+      "date": "2026-11-22T19:08:06.476Z",
+      "kind": "stretch",
+      "areaIds": [],
+      "modeId": "stretch",
+      "programType": "stretch",
+      "exerciseIds": [
+        "st_brust",
+        "st_schulter",
+        "st_latissimus",
+        "st_trizeps",
+        "st_bizeps"
+      ],
+      "completed": true,
+      "durationSec": 3
+    },
+    {
+      "id": "s1795376021408ih5x",
+      "date": "2026-11-22T19:33:41.408Z",
+      "kind": "strength",
+      "areaIds": [
+        "core"
+      ],
+      "modeId": "kieser",
+      "programType": "standard",
+      "exerciseIds": [
+        "plank",
+        "dead_bug",
+        "superman",
+        "bird_dog",
+        "side_plank"
+      ],
+      "completed": true,
+      "durationSec": 28
+    },
+    {
+      "id": "s17953788006550z2h",
+      "date": "2026-11-22T20:20:00.655Z",
+      "kind": "strength",
+      "areaIds": [
+        "upper",
+        "core"
+      ],
+      "modeId": "circuit",
+      "programType": "standard",
+      "exerciseIds": [
+        "liegestuetz",
+        "schulterdruecken",
+        "bent_over_row",
+        "kurzhantelrudern",
+        "bizeps_curl",
+        "plank",
+        "dead_bug",
+        "superman",
+        "bird_dog",
+        "side_plank"
+      ],
+      "completed": true,
+      "durationSec": 1014
+    },
+    {
+      "id": "s1795379879787ur21",
+      "date": "2026-11-22T20:37:59.787Z",
+      "kind": "stretch",
+      "areaIds": [],
+      "modeId": "stretch",
+      "programType": "stretch",
+      "exerciseIds": [
+        "st_brust",
+        "st_schulter",
+        "st_latissimus",
+        "st_trizeps",
+        "st_bizeps",
+        "st_catcow",
+        "st_child",
+        "st_cobra",
+        "st_rotation",
+        "st_seitbeuge"
+      ],
+      "completed": true,
+      "durationSec": 650
+    }
   ],
-  "style": "circuit",
-  "kieserSeconds": 120,
-  "programType": "random",
-  "sound": true,
-  "noJump": true,
-  "kneeFriendly": true,
-  "wristFriendly": true,
-  "gear": {
-   "KH": true,
-   "KB": false,
-   "Band": false,
-   "Stange": false,
-   "Stuhl": true
+  "favorites": [],
+  "weights": {},
+  "ratings": {
+    "side_plank": 5,
+    "liegestuetz": 3,
+    "schulterdruecken": 5,
+    "bent_over_row": 5,
+    "kurzhantelrudern": 3,
+    "bizeps_curl": 5,
+    "plank": 5,
+    "dead_bug": 5,
+    "superman": 5,
+    "bird_dog": 5,
+    "st_brust": 5,
+    "st_schulter": 5,
+    "st_latissimus": 4,
+    "st_trizeps": 5,
+    "st_bizeps": 3,
+    "st_catcow": 5,
+    "st_child": 5,
+    "st_cobra": 5,
+    "st_rotation": 5,
+    "st_seitbeuge": 4,
+    "trx_row": 1,
+    "face_pull": 1,
+    "trx_chest_press": 1,
+    "pallof_press": 1
+  },
+  "levels": {
+    "liegestuetz": {
+      "offset": -5,
+      "last": "schwer",
+      "t": 1795379831597
+    },
+    "schulterdruecken": {
+      "offset": 0,
+      "last": "richtig",
+      "t": 1795379835056
+    },
+    "bent_over_row": {
+      "offset": 0,
+      "last": "richtig",
+      "t": 1795379842210
+    },
+    "kurzhantelrudern": {
+      "offset": 0,
+      "last": "richtig",
+      "t": 1795379846424
+    },
+    "bizeps_curl": {
+      "offset": 5,
+      "last": "leicht",
+      "t": 1795379854203
+    },
+    "plank": {
+      "offset": 0,
+      "last": "richtig",
+      "t": 1795379856454
+    },
+    "dead_bug": {
+      "offset": 5,
+      "last": "leicht",
+      "t": 1795379859589
+    },
+    "superman": {
+      "offset": 0,
+      "last": "richtig",
+      "t": 1795379863354
+    },
+    "bird_dog": {
+      "offset": 5,
+      "last": "leicht",
+      "t": 1795379872548
+    },
+    "side_plank": {
+      "offset": 0,
+      "last": "richtig",
+      "t": 1795379876612
+    }
   }
- },
- "sessions": [
-  {
-   "id": "s1795374445461n100",
-   "date": "2026-11-22T19:07:25.461Z",
-   "kind": "strength",
-   "areaIds": [
-    "upper"
-   ],
-   "modeId": "kieser90",
-   "programType": "standard",
-   "exerciseIds": [
-    "liegestuetz",
-    "schulterdruecken",
-    "trx_row",
-    "kurzhantelrudern",
-    "bizeps_curl"
-   ],
-   "completed": true,
-   "durationSec": 37
-  },
-  {
-   "id": "s1795374486476cc0f",
-   "date": "2026-11-22T19:08:06.476Z",
-   "kind": "stretch",
-   "areaIds": [],
-   "modeId": "stretch",
-   "programType": "stretch",
-   "exerciseIds": [
-    "st_brust",
-    "st_schulter",
-    "st_latissimus",
-    "st_trizeps",
-    "st_bizeps"
-   ],
-   "completed": true,
-   "durationSec": 3
-  },
-  {
-   "id": "s1795375236655zdni",
-   "date": "2026-11-22T19:20:36.655Z",
-   "kind": "strength",
-   "areaIds": [
-    "upper"
-   ],
-   "modeId": "kieser90",
-   "programType": "standard",
-   "exerciseIds": [
-    "liegestuetz",
-    "schulterdruecken",
-    "trx_row",
-    "kurzhantelrudern",
-    "bizeps_curl"
-   ],
-   "completed": false,
-   "durationSec": 153
-  },
-  {
-   "id": "s1795376021408ih5x",
-   "date": "2026-11-22T19:33:41.408Z",
-   "kind": "strength",
-   "areaIds": [
-    "core"
-   ],
-   "modeId": "kieser",
-   "programType": "standard",
-   "exerciseIds": [
-    "plank",
-    "dead_bug",
-    "superman",
-    "bird_dog",
-    "side_plank"
-   ],
-   "completed": true,
-   "durationSec": 28
-  },
-  {
-   "id": "s1795376489347ojf2",
-   "date": "2026-11-22T19:41:29.347Z",
-   "kind": "strength",
-   "areaIds": [
-    "core"
-   ],
-   "modeId": "kieser",
-   "programType": "standard",
-   "exerciseIds": [
-    "plank",
-    "dead_bug",
-    "superman",
-    "bird_dog",
-    "side_plank"
-   ],
-   "completed": false,
-   "durationSec": 41
-  },
-  {
-   "id": "s1795376715449xw05",
-   "date": "2026-11-22T19:45:15.449Z",
-   "kind": "stretch",
-   "areaIds": [],
-   "modeId": "stretch",
-   "programType": "stretch",
-   "exerciseIds": [
-    "st_waden",
-    "st_quad",
-    "st_hamstring",
-    "st_hueftbeuger",
-    "st_gesaess"
-   ],
-   "completed": false,
-   "durationSec": 64
-  },
-  {
-   "id": "s1795378326729i84n",
-   "date": "2026-11-22T20:12:06.729Z",
-   "kind": "strength",
-   "areaIds": [
-    "upper",
-    "core"
-   ],
-   "modeId": "kieser",
-   "programType": "standard",
-   "exerciseIds": [
-    "liegestuetz",
-    "schulterdruecken",
-    "bent_over_row",
-    "kurzhantelrudern",
-    "bizeps_curl",
-    "plank",
-    "dead_bug",
-    "superman",
-    "bird_dog",
-    "side_plank"
-   ],
-   "completed": false,
-   "durationSec": 38
-  },
-  {
-   "id": "s17953788006550z2h",
-   "date": "2026-11-22T20:20:00.655Z",
-   "kind": "strength",
-   "areaIds": [
-    "upper",
-    "core"
-   ],
-   "modeId": "circuit",
-   "programType": "standard",
-   "exerciseIds": [
-    "liegestuetz",
-    "schulterdruecken",
-    "bent_over_row",
-    "kurzhantelrudern",
-    "bizeps_curl",
-    "plank",
-    "dead_bug",
-    "superman",
-    "bird_dog",
-    "side_plank"
-   ],
-   "completed": true,
-   "durationSec": 1014
-  },
-  {
-   "id": "s1795379879787ur21",
-   "date": "2026-11-22T20:37:59.787Z",
-   "kind": "stretch",
-   "areaIds": [],
-   "modeId": "stretch",
-   "programType": "stretch",
-   "exerciseIds": [
-    "st_brust",
-    "st_schulter",
-    "st_latissimus",
-    "st_trizeps",
-    "st_bizeps",
-    "st_catcow",
-    "st_child",
-    "st_cobra",
-    "st_rotation",
-    "st_seitbeuge"
-   ],
-   "completed": true,
-   "durationSec": 650
-  }
- ],
- "favorites": [],
- "weights": {},
- "ratings": {
-  "side_plank": 5,
-  "liegestuetz": 3,
-  "schulterdruecken": 5,
-  "bent_over_row": 5,
-  "kurzhantelrudern": 3,
-  "bizeps_curl": 5,
-  "plank": 5,
-  "dead_bug": 5,
-  "superman": 5,
-  "bird_dog": 5,
-  "st_brust": 5,
-  "st_schulter": 5,
-  "st_latissimus": 4,
-  "st_trizeps": 5,
-  "st_bizeps": 3,
-  "st_catcow": 5,
-  "st_child": 5,
-  "st_cobra": 5,
-  "st_rotation": 5,
-  "st_seitbeuge": 4,
-  "trx_row": 1,
-  "face_pull": 1,
-  "trx_chest_press": 1,
-  "pallof_press": 1
- },
- "levels": {
-  "liegestuetz": {
-   "offset": -5,
-   "last": "schwer",
-   "t": 1795379831597
-  },
-  "schulterdruecken": {
-   "offset": 0,
-   "last": "richtig",
-   "t": 1795379835056
-  },
-  "bent_over_row": {
-   "offset": 0,
-   "last": "richtig",
-   "t": 1795379842210
-  },
-  "kurzhantelrudern": {
-   "offset": 0,
-   "last": "richtig",
-   "t": 1795379846424
-  },
-  "bizeps_curl": {
-   "offset": 5,
-   "last": "leicht",
-   "t": 1795379854203
-  },
-  "plank": {
-   "offset": 0,
-   "last": "richtig",
-   "t": 1795379856454
-  },
-  "dead_bug": {
-   "offset": 5,
-   "last": "leicht",
-   "t": 1795379859589
-  },
-  "superman": {
-   "offset": 0,
-   "last": "richtig",
-   "t": 1795379863354
-  },
-  "bird_dog": {
-   "offset": 5,
-   "last": "leicht",
-   "t": 1795379872548
-  },
-  "side_plank": {
-   "offset": 0,
-   "last": "richtig",
-   "t": 1795379876612
-  }
- }
 }
