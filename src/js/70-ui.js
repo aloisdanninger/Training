@@ -7,7 +7,7 @@ App.UI = (function () {
   const $ = id => document.getElementById(id);
   const D = App.Data, S = App.Store, CIRC = 2 * Math.PI * 150;
   const STRENGTH_MODES = D.MODES.filter(m => m.kind === 'strength');
-  const PTYPES = [{ id: 'standard', label: 'Standard' }, { id: 'random', label: 'Zufällig' }];
+  const PTYPES = [{ id: 'random', label: '🎲 Zufällig' }, { id: 'reference', label: '📋 Referenztraining' }];
   const CFG = App.Config;
   /* Regler je Stil: [Einstellungs-Schlüssel, Beschriftung, Einheit, {min,max,step,def}] */
   const STYLE_OPTS = {
@@ -15,6 +15,7 @@ App.UI = (function () {
     classic: [['classicSets', 'Anzahl Sätze', 'Sätze', CFG.classic.sets], ['classicSeconds', 'Dauer pro Satz', 'Sekunden', CFG.classic.seconds]],
     circuit: [['circuitRounds', 'Anzahl Runden', 'Runden', CFG.circuit.rounds], ['circuitSeconds', 'Dauer pro Übung', 'Sekunden', CFG.circuit.seconds]]
   };
+  const HIIT_OPTS = [['hiitRounds', 'HIIT-Runden', 'Runden', CFG.hiit.rounds], ['hiitWork', 'Belastung', 'Sekunden', CFG.hiit.work], ['hiitRest', 'Pause', 'Sekunden', CFG.hiit.rest]];
   const PINGS = [60, 30, 10, 3, 2, 1];            // verbleibende Sekunden mit einfachem Ping
   let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
@@ -28,7 +29,20 @@ App.UI = (function () {
   }
 
   /* ---------------- Startbildschirm ---------------- */
-  function currentMode() { return D.modeById(S.settings().style, S.settings()); }
+  const isRef = () => S.settings().programType === 'reference';
+  function currentMode() { return isRef() ? D.modeById('reference') : D.modeById(S.settings().style, S.settings()); }
+  const hiitMode = () => D.modeById('hiit', S.settings());
+  const blocksOf = (program, mode) => App.Programs.buildBlocks(program, mode, S.offsets(), hiitMode());
+  const fmtDate = d => new Date(d).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  /* ---------------- Referenztraining ---------------- */
+  const refSessions = () => S.history().filter(s => s.programType === 'reference' && s.ref);
+  function refDue() {
+    const r = refSessions(), last = r[r.length - 1];
+    const next = last ? new Date(last.date).getTime() + CFG.reference.intervalDays * 864e5 : 0;
+    return { last: last, next: next, due: !last || Date.now() >= next };
+  }
+  function startReference() { openPreview(App.Programs.buildProgram({ programType: 'reference' }), D.modeById('reference'), 'strength'); }
 
   function renderHome() {
     let st = S.settings();
@@ -36,6 +50,16 @@ App.UI = (function () {
       S.setSettings({ style: 'kieser', kieserSeconds: parseInt(st.style.slice(6), 10) || CFG.kieser.def }); st = S.settings();
     }
     if (st.style === 'classic3') { S.setSettings({ style: 'classic' }); st = S.settings(); }
+    if (st.programType !== 'random' && st.programType !== 'reference') { S.setSettings({ programType: 'random' }); st = S.settings(); }   // früher 'standard'
+    const ref = st.programType === 'reference', hasH = st.areas.indexOf('hiit') >= 0, hasK = st.areas.some(a => a !== 'hiit');
+    const rd = refDue();
+    $('refDue').hidden = !rd.due || ref;
+    $('refDueText').textContent = rd.last ? 'Letztes Referenztraining am ' + fmtDate(rd.last.date) + ' – Zeit für den monatlichen Leistungscheck.' : 'Noch kein Referenztraining – starte deinen ersten Leistungscheck.';
+    $('secAreas').hidden = ref; $('hiitOpts').hidden = ref || !hasH; $('secStyle').hidden = $('styleOpts').hidden = ref || (hasH && !hasK);
+    $('refInfo').hidden = !ref;
+    $('refInfo').textContent = 'Immer dieselben ' + D.REFERENCE.length + ' Übungen aus Oberkörper, Rumpf und Unterkörper · Kieser ' + CFG.reference.seconds +
+      ' s je Übung (plus deine Anpassungen) · 1× pro Monat. ' + (rd.last ? 'Zuletzt: ' + fmtDate(rd.last.date) + (rd.due ? ' – fällig.' : ' · nächstes ab ' + fmtDate(rd.next) + '.') : 'Noch keines gemacht.');
+    renderSliders($('hiitOpts'), HIIT_OPTS, st);
     const areas = $('areas'); areas.textContent = '';
     D.AREAS.forEach(a => {
       const on = st.areas.indexOf(a.id) >= 0;
@@ -60,9 +84,10 @@ App.UI = (function () {
   }
 
   /** Regler für den gewählten Stil (werden nur beim Stilwechsel neu aufgebaut, damit das Ziehen nicht abbricht). */
-  function renderStyleOpts(st) {
-    const box = $('styleOpts'); box.textContent = '';
-    (STYLE_OPTS[st.style] || []).forEach(function (o) {
+  function renderStyleOpts(st) { renderSliders($('styleOpts'), STYLE_OPTS[st.style] || [], st); }
+  function renderSliders(box, list, st) {
+    box.textContent = '';
+    list.forEach(function (o) {
       const key = o[0], cfg = o[3], lab = document.createElement('label'), val = document.createElement('b'), inp = document.createElement('input');
       lab.className = 'slider'; inp.type = 'range'; inp.min = cfg.min; inp.max = cfg.max; inp.step = cfg.step; inp.value = st[key] || cfg.def;
       inp.setAttribute('aria-label', o[1]); val.textContent = inp.value + ' ' + o[2];
@@ -71,10 +96,12 @@ App.UI = (function () {
     });
   }
   function updateSummary() {
-    const st = S.settings(), n = st.areas.length * 5;
-    const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, currentMode())) : 0;
+    const st = S.settings();
+    // Platzhalterprogramm mit gleicher Struktur (5 Übungen je Bereich bzw. Referenzliste) für die Zeitschätzung
+    const ids = isRef() ? D.REFERENCE.slice() : [].concat.apply([], D.AREAS.filter(a => st.areas.indexOf(a.id) >= 0).map(a => new Array(5).fill(a.hiit ? 'hampelmann' : 'plank')));
+    const n = ids.length, preview = n ? App.Programs.totalSeconds(blocksOf({ exerciseIds: ids }, currentMode())) : 0;
     $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
-    $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5;
+    $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5; $('start').textContent = isRef() ? 'Referenztraining starten' : 'Training starten';
   }
 
   /* ---------------- Training ---------------- */
@@ -88,11 +115,13 @@ App.UI = (function () {
   function esc(t) { return String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
   function openPreview(program, mode, kind) {
     pending = { program: program, mode: mode, kind: kind };
-    const blocks = App.Programs.buildBlocks(program, mode, S.offsets()), perEx = {};
+    const blocks = blocksOf(program, mode), perEx = {};
     blocks.forEach(b => { if (b.type === 'work') perEx[b.exerciseIndex] = (perEx[b.exerciseIndex] || 0) + b.duration; });
-    $('pvTitle').textContent = kind === 'stretch' ? program.label : 'Dein Training';
-    $('pvSummary').textContent = program.exerciseIds.length + ' Übungen · ca. ' + Math.round(App.Programs.totalSeconds(blocks) / 60) + ' Minuten · ' + mode.label +
-      (program.type === 'random' ? ' · Zufallsprogramm' : '');
+    $('pvTitle').textContent = kind === 'stretch' ? program.label : program.type === 'reference' ? '📋 Referenztraining' : 'Dein Training';
+    const hasH = program.exerciseIds.some(id => D.byId[id].category === 'hiit'), hasK = program.exerciseIds.some(id => D.byId[id].category !== 'hiit');
+    const label = kind !== 'strength' ? mode.label : [hasH ? hiitMode().label : '', hasK ? mode.label : ''].filter(Boolean).join(' + ');
+    $('pvSummary').textContent = program.exerciseIds.length + ' Übungen · ca. ' + Math.round(App.Programs.totalSeconds(blocks) / 60) + ' Minuten · ' + label +
+      (program.type === 'random' ? ' · Zufallsprogramm' : program.type === 'reference' ? ' · Leistungscheck, am Ende Vergleich mit dem letzten Mal' : '');
     // Material
     const gear = App.Programs.equipmentSummary(program.exerciseIds), ul = $('pvGear'); ul.textContent = '';
     if (!gear.length) ul.innerHTML = '<li>Kein Material nötig 🎉</li>';
@@ -122,9 +151,11 @@ App.UI = (function () {
   function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }   // direkt, ohne Übersicht (Folgefrage)
 
   function run(program, mode, meta) {
-    const blocks = App.Programs.buildBlocks(program, mode, S.offsets());
-    const totalAll = App.Programs.totalSeconds(blocks);
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, ui: { lastCount: null, lastCue: null, lastRem: null, lastEl: 0 } };
+    const blocks = blocksOf(program, mode);
+    const totalAll = App.Programs.totalSeconds(blocks), workSecs = {};
+    blocks.forEach(b => { if (b.type === 'work') { const id = program.exerciseIds[b.exerciseIndex]; workSecs[id] = (workSecs[id] || 0) + b.duration; } });
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, workSecs: workSecs, savedId: null,
+      ui: { lastCount: null, lastCue: null, lastRem: null, lastEl: 0 } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
       onBlockStart: function (b) {
@@ -176,14 +207,21 @@ App.UI = (function () {
     releaseWake();
     const secs = Math.round((Date.now() - session.startedAt.getTime()) / 1000), p = session.program;
     if (session.doneCount > 0) {
-      S.addSession({ id: 's' + session.startedAt.getTime() + Math.random().toString(36).slice(2, 6), date: session.startedAt.toISOString(),
+      const rec = { id: 's' + session.startedAt.getTime() + Math.random().toString(36).slice(2, 6), date: session.startedAt.toISOString(),
         kind: session.kind, areaIds: p.areaIds, modeId: session.mode.id, programType: p.type, exerciseIds: p.exerciseIds,
-        completed: completed, durationSec: secs });
+        completed: completed, durationSec: secs, t: Date.now() };
+      // Referenztraining: Belastungszeit je vollständig absolvierter Übung + Empfinden (wird bei der Bewertung ergänzt)
+      if (p.type === 'reference') {
+        rec.ref = { mode: session.mode.label, secs: {}, felt: {} };
+        session.completed.forEach(id => { rec.ref.secs[id] = session.workSecs[id]; });
+      }
+      S.addSession(rec); session.savedId = rec.id;
       if (App.Sync.hasToken()) App.Sync.sync();
     }
     if (!completed) { show('home'); renderHome(); return; }
     $('dText').textContent = fmt(secs) + ' Minuten · ' + p.exerciseIds.length + ' Übungen';
-    renderRating(session.completed);
+    $('dTitle').textContent = p.type === 'reference' ? 'Referenztraining geschafft! 📋' : 'Geschafft! 🎉';
+    renderRating(session.completed); renderCompare();
     $('dAsk').hidden = session.kind !== 'strength'; show('done');
   }
 
@@ -239,6 +277,7 @@ App.UI = (function () {
             if (!(id in session.base)) session.base[id] = (S.level(id) || {}).offset || 0;      // Stand vor diesem Training
             const off = Math.max(-CFG.levelMax, Math.min(CFG.levelMax, session.base[id] + l[2] * CFG.levelStep));
             session.chosen[id] = l[0]; S.setLevel(id, off, l[0]);
+            if (session.program.type === 'reference' && session.savedId) { S.updateSession(session.savedId, s => { s.ref.felt[id] = l[0]; }); renderCompare(); }
             Array.prototype.forEach.call(row.children, (x, k) => x.setAttribute('aria-pressed', LEVELS[k][0] === l[0]));
             hint.textContent = off === session.base[id] ? 'Dauer bleibt gleich.' : 'Nächstes Mal ' + (l[2] > 0 ? 'um ' : 'um ') + CFG.levelStep + ' s ' + (l[2] > 0 ? 'länger' : 'kürzer') + ' (gesamt ' + (off > 0 ? '+' : off < 0 ? '−' : '') + Math.abs(off) + ' s).';
           });
@@ -249,6 +288,40 @@ App.UI = (function () {
       }
       ul.appendChild(li);
     });
+  }
+
+  /**
+   * Vergleich Referenztraining: aktuelles vs. vorheriges. Belastungszeit kann sich durch die Schwierigkeitsanpassung geändert haben,
+   * das Empfinden ist jedes Mal anders. Leistungswert je Übung = Sekunden + Empfinden (zu leicht +5 s, zu schwer −5 s).
+   */
+  const FELT = { leicht: ['Zu leicht', 1], richtig: ['Richtig', 0], schwer: ['Zu schwer', -1] };
+  function renderCompare() {
+    const box = $('dCmp'), body = $('dCmpBody');
+    if (!session || session.program.type !== 'reference' || !session.savedId) { box.hidden = true; return; }
+    const refs = refSessions(), cur = refs.filter(s => s.id === session.savedId)[0];
+    if (!cur) { box.hidden = true; return; }
+    const prev = refs.filter(s => s.id !== cur.id && s.date < cur.date).pop();
+    box.hidden = false;
+    if (!prev) { body.innerHTML = '<p class="muted">Dein erstes Referenztraining ist gespeichert. Beim nächsten (ab ' + fmtDate(new Date(cur.date).getTime() + CFG.reference.intervalDays * 864e5) + ') siehst du hier den Vergleich.</p>'; return; }
+    const score = (s, id) => s.ref.secs[id] == null ? null : s.ref.secs[id] + (s.ref.felt[id] ? FELT[s.ref.felt[id]][1] * CFG.levelStep : 0);
+    const feltTxt = (s, id) => s.ref.secs[id] == null ? '–' : s.ref.felt[id] ? FELT[s.ref.felt[id]][0] : 'offen';
+    const secTxt = (s, id) => s.ref.secs[id] == null ? '–' : s.ref.secs[id] + ' s';
+    let up = 0, down = 0, same = 0, rows = '';
+    cur.exerciseIds.forEach(function (id) {
+      const a = score(prev, id), b = score(cur, id);
+      let tr = '<span class="muted">–</span>';
+      if (a != null && b != null) {
+        if (b > a) { tr = '<span class="up">▲ besser</span>'; up++; } else if (b < a) { tr = '<span class="down">▼ schwächer</span>'; down++; } else { tr = '= gleich'; same++; }
+      }
+      rows += '<tr><td>' + esc(D.byId[id].name) + '</td><td>' + secTxt(prev, id) + ' → <b>' + secTxt(cur, id) + '</b></td><td>' + feltTxt(prev, id) + ' → <b>' + feltTxt(cur, id) + '</b></td><td>' + tr + '</td></tr>';
+    });
+    const tot = s => Object.keys(s.ref.secs).reduce((x, k) => x + s.ref.secs[k], 0), cnt = (s, f) => Object.keys(s.ref.felt).filter(k => s.ref.felt[k] === f).length;
+    const feltSum = s => cnt(s, 'leicht') + '× zu leicht · ' + cnt(s, 'richtig') + '× richtig · ' + cnt(s, 'schwer') + '× zu schwer';
+    body.innerHTML = '<p class="muted">' + fmtDate(prev.date) + ' → <b>' + fmtDate(cur.date) + '</b></p>' +
+      '<p><b>' + up + '</b> Übungen besser · <b>' + same + '</b> gleich · <b>' + down + '</b> schwächer</p>' +
+      '<p class="muted small">Belastungszeit gesamt: ' + Math.round(tot(prev) / 60 * 10) / 10 + ' → ' + Math.round(tot(cur) / 60 * 10) / 10 + ' min<br>Empfinden damals: ' + feltSum(prev) + '<br>Empfinden heute: ' + feltSum(cur) + '</p>' +
+      '<div class="tscroll"><table class="cmp"><thead><tr><th>Übung</th><th>Dauer</th><th>Empfinden</th><th>Trend</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<p class="muted small">Trend = Dauer plus Empfinden (zu leicht zählt +' + CFG.levelStep + ' s, zu schwer −' + CFG.levelStep + ' s). Offene Bewertungen oben ergänzen – der Vergleich aktualisiert sich sofort.</p>';
   }
 
   /* ---------------- Übungs-Overlay (Katalog) ---------------- */
@@ -285,6 +358,7 @@ App.UI = (function () {
     $('vol').oninput = e => { S.setVolume(e.target.value); App.Audio.setVolume(e.target.value); };
     $('vol').onchange = () => { App.Audio.unlock(); App.Audio.play('double'); };   // Hörprobe
     $('start').onclick = startStrength;
+    $('refStart').onclick = startReference;
     $('ovClose').onclick = closeOverlay;
     $('overlay').onclick = e => { if (e.target === $('overlay')) closeOverlay(); };
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('overlay').hidden) closeOverlay(); });

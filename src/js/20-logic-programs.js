@@ -1,6 +1,7 @@
 /* ==========================================================================
    20-logic-programs.js  –  TRAININGSLOGIK (keine UI, kein DOM)
-   - Standardprogramme und "intelligenter" Zufallsmodus (Regeln aus App.Data.AREAS)
+   - Referenztraining (feste Liste) und "intelligenter" Zufallsmodus (Regeln aus App.Data.AREAS)
+   - HIIT-Übungen laufen immer zuerst im HIIT-Intervall, danach die Kraftübungen im gewählten Stil
    - Dehnprogramm-Auswahl
    - Umwandlung eines Programms in zeitliche Blöcke für den Timer
    ========================================================================== */
@@ -44,18 +45,20 @@ App.Programs = (function () {
 
   /**
    * Erstellt ein Kraftprogramm.
-   * opts: { areaIds: ['upper',..], programType: 'standard'|'random', history: [...], ratings: {id: 0-5}, rnd: fn }
+   * opts: { areaIds: ['hiit','upper',..], programType: 'random'|'reference', history: [...], ratings: {id: 0-5}, rnd: fn }
    * Rückgabe (Program): { id, type, areaIds, exerciseIds }
+   * Referenztraining ignoriert die Bereichsauswahl (immer alle 3 Kraftbereiche, immer dieselben Übungen).
    */
   function buildProgram(opts) {
+    if (opts.programType === 'reference') return { id: 'ref-' + Date.now(), type: 'reference', areaIds: ['upper', 'core', 'lower'], exerciseIds: D.REFERENCE.slice() };
     const rnd = opts.rnd || Math.random;
     const order = D.AREAS.map(a => a.id).filter(id => opts.areaIds.indexOf(id) >= 0);   // feste Reihenfolge
     let ids = [];
     order.forEach(function (id) {
       const a = areaById(id);
-      ids = ids.concat(opts.programType === 'random' ? randomForArea(a, opts.history, rnd, opts.ratings) : a.standard);
+      ids = ids.concat(randomForArea(a, opts.history, rnd, opts.ratings));
     });
-    return { id: 'prog-' + Date.now(), type: opts.programType, areaIds: order, exerciseIds: ids };
+    return { id: 'prog-' + Date.now(), type: 'random', areaIds: order, exerciseIds: ids };
   }
 
   /** Passendes Dehnprogramm zu trainierten Bereichen (mehrere Bereiche -> aneinandergehängt). */
@@ -77,9 +80,21 @@ App.Programs = (function () {
    * Programm + Modus -> flache Blockliste (TrainingSession-Ablauf).
    * Jeder Block erhält exerciseIndex/exerciseCount für die Anzeige.
    */
-  function buildBlocks(program, mode, offsets) {
-    const blocks = [], off = id => (offsets && offsets[id]) || 0;
+  function buildBlocks(program, mode, offsets, hiitMode) {
     const items = program.items || program.exerciseIds.map(id => ({ id: id }));
+    const isH = it => D.byId[it.id].category === 'hiit';
+    const h = mode.kind === 'strength' && mode.id !== 'hiit' ? items.filter(isH) : [];
+    if (!h.length) return blocksFor(items, mode, offsets);
+    // HIIT-Teil (steht im Programm immer vorne) im Intervall, danach Kraft im gewählten Stil; Indizes über das ganze Programm
+    const rest = items.filter(it => !isH(it)), n = items.length;
+    const hb = blocksFor(h, hiitMode || D.modeById('hiit'), offsets), sb = rest.length ? blocksFor(rest, mode, offsets) : [];
+    hb.forEach(b => { b.exerciseCount = n; if (b.nextEx === null && rest.length) b.nextEx = D.byId[rest[0].id]; });
+    sb.forEach(b => { b.exerciseIndex += h.length; b.exerciseCount = n; });
+    return hb.concat(sb);
+  }
+
+  function blocksFor(items, mode, offsets) {
+    const blocks = [], off = id => (offsets && offsets[id]) || 0;
     if (mode.buildAll) return mode.buildAll(items.map(it => ({ ex: D.byId[it.id], offset: off(it.id) })));   // z. B. Zirkel
     items.forEach(function (it, i) {
       const bl = mode.buildBlocks(D.byId[it.id], { secondsEach: it.secondsEach, offset: off(it.id) });
@@ -92,7 +107,7 @@ App.Programs = (function () {
   const totalSeconds = blocks => blocks.reduce((s, b) => s + b.duration, 0);
 
   /** Kanonische Materialnamen (Schreibvarianten in den Daten werden zusammengeführt). */
-  const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Gummiband / Kabel'],
+  const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe|stuhl)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Gummiband / Kabel'],
     [/^matte/i, 'Matte'], [/^trx/i, 'TRX / Schlingentrainer'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand']];
   const canon = n => { const c = CANON.filter(x => x[0].test(n))[0]; return c ? c[1] : n.replace(/\s*\(optional\)/, ''); };
 

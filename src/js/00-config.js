@@ -21,6 +21,10 @@ App.Config = {
   classic: { sets: { min: 1, max: 6, step: 1, def: 3 }, seconds: { min: 15, max: 90, step: 5, def: 30 }, rest: 10 },
   /* Zirkel: Runden und Sekunden pro Übung wählbar; Wechsel zwischen Übungen, Pause zwischen Runden */
   circuit: { rounds: { min: 1, max: 6, step: 1, def: 3 }, seconds: { min: 10, max: 60, step: 5, def: 30 }, transition: 10, roundRest: 30 },
+  /* HIIT: Runden, Belastung und Pause (s) wählbar; längere Pause zwischen den Runden. Läuft immer vor dem Krafttraining. */
+  hiit: { rounds: { min: 1, max: 4, step: 1, def: 2 }, work: { min: 20, max: 45, step: 5, def: 30 }, rest: { min: 10, max: 30, step: 5, def: 15 }, roundRest: 60 },
+  /* Referenztraining: feste Übungen (App.Data.REFERENCE), fester Stil, fällig alle intervalDays Tage */
+  reference: { style: 'kieser', seconds: 90, intervalDays: 30 },
   /* Schwierigkeitsbewertung: zu leicht = +levelStep s, zu schwer = -levelStep s (je Übung, kumulativ, begrenzt) */
   levelStep: 5, levelMax: 60, minSeconds: 10,
   /* Geometrie der Strichfigur (SVG-Einheiten) */

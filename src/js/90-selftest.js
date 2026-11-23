@@ -7,12 +7,15 @@ App.SelfTest = (function () {
   function run() {
     const out = [], fails = [];
     const check = (name, ok, info) => { out.push((ok ? 'PASS ' : 'FAIL ') + name + (info ? ' – ' + info : '')); if (!ok) fails.push(name); };
-    const D = App.Data;
+    const D = App.Data, C2 = App.Config;
 
     // 1. Datenmodell: Pflichtfelder
     const req = ['id', 'name', 'category', 'subCategory', 'targetMuscles', 'difficulty', 'equipment', 'description', 'instructions', 'svgAnimation'];
     const all = D.EXERCISES.concat(D.STRETCHES);
-    check('Anzahl Kraftübungen = 43', D.EXERCISES.length === 43, D.EXERCISES.length);
+    const nH = D.EXERCISES.filter(e => e.category === 'hiit').length;
+    check('Anzahl Übungen = 74 (davon 13 HIIT)', D.EXERCISES.length === 74 && nH === 13, D.EXERCISES.length + '/' + nH);
+    check('Mindestens 7 Kettlebell-Übungen', D.EXERCISES.filter(e => e.equipment.some(q => /kettlebell/i.test(q))).length >= 7);
+    check('Liegestütz-Aufbau vorhanden (Wand, Knie, Negativ, Schräg)', ['wand_liegestuetz', 'knie_liegestuetz', 'negativ_liegestuetz', 'schraeg_liegestuetz'].every(id => D.byId[id] && D.byId[id].subCategory === 'Drücken'));
     check('Anzahl Dehnübungen = 20', D.STRETCHES.length === 20, D.STRETCHES.length);
     check('Pflichtfelder vollständig', all.every(e => req.every(k => e[k] != null && e[k] !== '')));
     check('IDs eindeutig', new Set(all.map(e => e.id)).size === all.length);
@@ -22,7 +25,14 @@ App.SelfTest = (function () {
       });
     }));
     check('Dehnprogramme referenzieren existierende Übungen', D.STRETCH_PROGRAMS.every(p => p.exerciseIds.length === 5 && p.exerciseIds.every(id => D.byId[id])));
-    check('Standardprogramme gültig (5 Übungen je Bereich)', D.AREAS.every(a => a.standard.length === 5 && a.standard.every(id => D.byId[id].category === a.id)));
+    const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);
+    check('Referenztraining: 12 Übungen, je 4 aus Oberkörper/Rumpf/Unterkörper, alle Unterkategorien',
+      R.length === 12 && R.every(Boolean) && ['upper', 'core', 'lower'].every(c => R.filter(e => e.category === c).length === 4) &&
+      ['Drücken', 'Ziehen', 'Arme', 'Bauch', 'Rücken', 'Seitliche Stabilität', 'Knie dominant', 'Hüftdominant', 'Stabilität'].every(s => subs.indexOf(s) >= 0));
+    const rp = App.Programs.buildProgram({ areaIds: ['hiit'], programType: 'reference' });
+    check('Referenztraining ignoriert Bereichsauswahl, fester Stil Kieser 90 s', rp.type === 'reference' && rp.exerciseIds.join() === D.REFERENCE.join() &&
+      App.Programs.totalSeconds(D.modeById('reference').buildBlocks(D.byId.plank)) === 100);
+    check('HIIT steht links/zuerst', D.AREAS[0].id === 'hiit');
 
     // 2. Zufallsregeln (2/2/1) – 300 Ziehungen
     let rulesOk = true;
@@ -34,11 +44,12 @@ App.SelfTest = (function () {
       });
     }
     check('Zufallsmodus hält Regeln ein', rulesOk);
-    check('Mehrfachauswahl: 3 Bereiche = 15 Übungen in fester Reihenfolge',
-      (function () { const p = App.Programs.buildProgram({ areaIds: ['lower', 'upper', 'core'], programType: 'standard' }); return p.exerciseIds.length === 15 && p.areaIds.join() === 'upper,core,lower'; })());
+    check('Mehrfachauswahl: 4 Bereiche = 20 Übungen in fester Reihenfolge, HIIT zuerst',
+      (function () { const p = App.Programs.buildProgram({ areaIds: ['lower', 'upper', 'hiit', 'core'], programType: 'random', history: [] });
+        return p.exerciseIds.length === 20 && p.areaIds.join() === 'hiit,upper,core,lower' && p.exerciseIds.slice(0, 5).every(id => D.byId[id].category === 'hiit'); })());
 
     // 2b. Bewertung und Befestigung
-    check('Standardprogramme ohne Band/TRX', D.AREAS.every(a => a.standard.every(id => !D.byId[id].needsAnchor)));
+    check('Referenztraining ohne Band/TRX', R.every(e => !e.needsAnchor));
     let anchorOk = true;
     for (let i = 0; i < 200; i++) D.AREAS.forEach(a => { if (App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] }).exerciseIds.some(id => D.byId[id].needsAnchor)) anchorOk = false; });
     check('Zufallsmodus schlägt keine Band/TRX-Übungen vor', anchorOk && D.EXERCISES.filter(e => e.needsAnchor).length === 4);
@@ -66,6 +77,17 @@ App.SelfTest = (function () {
     const km = D.modeById('kieser').buildBlocks(ex)[1].motion;
     check('Kieser-Zyklus 4/2/4/2', km(0).p === 0 && km(4).p === 1 && km(5).cue === 'Halten' && km(8).p === 0.5 && km(10).p === 0 && km(11).cue === 'Halten');
     check('Stretch-Programm 5 Übungen', App.Programs.stretchForAreas(['upper']).exerciseIds.length === 5 && App.Programs.stretchForAreas(['upper', 'core']).exerciseIds.length === 10);
+
+    // 3b. HIIT + Kraft: HIIT-Teil im Intervall (2 Runden, 30 s / 15 s, 60 s Rundenpause), danach Klassisch
+    //     HIIT: 10 + 4×30 + 15 + 60 + 15 = 220 s; Plank klassisch 120 s -> 340 s
+    const hb = App.Programs.buildBlocks({ exerciseIds: ['hampelmann', 'high_knees', 'plank'] }, D.modeById('classic'), {}, D.modeById('hiit', { hiitRounds: 2, hiitWork: 30, hiitRest: 15 }));
+    const hw = hb.filter(b => b.type === 'work');
+    check('HIIT + Kraft: Dauer 340 s', App.Programs.totalSeconds(hb) === 340, App.Programs.totalSeconds(hb));
+    check('HIIT + Kraft: Reihenfolge, Indizes und Abschlüsse stimmen',
+      hw.map(b => b.exercise.id + b.exerciseIndex).join() === 'hampelmann0,high_knees1,hampelmann0,high_knees1,plank2,plank2,plank2' &&
+      hb.every(b => b.exerciseCount === 3) && hb.filter(b => b.exerciseEnd).length === 3 && hw[3].nextEx === D.byId.plank);
+    const ho = App.Programs.buildBlocks({ exerciseIds: ['burpee'] }, D.modeById('kieser'));
+    check('Nur HIIT: Kraftstil wird ignoriert', ho.filter(b => b.type === 'work').length === C2.hiit.rounds.def && ho[1].duration === C2.hiit.work.def);
 
     // 4. Timer mit simulierter Zeit
     const events = [], blocks = App.Programs.buildBlocks({ exerciseIds: ['plank', 'bird_dog'] }, D.modeById('classic'));
@@ -110,6 +132,10 @@ App.SelfTest = (function () {
     const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },
       { updatedAt: 2, levels: { a: { offset: 10, last: 'leicht', t: 20 }, b: { offset: 0, last: 'richtig', t: 40 } }, sessions: [] });
     check('Merge: Schwierigkeitsstufen je Übung nach Zeitstempel', ml.levels.a.offset === 10 && ml.levels.b.offset === -5);
+
+    const ms = App.Store.merge({ updatedAt: 5, sessions: [{ id: 'r', date: '2026-01-01', t: 20, ref: { felt: { plank: 'leicht' } } }] },
+      { updatedAt: 9, sessions: [{ id: 'r', date: '2026-01-01', t: 10, ref: { felt: {} } }] });
+    check('Merge: später bearbeitete Session gewinnt (Empfinden im Referenztraining)', ms.sessions.length === 1 && ms.sessions[0].ref.felt.plank === 'leicht');
 
     // 5. Merge der Fortschrittsdaten
     const m = App.Store.merge({ updatedAt: 1, settings: { x: 1 }, sessions: [{ id: 'a', date: '2026-01-01' }] }, { updatedAt: 2, settings: { x: 2 }, sessions: [{ id: 'a', date: '2026-01-01' }, { id: 'b', date: '2026-01-02' }] });

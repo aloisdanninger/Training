@@ -86,6 +86,10 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-weight:600;min-height:44px;padding:6px 16px;border-radius:999px;cursor:pointer;touch-action:manipulation}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.grid4>*{min-width:0;padding-left:4px;padding-right:4px}@media (max-width:640px){.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.due{border-color:var(--accent)}
+.tscroll{overflow-x:auto}.cmp{width:100%;border-collapse:collapse;font-size:.9rem}.cmp th,.cmp td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.cmp .up{color:#2e9d4f;font-weight:600}.cmp .down{color:#d0523b;font-weight:600}
 
 </style>
 </head>
@@ -93,10 +97,13 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 <!-- ============ STARTBILDSCHIRM ============ -->
 <main id="home" class="screen">
   <div class="topbar"><h1>Training</h1><button id="profileBtn" class="chip" aria-label="Benutzer wechseln"></button></div>
-  <section><h2>Trainingsbereiche</h2><div id="areas" class="grid3"></div></section>
-  <section><h2>Trainingsstil</h2><div id="styles" class="seg"></div></section>
+  <section id="refDue" class="card due" hidden><h2>📋 Referenztraining fällig</h2><p id="refDueText" class="muted"></p>
+    <button id="refStart" class="btn primary">Referenztraining starten</button></section>
+  <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div><p id="refInfo" class="muted small" hidden></p></section>
+  <section id="secAreas"><h2>Trainingsbereiche</h2><div id="areas" class="grid4"></div></section>
+  <section id="hiitOpts" class="opts" hidden></section>
+  <section id="secStyle"><h2>Trainingsstil (Kraft)</h2><div id="styles" class="seg"></div></section>
   <section id="styleOpts" class="opts"></section>
-  <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div></section>
   <section class="row"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label>
     <label class="slider" style="flex:1;min-width:160px">Lautstärke der Pings<input type="range" id="vol" min="0.1" max="1" step="0.1" aria-label="Lautstärke der Pings"></label></section>
   <p id="summary" class="muted"></p>
@@ -163,6 +170,7 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
     <h2>Übungen bewerten</h2><p class="muted small">Sterne: Gut bewertete Übungen kommen im Zufallsmodus öfter (erneut auf den gleichen Stern tippen = unbewertet). Zu leicht / zu schwer: Die Übung wird beim nächsten Mal um 5 s länger bzw. kürzer.</p>
     <ul id="dRateList" class="ratelist"></ul>
   </div>
+  <div id="dCmp" class="card" hidden><h2>Vergleich mit dem letzten Referenztraining</h2><div id="dCmpBody"></div></div>
   <div id="dAsk" hidden>
     <h2>Passendes Dehnungsprogramm starten?</h2>
     <div class="row"><button id="askYes" class="btn primary big">Ja</button><button id="askNo" class="btn big">Nein</button></div>
@@ -211,6 +219,10 @@ App.Config = {
   classic: { sets: { min: 1, max: 6, step: 1, def: 3 }, seconds: { min: 15, max: 90, step: 5, def: 30 }, rest: 10 },
   /* Zirkel: Runden und Sekunden pro Übung wählbar; Wechsel zwischen Übungen, Pause zwischen Runden */
   circuit: { rounds: { min: 1, max: 6, step: 1, def: 3 }, seconds: { min: 10, max: 60, step: 5, def: 30 }, transition: 10, roundRest: 30 },
+  /* HIIT: Runden, Belastung und Pause (s) wählbar; längere Pause zwischen den Runden. Läuft immer vor dem Krafttraining. */
+  hiit: { rounds: { min: 1, max: 4, step: 1, def: 2 }, work: { min: 20, max: 45, step: 5, def: 30 }, rest: { min: 10, max: 30, step: 5, def: 15 }, roundRest: 60 },
+  /* Referenztraining: feste Übungen (App.Data.REFERENCE), fester Stil, fällig alle intervalDays Tage */
+  reference: { style: 'kieser', seconds: 90, intervalDays: 30 },
   /* Schwierigkeitsbewertung: zu leicht = +levelStep s, zu schwer = -levelStep s (je Übung, kumulativ, begrenzt) */
   levelStep: 5, levelMax: 60, minSeconds: 10,
   /* Geometrie der Strichfigur (SVG-Einheiten) */
@@ -277,17 +289,27 @@ App.Pose = (function () {
    ========================================================================== */
 App.Data = App.Data || {};
 
-/** Bereiche (Kategorien) mit Anzeigename und Zufallsregeln (Anzahl je Unterkategorie). */
+/** Bereiche (Kategorien) mit Anzeigename und Zufallsregeln (Anzahl je Unterkategorie).
+   Reihenfolge = Ablauf im Training: HIIT (Aufwärmen/Kondition) zuerst, dann Kraft. */
 App.Data.AREAS = [
+  { id: 'hiit', label: 'HIIT', icon: '🔥', hiit: true,
+    slots: [{ sub: 'Cardio', n: 3 }, { sub: 'Ganzkörper', n: 2 }] },
   { id: 'upper', label: 'Oberkörper', icon: '💪',
-    slots: [{ sub: 'Drücken', n: 2 }, { sub: 'Ziehen', n: 2 }, { sub: 'Arme', n: 1 }],
-    standard: ['liegestuetz', 'schulterdruecken', 'bent_over_row', 'kurzhantelrudern', 'bizeps_curl'] },
+    slots: [{ sub: 'Drücken', n: 2 }, { sub: 'Ziehen', n: 2 }, { sub: 'Arme', n: 1 }] },
   { id: 'core', label: 'Rumpf', icon: '🎯',
-    slots: [{ sub: 'Bauch', n: 2 }, { sub: 'Rücken', n: 2 }, { sub: 'Seitliche Stabilität', n: 1 }],
-    standard: ['plank', 'dead_bug', 'superman', 'bird_dog', 'side_plank'] },
+    slots: [{ sub: 'Bauch', n: 2 }, { sub: 'Rücken', n: 2 }, { sub: 'Seitliche Stabilität', n: 1 }] },
   { id: 'lower', label: 'Unterkörper', icon: '🦵',
-    slots: [{ sub: 'Knie dominant', n: 2 }, { sub: 'Hüftdominant', n: 2 }, { sub: 'Stabilität', n: 1 }],
-    standard: ['kniebeuge', 'step_up', 'hip_thrust', 'romanian_deadlift', 'ausfallschritt'] }
+    slots: [{ sub: 'Knie dominant', n: 2 }, { sub: 'Hüftdominant', n: 2 }, { sub: 'Stabilität', n: 1 }] }
+];
+
+/**
+ * Referenztraining (1x pro Monat, immer identisch): prüft alle wichtigen Muskelgruppen der 3 Kraftbereiche.
+ * Drücken wird über den Knie-Liegestütz getestet (Ziel: voller Liegestütz), Trizeps separat.
+ */
+App.Data.REFERENCE = [
+  'knie_liegestuetz', 'schulterdruecken', 'bent_over_row', 'trizeps_ueberkopf',     // Brust · Schulter · Rücken/Bizeps · Trizeps
+  'plank', 'dead_bug', 'superman', 'side_plank',                                   // gerade/tiefe Bauchmuskeln · Rückenstrecker · seitlich
+  'kniebeuge', 'romanian_deadlift', 'glute_bridge', 'ausfallschritt'               // Oberschenkel vorne · hinten · Gesäß · Stabilität
 ];
 
 (function () {
@@ -444,7 +466,113 @@ App.Data.AREAS = [
       { a: P(0, [140, 140]), b: P(0, [100, 100], [180, 180], { r: [100, 175] }) }],
     ['curtsy_lunge', 'Curtsy Lunge', 'lower', 'Stabilität', ['Gesäß', 'seitliche Hüfte', 'Oberschenkel'], 2, [],
       'Ausfallschritt diagonal nach hinten.', 'Ein Bein diagonal hinter das Standbein stellen, absenken, Becken bleibt gerade.',
-      { view: 'front', a: P(0, [195, 170], [180, 180], { b: [165, 190] }), b: P(0, [195, 170], [205, 170], { b: [165, 190], r: [195, 225] }) }]
+      { view: 'front', a: P(0, [195, 170], [180, 180], { b: [165, 190] }), b: P(0, [195, 170], [205, 170], { b: [165, 190], r: [195, 225] }) }],
+    /* ---------- OBERKÖRPER · Drücken: Aufbau bis zum ersten Liegestütz (Kieser D6 Brustdrücken) ---------- */
+    ['wand_liegestuetz', 'Wand-Liegestütz', 'upper', 'Drücken', ['Brust', 'Trizeps', 'vordere Schulter'], 1, ['Wand'],
+      'Einstieg: Liegestütz gegen die Wand.', 'Hände schulterbreit auf Brusthöhe an die Wand, Körper gerade. Brust zur Wand senken und kräftig wegdrücken. Je weiter die Füße von der Wand weg, desto schwerer.',
+      { a: P(20, [95, 95], [200, 200]), b: P(28, [150, 40], [205, 205]) }],
+    ['knie_liegestuetz', 'Knie-Liegestütz', 'upper', 'Drücken', ['Brust', 'Trizeps', 'vordere Schulter'], 1, [],
+      'Liegestütz auf den Knien – der wichtigste Aufbauschritt.', 'Knie auf der Matte, Hände etwas breiter als die Schultern. Körper von Knie bis Kopf gerade, Brust bis knapp über den Boden senken, kräftig hochdrücken.',
+      { a: P(55, [180, 180], [230, 270]), b: P(72, [235, 145], [240, 270]) }],
+    ['negativ_liegestuetz', 'Negativ-Liegestütz', 'upper', 'Drücken', ['Brust', 'Trizeps', 'Rumpf'], 2, [],
+      'Nur das Absenken – baut Kraft für den ersten vollen Liegestütz auf.', 'Im hohen Stütz starten und so langsam wie möglich (4–5 s) bis zum Boden absenken. Über die Knie wieder hochkommen und erneut absenken.',
+      { a: PU_UP, b: PU_DN }],
+    ['floor_press', 'Bodendrücken (Brustpresse)', 'upper', 'Drücken', ['Brust', 'Trizeps', 'vordere Schulter'], 1, ['Kurzhanteln'],
+      'Brustdrücken in Rückenlage – wie die Kieser-Maschine D6.', 'Rückenlage, Knie aufgestellt, Oberarme im 45°-Winkel zum Körper am Boden. Hanteln senkrecht nach oben drücken, langsam ablassen, bis die Ellbogen den Boden berühren.',
+      { a: P(-90, [100, 0], [45, 180]), b: P(-90, [0, 0], [45, 180]), props: ['dumbbell'] }],
+    ['kb_press', 'Kettlebell Press einarmig', 'upper', 'Drücken', ['Schulter', 'Trizeps', 'Rumpf'], 2, ['Kettlebell'],
+      'Einarmiges Drücken über Kopf.', 'Kettlebell in Rack-Position an der Schulter, Rumpf und Gesäß fest. Senkrecht über den Kopf drücken, Bizeps neben dem Ohr, kontrolliert zurück. Seite wechseln.',
+      { a: P(0, [165, 10], [180, 180], { b: [180, 180] }), b: P(0, [0, 0], [180, 180], { b: [180, 180] }), props: ['dumbbell'] }],
+    ['seitheben', 'Seitheben', 'upper', 'Drücken', ['seitliche Schulter'], 1, ['Kurzhanteln'],
+      'Arme seitlich bis Schulterhöhe heben – wie Kieser E2.', 'Ellbogen leicht gebeugt, Hanteln seitlich bis auf Schulterhöhe führen, nicht höher. Langsam senken, Schultern bleiben tief.',
+      { view: 'front', a: P(0, [190, 185], [180, 180], { b: [170, 175] }), b: P(0, [275, 265], [180, 180], { b: [85, 95] }), props: ['dumbbell'] }],
+
+    /* ---------- OBERKÖRPER · Ziehen (Kieser C1 Überzug, C5 Rudern) ---------- */
+    ['pullover', 'Kurzhantel-Pullover (Überzug)', 'upper', 'Ziehen', ['Latissimus', 'Brust', 'Trizeps'], 2, ['Kurzhantel'],
+      'Überzug in Rückenlage – wie Kieser C1.', 'Rückenlage (Boden oder quer auf der Bank), Hantel mit beiden Händen über der Brust. Mit fast gestreckten Armen hinter den Kopf absenken, bis der breite Rückenmuskel gedehnt ist, und zurückführen.',
+      { a: P(-90, [0, 0], [45, 180]), b: P(-90, [-80, -80], [45, 180]), props: ['dumbbell'] }],
+    ['y_raise', 'Y-Heben in Bauchlage', 'upper', 'Ziehen', ['unterer Trapez', 'hintere Schulter', 'Rückenstrecker'], 1, [],
+      'Arme in Y-Form anheben – für eine aufrechte Haltung.', 'Bauchlage, Stirn knapp über dem Boden, Arme schräg nach vorn (Y), Daumen zeigen nach oben. Schulterblätter nach hinten unten ziehen, Arme anheben, 2 s halten.',
+      { a: P(90, [95, 95], [270, 270]), b: P(86, [72, 72], [270, 270]) }],
+    ['kb_high_pull', 'Kettlebell High Pull', 'upper', 'Ziehen', ['oberer Rücken', 'Trapez', 'hintere Schulter', 'Gesäß'], 2, ['Kettlebell'],
+      'Kraftvolles Hochziehen aus der Hüfte.', 'Kettlebell mit beiden Händen zwischen den Beinen, Hüfte nach hinten. Hüfte explosiv strecken und die Kettlebell mit hohen Ellbogen bis zur Brust ziehen, kontrolliert absenken.',
+      { a: P(45, [180, 180], [150, 200]), b: P(0, [95, 205]), props: ['dumbbell'] }],
+
+    /* ---------- OBERKÖRPER · Arme (Kieser H2 Armstreckung) ---------- */
+    ['trizeps_ueberkopf', 'Trizepsdrücken über Kopf', 'upper', 'Arme', ['Trizeps'], 1, ['Kurzhantel'],
+      'Armstrecken über dem Kopf – wichtig für den Liegestütz.', 'Hantel mit beiden Händen hinter dem Kopf, Oberarme senkrecht neben den Ohren. Nur die Unterarme nach oben strecken und langsam wieder absenken.',
+      { a: P(0, [350, 200]), b: P(0, [0, 0]), props: ['dumbbell'] }],
+
+    /* ---------- RUMPF (Kieser F2.1 Bauch, F1.1 Rumpfdrehung) ---------- */
+    ['crunch', 'Crunch', 'core', 'Bauch', ['gerade Bauchmuskeln'], 1, [],
+      'Oberkörper einrollen – wie Kieser F2.1.', 'Rückenlage, Knie aufgestellt, Hände an den Schläfen. Oberkörper einrollen, bis die Schulterblätter abheben, dabei ausatmen; langsam zurück.',
+      { a: P(-90, [-30, -150], [45, 180]), b: P(-62, [-10, -130], [45, 180]) }],
+    ['holzhacker', 'Kettlebell Holzhacker', 'core', 'Seitliche Stabilität', ['schräge Bauchmuskeln', 'Schulter', 'Gesäß'], 2, ['Kettlebell'],
+      'Diagonale Zugbewegung – wie Kieser F1.1 Rumpfdrehung.', 'Kettlebell mit beiden Händen diagonal über der Schulter. Kontrolliert diagonal Richtung gegenüberliegendes Knie führen, Rumpf dreht mit, Hüfte beugt leicht. Seite wechseln.',
+      { a: P(0, [30, 30], [180, 180]), b: P(20, [200, 200], [150, 200]), props: ['dumbbell'] }],
+    ['kb_windmill', 'Kettlebell Windmill', 'core', 'Seitliche Stabilität', ['schräge Bauchmuskeln', 'Schulter', 'hintere Oberschenkel'], 3, ['Kettlebell'],
+      'Seitbeuge mit Gewicht über dem Kopf.', 'Kettlebell mit gestrecktem Arm über dem Kopf, Blick zur Kettlebell. Hüfte zur Seite schieben, freie Hand am Bein entlang Richtung Fuß gleiten lassen, langsam aufrichten. Seite wechseln. Leichter: ohne Gewicht.',
+      { view: 'front', a: P(0, [185, 180], [190, 190], { b: [0, 0], r: [170, 170] }), b: P(-45, [180, 180], [195, 195], { b: [0, 0], r: [170, 170] }) }],
+
+    /* ---------- UNTERKÖRPER (Kieser B1, B7, A3) + Kettlebell ---------- */
+    ['kniestrecken_sitzend', 'Kniestrecken im Sitzen', 'lower', 'Knie dominant', ['Oberschenkel vorne'], 1, ['Stuhl'],
+      'Beinstrecken auf dem Stuhl – wie Kieser B1.', 'Aufrecht auf einem Stuhl, Hände halten die Sitzfläche. Ein Bein langsam ganz strecken, oben 2 s halten (Oberschenkel anspannen, Zehen anziehen), langsam senken. Mit Gewichtsmanschette schwerer. Seite wechseln.',
+      { a: P(0, [175, 175], [90, 180]), b: P(0, [175, 175], [88, 92], { r: [90, 180] }), anchor: 'free' }],
+    ['kb_sumo_squat', 'Kettlebell Sumo-Kniebeuge', 'lower', 'Knie dominant', ['Oberschenkel', 'Innenseite Oberschenkel', 'Gesäß'], 1, ['Kettlebell'],
+      'Breite Kniebeuge mit Kettlebell.', 'Breiter Stand, Fußspitzen nach außen, Kettlebell hängt mit gestreckten Armen zwischen den Beinen. Gerade nach unten beugen, Knie zeigen über die Zehen, wieder aufrichten.',
+      { view: 'front', a: P(0, [175, 185], [200, 180], { b: [185, 175], r: [160, 180] }), b: P(0, [178, 182], [225, 160], { b: [182, 178], r: [135, 200] }) }],
+    ['slider_leg_curl', 'Beinbeuger am Boden (Handtuch)', 'lower', 'Hüftdominant', ['hintere Oberschenkel', 'Gesäß'], 3, ['Handtuch/Gleiter'],
+      'Beinbeugen in der Brücke – wie Kieser B7.', 'Rückenlage, Fersen auf einem Handtuch (glatter Boden) oder Gleitern. Becken heben, Fersen zum Gesäß ziehen und langsam wieder wegschieben, das Becken bleibt oben. Leichter: nur langsam wegschieben.',
+      { a: P(-100, [90, 90], [100, 100]), b: P(-105, [90, 90], [85, 190]) }],
+    ['kb_deadlift', 'Kettlebell Kreuzheben', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel', 'Rückenstrecker'], 1, ['Kettlebell'],
+      'Hüftbeuge mit Kettlebell zwischen den Füßen.', 'Kettlebell zwischen den Füßen, Hüfte nach hinten, Rücken gerade, Griff mit beiden Händen. Durch die Fersen drücken und aufrichten, oben das Gesäß anspannen.',
+      { a: P(70, [180, 180], [150, 200]), b: STAND, props: ['dumbbell'] }],
+    ['seitliches_beinheben', 'Seitliches Beinheben', 'lower', 'Stabilität', ['seitliche Hüfte', 'Gesäß (Abduktoren)'], 1, [],
+      'Bein seitlich abspreizen – wie Kieser A3.', 'Aufrecht stehen, mit einer Hand an Wand oder Stuhl festhalten. Gestrecktes Bein langsam seitlich anheben, Zehen zeigen nach vorn, 2 s halten, langsam senken. Seite wechseln.',
+      { view: 'front', a: P(0, [185, 185], [185, 185], { b: [175, 175], r: [180, 180] }), b: P(-5, [190, 190], [230, 230], { b: [170, 170], r: [180, 180] }) }],
+
+    /* ---------- HIIT · Cardio ---------- */
+    ['hampelmann', 'Hampelmann', 'hiit', 'Cardio', ['Ganzkörper', 'Herz-Kreislauf', 'Waden'], 1, [],
+      'Klassischer Hampelmann.', 'In die Grätsche springen und die Arme über den Kopf führen, zurück in die Ausgangsposition. Gelenkschonend: abwechselnd ein Bein seitlich tippen statt springen.',
+      { view: 'front', anchor: 'free', a: P(0, [190, 185], [185, 185], { b: [170, 175], r: [175, 175] }), b: P(0, [315, 330], [205, 200], { b: [45, 30], r: [155, 160] }) }],
+    ['high_knees', 'Knieheben (High Knees)', 'hiit', 'Cardio', ['Hüftbeuger', 'Oberschenkel', 'Herz-Kreislauf'], 2, [],
+      'Laufen auf der Stelle mit hohen Knien.', 'Aufrecht bleiben, Knie abwechselnd bis Hüfthöhe ziehen, Arme schwingen gegengleich mit. Leise auf dem Vorfuß landen.',
+      { anchor: 'free', a: P(0, [150, 60], [95, 185], { b: [210, 150], r: [180, 180] }), b: P(0, [210, 150], [180, 180], { b: [150, 60], r: [95, 185] }) }],
+    ['anfersen', 'Anfersen', 'hiit', 'Cardio', ['hintere Oberschenkel', 'Herz-Kreislauf'], 1, [],
+      'Laufen auf der Stelle, Fersen zum Gesäß.', 'Leicht nach vorn geneigt, Fersen abwechselnd zum Gesäß kicken, Arme schwingen mit.',
+      { anchor: 'free', a: P(5, [160, 40], [190, 330], { b: [200, 140], r: [180, 180] }), b: P(5, [200, 140], [180, 180], { b: [160, 40], r: [190, 330] }) }],
+    ['skater', 'Skater Hops', 'hiit', 'Cardio', ['Gesäß', 'seitliche Hüfte', 'Herz-Kreislauf'], 2, [],
+      'Seitliche Sprünge wie ein Eisschnellläufer.', 'Von einem Bein seitlich auf das andere springen, das freie Bein kreuzt diagonal nach hinten, Oberkörper leicht vorgeneigt. Ohne Sprung: seitlich steigen.',
+      { view: 'front', anchor: 'free', a: P(10, [230, 220], [160, 170], { b: [215, 200], r: [175, 180] }), b: P(-10, [145, 160], [185, 180], { b: [130, 140], r: [200, 190] }) }],
+    ['schattenboxen', 'Schattenboxen', 'hiit', 'Cardio', ['Schulter', 'Rumpf', 'Herz-Kreislauf'], 1, [],
+      'Schnelle Schläge in die Luft.', 'Leichte Schrittstellung, Fäuste vor dem Gesicht. Abwechselnd gerade nach vorn schlagen, Rumpf mitdrehen, auf den Fußballen federn.',
+      { a: P(5, [90, 90], [170, 180], { b: [150, 20], r: [195, 180] }), b: P(5, [150, 20], [170, 180], { b: [90, 90], r: [195, 180] }) }],
+    ['seilspringen', 'Seilspringen (ohne Seil)', 'hiit', 'Cardio', ['Waden', 'Herz-Kreislauf', 'Koordination'], 1, [],
+      'Imaginäres Seilspringen.', 'Kleine, schnelle Sprünge auf dem Vorfuß, Knie leicht gebeugt, Handgelenke kreisen seitlich neben der Hüfte. Mit echtem Seil noch besser.',
+      { anchor: 'free', a: P(0, [165, 120], [175, 190]), b: P(0, [160, 110], [165, 200]) }],
+
+    /* ---------- HIIT · Ganzkörper ---------- */
+    ['burpee', 'Burpee', 'hiit', 'Ganzkörper', ['Ganzkörper', 'Brust', 'Oberschenkel'], 3, [],
+      'Aus dem Stand in den Stütz und zurück.', 'Hocken, Hände auf den Boden, Beine in den Stütz zurückspringen oder -steigen, zurück in die Hocke und aufrichten – optional mit Strecksprung. Leichter: ohne Sprung.',
+      { anchor: 'free', a: P(0, [170, 180]), b: PU_UP }],
+    ['mountain_climber', 'Mountain Climber', 'hiit', 'Ganzkörper', ['Rumpf', 'Hüftbeuger', 'Schulter'], 2, [],
+      'Knie im Stütz abwechselnd zur Brust.', 'Hoher Stütz, Hände unter den Schultern. Knie abwechselnd zügig Richtung Brust ziehen, Hüfte bleibt tief. Leichter: langsam steigen statt springen.',
+      { anchor: 'free', a: P(63, [180, 180], [110, 210], { r: [243, 243] }), b: P(63, [180, 180], [243, 243], { r: [110, 210] }) }],
+    ['squat_jump', 'Hocksprung', 'hiit', 'Ganzkörper', ['Oberschenkel', 'Gesäß', 'Waden'], 2, [],
+      'Kniebeuge mit explosivem Strecksprung.', 'Tief in die Hocke, Arme hinten. Explosiv nach oben springen, Arme hoch, weich in die Hocke landen. Leichter: schnelle Kniebeuge mit Zehenstand.',
+      { a: P(35, [200, 200], [100, 215]), b: P(0, [10, 10], [180, 180]) }],
+    ['jump_lunge', 'Ausfallschritt-Sprünge', 'hiit', 'Ganzkörper', ['Oberschenkel', 'Gesäß', 'Herz-Kreislauf'], 3, [],
+      'Ausfallschritt mit Beinwechsel im Sprung.', 'Aus dem Ausfallschritt explosiv abspringen, in der Luft die Beine wechseln, weich landen. Leichter: Ausfallschritte im Wechsel ohne Sprung.',
+      { anchor: 'free', a: P(0, [150, 60], [95, 190], { b: [210, 150], r: [200, 275] }), b: P(0, [210, 150], [200, 275], { b: [150, 60], r: [95, 190] }) }],
+    ['thruster', 'Thruster', 'hiit', 'Ganzkörper', ['Oberschenkel', 'Gesäß', 'Schulter', 'Trizeps'], 2, ['Kurzhanteln'],
+      'Kniebeuge und Drücken über Kopf in einer Bewegung.', 'Hanteln auf Schulterhöhe, tief in die Kniebeuge. Kraftvoll aufrichten und den Schwung nutzen, um die Hanteln über den Kopf zu drücken.',
+      { a: P(30, [160, 20], [100, 215]), b: P(0, [0, 0]), props: ['dumbbell'] }],
+    ['inchworm', 'Inchworm (Raupe)', 'hiit', 'Ganzkörper', ['hintere Oberschenkel', 'Schulter', 'Rumpf'], 2, [],
+      'Mit den Händen vom Stand in den Stütz laufen.', 'Aus dem Stand nach vorn beugen, Hände auf den Boden, mit kleinen Schritten in den hohen Stütz gehen, zurücklaufen und aufrichten.',
+      { a: P(110, [165, 195], [175, 185]), b: PU_UP }],
+    ['shoulder_taps', 'Plank Shoulder Taps', 'hiit', 'Ganzkörper', ['Rumpf', 'Schulter', 'Brust'], 2, [],
+      'Im hohen Stütz abwechselnd die Schulter antippen.', 'Hoher Stütz, Füße etwas breiter. Abwechselnd mit einer Hand die gegenüberliegende Schulter antippen, die Hüfte bleibt ruhig. Leichter: auf den Knien.',
+      { a: PU_UP, b: P(63, [170, 330], [243, 243], { b: [180, 180] }) }]
   ];
 
   App.Data.EXERCISES = EXERCISE_ROWS.map(function (r) {
@@ -454,14 +582,17 @@ App.Data.AREAS = [
 
   /* Material-Ergänzungen (zentral gepflegt, damit die Zeilen oben übersichtlich bleiben) */
   const MAT = ['liegestuetz', 'enge_liegestuetz', 'plank', 'dead_bug', 'hollow_hold', 'bicycle_crunch', 'reverse_crunch', 'superman', 'bird_dog',
-    'hip_extension', 'side_plank', 'russian_twist', 'side_plank_reach', 'hip_thrust', 'glute_bridge'];
+    'hip_extension', 'side_plank', 'russian_twist', 'side_plank_reach', 'hip_thrust', 'glute_bridge',
+    'knie_liegestuetz', 'negativ_liegestuetz', 'floor_press', 'pullover', 'y_raise', 'crunch', 'slider_leg_curl', 'mountain_climber', 'shoulder_taps', 'burpee', 'inchworm'];
   /* Empfohlene Hantelklasse: leicht (ca. 2–4 kg) · mittel (ca. 5–8 kg) · schwer (ca. 10 kg+) – individuell anpassen */
   const WEIGHT = { schulterdruecken: 'mittel', arnold_press: 'leicht', kurzhantelrudern: 'schwer', upright_row: 'leicht', bent_over_row: 'mittel',
     bizeps_curl: 'mittel', hammer_curl: 'mittel', trizeps_kickback: 'leicht', goblet_squat: 'schwer', romanian_deadlift: 'schwer',
-    kettlebell_swing: 'schwer', single_leg_deadlift: 'leicht' };
+    kettlebell_swing: 'schwer', single_leg_deadlift: 'leicht', floor_press: 'mittel', kb_press: 'leicht', seitheben: 'leicht', pullover: 'mittel',
+    kb_high_pull: 'mittel', trizeps_ueberkopf: 'mittel', holzhacker: 'mittel', kb_windmill: 'leicht', kb_deadlift: 'schwer', kb_sumo_squat: 'schwer', thruster: 'leicht' };
   /* Einseitige Übungen (Seitenwechsel in der Mitte der Zeit -> Doppelping) */
   const ONE_SIDED = ['kurzhantelrudern', 'trizeps_kickback', 'step_up', 'bulgarian_split_squat', 'single_leg_deadlift', 'ausfallschritt',
-    'seitlicher_ausfallschritt', 'einbeinstand', 'curtsy_lunge', 'side_plank', 'side_plank_reach'];
+    'seitlicher_ausfallschritt', 'einbeinstand', 'curtsy_lunge', 'side_plank', 'side_plank_reach',
+    'kb_press', 'holzhacker', 'kb_windmill', 'kniestrecken_sitzend', 'seitliches_beinheben'];
   App.Data.EXERCISES.forEach(function (e) {
     e.oneSided = ONE_SIDED.indexOf(e.id) >= 0;
     if (MAT.indexOf(e.id) >= 0) e.equipment = e.equipment.concat('Matte');
@@ -550,7 +681,7 @@ App.Data.AREAS = [
   App.Data.STRETCH_PROGRAMS = [
     { id: 'stretch_upper', label: 'Oberkörper Dehnung', forAreas: ['upper'], secondsEach: 60,
       exerciseIds: ['st_brust', 'st_schulter', 'st_latissimus', 'st_trizeps', 'st_bizeps'] },
-    { id: 'stretch_lower', label: 'Unterkörper Dehnung', forAreas: ['lower'], secondsEach: 60,
+    { id: 'stretch_lower', label: 'Unterkörper Dehnung', forAreas: ['lower', 'hiit'], secondsEach: 60,
       exerciseIds: ['st_waden', 'st_quad', 'st_hamstring', 'st_hueftbeuger', 'st_gesaess'] },
     { id: 'stretch_core', label: 'Rumpf Dehnung', forAreas: ['core'], secondsEach: 60,
       exerciseIds: ['st_catcow', 'st_child', 'st_cobra', 'st_rotation', 'st_seitbeuge'] },
@@ -591,6 +722,9 @@ App.Data.MODES = (function () {
   /** Klassisch/Zirkel: kontinuierliche Wiederholungen, eine Wiederholung dauert 5 s (langsam, kontrolliert). */
   function loopMotion(t) { const k = (t % 5) / 5; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Los!' }; }
 
+  /** HIIT: zügiges Tempo, eine Wiederholung dauert 2 s. */
+  function fastMotion(t) { const k = (t % 2) / 2; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Gas geben!' }; }
+
   /** Dehnung: langsam in die Dehnung gleiten (9 s), dann halten. */
   function stretchMotion(t) { return { p: ease(clamp01(t / 9)), cue: t < 9 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
 
@@ -626,21 +760,24 @@ App.Data.MODES = (function () {
    * Zirkel: alle Übungen nacheinander je `secs` Sekunden, kurzer Wechsel dazwischen,
    * nach jeder Runde eine längere Pause. Eine Übung gilt nach ihrer Arbeitsphase in der letzten Runde als erledigt.
    */
-  function circuit(rounds, secs) {
+  function circuit(rounds, secs, o) {
+    o = o || {};
+    const tr = o.transition != null ? o.transition : C.circuit.transition, rr = o.roundRest != null ? o.roundRest : C.circuit.roundRest;
+    const motion = o.motion || loopMotion, trLabel = o.transitionLabel || 'Wechsel';
     return {
-      id: 'circuit', short: 'Zirkel', label: 'Zirkel ' + rounds + ' Runden × ' + secs + ' s', kind: 'strength',
+      id: o.id || 'circuit', short: o.short || 'Zirkel', label: o.label || 'Zirkel ' + rounds + ' Runden × ' + secs + ' s', kind: 'strength',
       buildAll: function (entries) {
         const n = entries.length, out = [];
         const tag = (b, i, end, next) => { b.exerciseIndex = i; b.exerciseCount = n; b.exerciseEnd = !!end; b.nextEx = next; return b; };
-        out.push(tag(prepare(entries[0].ex, C.prepareSeconds, loopMotion), 0, false, n > 1 ? entries[1].ex : null));
+        out.push(tag(prepare(entries[0].ex, C.prepareSeconds, motion), 0, false, n > 1 ? entries[1].ex : null));
         for (let r = 1; r <= rounds; r++) {
           for (let i = 0; i < n; i++) {
             const lastOfAll = r === rounds && i === n - 1;
             const next = i + 1 < n ? entries[i + 1] : (r < rounds ? entries[0] : null);
-            out.push(tag(work(entries[i].ex, 'Runde ' + r + ' / ' + rounds, dur(secs, entries[i].offset), loopMotion), i, r === rounds, next && next.ex));
+            out.push(tag(work(entries[i].ex, 'Runde ' + r + ' / ' + rounds, dur(secs, entries[i].offset), motion), i, r === rounds, next && next.ex));
             if (lastOfAll) continue;
-            if (i + 1 < n) out.push(tag(rest(entries[i + 1].ex, 'Wechsel', C.circuit.transition, 'Weiter: ' + entries[i + 1].ex.name), i + 1, false, entries[i + 1].ex));
-            else out.push(tag(rest(entries[0].ex, 'Pause', C.circuit.roundRest, 'Pause vor Runde ' + (r + 1)), 0, false, entries[0].ex));
+            if (i + 1 < n) out.push(tag(rest(entries[i + 1].ex, trLabel, tr, 'Weiter: ' + entries[i + 1].ex.name), i + 1, false, entries[i + 1].ex));
+            else out.push(tag(rest(entries[0].ex, 'Pause', rr, 'Pause vor Runde ' + (r + 1)), 0, false, entries[0].ex));
           }
         }
         return out;
@@ -648,7 +785,13 @@ App.Data.MODES = (function () {
     };
   }
 
-  App.Data.modeFactories = { kieser: kieser, classic: classic, circuit: circuit };
+  /** HIIT: wie Zirkel, aber Belastung/Pause im Intervall, zügiges Tempo und längere Rundenpause. */
+  function hiit(rounds, work, pause) {
+    return circuit(rounds, work, { id: 'hiit', short: 'HIIT', label: 'HIIT ' + rounds + ' × (' + work + ' s / ' + pause + ' s Pause)',
+      transition: pause, roundRest: C.hiit.roundRest, motion: fastMotion, transitionLabel: 'Pause' });
+  }
+
+  App.Data.modeFactories = { kieser: kieser, classic: classic, circuit: circuit, hiit: hiit };
   return [
     kieser(C.kieser.def),
     classic(C.classic.sets.def, C.classic.seconds.def),
@@ -662,12 +805,14 @@ App.Data.MODES = (function () {
   ];
 })();
 
-/** Modus per ID; `st` = Einstellungen (kieserSeconds, classicSets, classicSeconds, circuitRounds, circuitSeconds). */
+/** Modus per ID; `st` = Einstellungen (kieserSeconds, classicSets, classicSeconds, circuitRounds, circuitSeconds, hiitRounds, hiitWork, hiitRest). */
 App.Data.modeById = function (id, st) {
   const C = App.Config, f = App.Data.modeFactories; st = st || {};
   if (id === 'kieser') return f.kieser(st.kieserSeconds || C.kieser.def);
   if (id === 'classic') return f.classic(st.classicSets || C.classic.sets.def, st.classicSeconds || C.classic.seconds.def);
   if (id === 'circuit') return f.circuit(st.circuitRounds || C.circuit.rounds.def, st.circuitSeconds || C.circuit.seconds.def);
+  if (id === 'hiit') return f.hiit(st.hiitRounds || C.hiit.rounds.def, st.hiitWork || C.hiit.work.def, st.hiitRest || C.hiit.rest.def);
+  if (id === 'reference') return f.kieser(C.reference.seconds);      // Referenztraining: immer gleicher Stil
   return App.Data.MODES.filter(m => m.id === id)[0];
 };
 
@@ -675,7 +820,8 @@ App.Data.modeById = function (id, st) {
 /* ===== 20-logic-programs.js ===== */
 /* ==========================================================================
    20-logic-programs.js  –  TRAININGSLOGIK (keine UI, kein DOM)
-   - Standardprogramme und "intelligenter" Zufallsmodus (Regeln aus App.Data.AREAS)
+   - Referenztraining (feste Liste) und "intelligenter" Zufallsmodus (Regeln aus App.Data.AREAS)
+   - HIIT-Übungen laufen immer zuerst im HIIT-Intervall, danach die Kraftübungen im gewählten Stil
    - Dehnprogramm-Auswahl
    - Umwandlung eines Programms in zeitliche Blöcke für den Timer
    ========================================================================== */
@@ -719,18 +865,20 @@ App.Programs = (function () {
 
   /**
    * Erstellt ein Kraftprogramm.
-   * opts: { areaIds: ['upper',..], programType: 'standard'|'random', history: [...], ratings: {id: 0-5}, rnd: fn }
+   * opts: { areaIds: ['hiit','upper',..], programType: 'random'|'reference', history: [...], ratings: {id: 0-5}, rnd: fn }
    * Rückgabe (Program): { id, type, areaIds, exerciseIds }
+   * Referenztraining ignoriert die Bereichsauswahl (immer alle 3 Kraftbereiche, immer dieselben Übungen).
    */
   function buildProgram(opts) {
+    if (opts.programType === 'reference') return { id: 'ref-' + Date.now(), type: 'reference', areaIds: ['upper', 'core', 'lower'], exerciseIds: D.REFERENCE.slice() };
     const rnd = opts.rnd || Math.random;
     const order = D.AREAS.map(a => a.id).filter(id => opts.areaIds.indexOf(id) >= 0);   // feste Reihenfolge
     let ids = [];
     order.forEach(function (id) {
       const a = areaById(id);
-      ids = ids.concat(opts.programType === 'random' ? randomForArea(a, opts.history, rnd, opts.ratings) : a.standard);
+      ids = ids.concat(randomForArea(a, opts.history, rnd, opts.ratings));
     });
-    return { id: 'prog-' + Date.now(), type: opts.programType, areaIds: order, exerciseIds: ids };
+    return { id: 'prog-' + Date.now(), type: 'random', areaIds: order, exerciseIds: ids };
   }
 
   /** Passendes Dehnprogramm zu trainierten Bereichen (mehrere Bereiche -> aneinandergehängt). */
@@ -752,9 +900,21 @@ App.Programs = (function () {
    * Programm + Modus -> flache Blockliste (TrainingSession-Ablauf).
    * Jeder Block erhält exerciseIndex/exerciseCount für die Anzeige.
    */
-  function buildBlocks(program, mode, offsets) {
-    const blocks = [], off = id => (offsets && offsets[id]) || 0;
+  function buildBlocks(program, mode, offsets, hiitMode) {
     const items = program.items || program.exerciseIds.map(id => ({ id: id }));
+    const isH = it => D.byId[it.id].category === 'hiit';
+    const h = mode.kind === 'strength' && mode.id !== 'hiit' ? items.filter(isH) : [];
+    if (!h.length) return blocksFor(items, mode, offsets);
+    // HIIT-Teil (steht im Programm immer vorne) im Intervall, danach Kraft im gewählten Stil; Indizes über das ganze Programm
+    const rest = items.filter(it => !isH(it)), n = items.length;
+    const hb = blocksFor(h, hiitMode || D.modeById('hiit'), offsets), sb = rest.length ? blocksFor(rest, mode, offsets) : [];
+    hb.forEach(b => { b.exerciseCount = n; if (b.nextEx === null && rest.length) b.nextEx = D.byId[rest[0].id]; });
+    sb.forEach(b => { b.exerciseIndex += h.length; b.exerciseCount = n; });
+    return hb.concat(sb);
+  }
+
+  function blocksFor(items, mode, offsets) {
+    const blocks = [], off = id => (offsets && offsets[id]) || 0;
     if (mode.buildAll) return mode.buildAll(items.map(it => ({ ex: D.byId[it.id], offset: off(it.id) })));   // z. B. Zirkel
     items.forEach(function (it, i) {
       const bl = mode.buildBlocks(D.byId[it.id], { secondsEach: it.secondsEach, offset: off(it.id) });
@@ -767,7 +927,7 @@ App.Programs = (function () {
   const totalSeconds = blocks => blocks.reduce((s, b) => s + b.duration, 0);
 
   /** Kanonische Materialnamen (Schreibvarianten in den Daten werden zusammengeführt). */
-  const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Gummiband / Kabel'],
+  const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe|stuhl)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Gummiband / Kabel'],
     [/^matte/i, 'Matte'], [/^trx/i, 'TRX / Schlingentrainer'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand']];
   const canon = n => { const c = CANON.filter(x => x[0].test(n))[0]; return c ? c[1] : n.replace(/\s*\(optional\)/, ''); };
 
@@ -1061,7 +1221,8 @@ App.Profile = (function () {
 App.Store = (function () {
   const KEY = App.Profile.storageKey(), DEV = App.Config.storageKey;   // KEY: Daten je Profil, DEV: Geräteeinstellungen (Ton)
   const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser', kieserSeconds: App.Config.kieser.def, classicSets: App.Config.classic.sets.def, classicSeconds: App.Config.classic.seconds.def,
-      circuitRounds: App.Config.circuit.rounds.def, circuitSeconds: App.Config.circuit.seconds.def, programType: 'standard', sound: false },
+      circuitRounds: App.Config.circuit.rounds.def, circuitSeconds: App.Config.circuit.seconds.def,
+      hiitRounds: App.Config.hiit.rounds.def, hiitWork: App.Config.hiit.work.def, hiitRest: App.Config.hiit.rest.def, programType: 'random', sound: false },
     sessions: [], favorites: [], weights: {}, ratings: {}, levels: {} });   // levels: { id: { offset: s, last: 'leicht'|'richtig'|'schwer', t: ms } }
   let state = load();
 
@@ -1086,7 +1247,8 @@ App.Store = (function () {
   /** Vereinigt zwei Zustände (siehe Merge-Regel oben). */
   function merge(a, b) {
     const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, byId = {};
-    (a.sessions || []).concat(b.sessions || []).forEach(s => { byId[s.id] = s; });
+    // gleiche Session auf beiden Seiten: die später geänderte gewinnt (t = Zeitpunkt der letzten Änderung, z. B. Empfinden im Referenztraining)
+    (a.sessions || []).concat(b.sessions || []).forEach(s => { const o = byId[s.id]; if (!o || (s.t || 0) >= (o.t || 0)) byId[s.id] = s; });
     const sessions = Object.keys(byId).map(k => byId[k]).sort((x, y) => x.date < y.date ? -1 : 1);
     const older = newer === a ? b : a;
     return Object.assign(defaults(), newer, { ratings: Object.assign({}, older.ratings, newer.ratings), levels: mergeLevels(a.levels, b.levels), sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
@@ -1097,6 +1259,8 @@ App.Store = (function () {
     settings: () => state.settings,
     setSettings: function (patch) { Object.assign(state.settings, patch); save(); },
     addSession: function (s) { state.sessions.push(s); save(); },
+    /** Nachträgliche Änderung einer gespeicherten Session (z. B. Empfinden je Übung); setzt den Änderungszeitpunkt t. */
+    updateSession: function (id, fn) { const s = state.sessions.filter(x => x.id === id)[0]; if (!s) return; fn(s); s.t = Date.now(); save(); },
     /* Ton ist geräteabhängig (nicht synchronisiert): iPhone und iPad dürfen unterschiedlich eingestellt sein */
     sound: () => { try { return localStorage.getItem(DEV + '-sound') === '1'; } catch (e) { return false; } },
     setSound: v => { try { localStorage.setItem(DEV + '-sound', v ? '1' : '0'); } catch (e) { /* ignorieren */ } },
@@ -1180,7 +1344,7 @@ App.UI = (function () {
   const $ = id => document.getElementById(id);
   const D = App.Data, S = App.Store, CIRC = 2 * Math.PI * 150;
   const STRENGTH_MODES = D.MODES.filter(m => m.kind === 'strength');
-  const PTYPES = [{ id: 'standard', label: 'Standard' }, { id: 'random', label: 'Zufällig' }];
+  const PTYPES = [{ id: 'random', label: '🎲 Zufällig' }, { id: 'reference', label: '📋 Referenztraining' }];
   const CFG = App.Config;
   /* Regler je Stil: [Einstellungs-Schlüssel, Beschriftung, Einheit, {min,max,step,def}] */
   const STYLE_OPTS = {
@@ -1188,6 +1352,7 @@ App.UI = (function () {
     classic: [['classicSets', 'Anzahl Sätze', 'Sätze', CFG.classic.sets], ['classicSeconds', 'Dauer pro Satz', 'Sekunden', CFG.classic.seconds]],
     circuit: [['circuitRounds', 'Anzahl Runden', 'Runden', CFG.circuit.rounds], ['circuitSeconds', 'Dauer pro Übung', 'Sekunden', CFG.circuit.seconds]]
   };
+  const HIIT_OPTS = [['hiitRounds', 'HIIT-Runden', 'Runden', CFG.hiit.rounds], ['hiitWork', 'Belastung', 'Sekunden', CFG.hiit.work], ['hiitRest', 'Pause', 'Sekunden', CFG.hiit.rest]];
   const PINGS = [60, 30, 10, 3, 2, 1];            // verbleibende Sekunden mit einfachem Ping
   let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
@@ -1201,7 +1366,20 @@ App.UI = (function () {
   }
 
   /* ---------------- Startbildschirm ---------------- */
-  function currentMode() { return D.modeById(S.settings().style, S.settings()); }
+  const isRef = () => S.settings().programType === 'reference';
+  function currentMode() { return isRef() ? D.modeById('reference') : D.modeById(S.settings().style, S.settings()); }
+  const hiitMode = () => D.modeById('hiit', S.settings());
+  const blocksOf = (program, mode) => App.Programs.buildBlocks(program, mode, S.offsets(), hiitMode());
+  const fmtDate = d => new Date(d).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  /* ---------------- Referenztraining ---------------- */
+  const refSessions = () => S.history().filter(s => s.programType === 'reference' && s.ref);
+  function refDue() {
+    const r = refSessions(), last = r[r.length - 1];
+    const next = last ? new Date(last.date).getTime() + CFG.reference.intervalDays * 864e5 : 0;
+    return { last: last, next: next, due: !last || Date.now() >= next };
+  }
+  function startReference() { openPreview(App.Programs.buildProgram({ programType: 'reference' }), D.modeById('reference'), 'strength'); }
 
   function renderHome() {
     let st = S.settings();
@@ -1209,6 +1387,16 @@ App.UI = (function () {
       S.setSettings({ style: 'kieser', kieserSeconds: parseInt(st.style.slice(6), 10) || CFG.kieser.def }); st = S.settings();
     }
     if (st.style === 'classic3') { S.setSettings({ style: 'classic' }); st = S.settings(); }
+    if (st.programType !== 'random' && st.programType !== 'reference') { S.setSettings({ programType: 'random' }); st = S.settings(); }   // früher 'standard'
+    const ref = st.programType === 'reference', hasH = st.areas.indexOf('hiit') >= 0, hasK = st.areas.some(a => a !== 'hiit');
+    const rd = refDue();
+    $('refDue').hidden = !rd.due || ref;
+    $('refDueText').textContent = rd.last ? 'Letztes Referenztraining am ' + fmtDate(rd.last.date) + ' – Zeit für den monatlichen Leistungscheck.' : 'Noch kein Referenztraining – starte deinen ersten Leistungscheck.';
+    $('secAreas').hidden = ref; $('hiitOpts').hidden = ref || !hasH; $('secStyle').hidden = $('styleOpts').hidden = ref || (hasH && !hasK);
+    $('refInfo').hidden = !ref;
+    $('refInfo').textContent = 'Immer dieselben ' + D.REFERENCE.length + ' Übungen aus Oberkörper, Rumpf und Unterkörper · Kieser ' + CFG.reference.seconds +
+      ' s je Übung (plus deine Anpassungen) · 1× pro Monat. ' + (rd.last ? 'Zuletzt: ' + fmtDate(rd.last.date) + (rd.due ? ' – fällig.' : ' · nächstes ab ' + fmtDate(rd.next) + '.') : 'Noch keines gemacht.');
+    renderSliders($('hiitOpts'), HIIT_OPTS, st);
     const areas = $('areas'); areas.textContent = '';
     D.AREAS.forEach(a => {
       const on = st.areas.indexOf(a.id) >= 0;
@@ -1233,9 +1421,10 @@ App.UI = (function () {
   }
 
   /** Regler für den gewählten Stil (werden nur beim Stilwechsel neu aufgebaut, damit das Ziehen nicht abbricht). */
-  function renderStyleOpts(st) {
-    const box = $('styleOpts'); box.textContent = '';
-    (STYLE_OPTS[st.style] || []).forEach(function (o) {
+  function renderStyleOpts(st) { renderSliders($('styleOpts'), STYLE_OPTS[st.style] || [], st); }
+  function renderSliders(box, list, st) {
+    box.textContent = '';
+    list.forEach(function (o) {
       const key = o[0], cfg = o[3], lab = document.createElement('label'), val = document.createElement('b'), inp = document.createElement('input');
       lab.className = 'slider'; inp.type = 'range'; inp.min = cfg.min; inp.max = cfg.max; inp.step = cfg.step; inp.value = st[key] || cfg.def;
       inp.setAttribute('aria-label', o[1]); val.textContent = inp.value + ' ' + o[2];
@@ -1244,10 +1433,12 @@ App.UI = (function () {
     });
   }
   function updateSummary() {
-    const st = S.settings(), n = st.areas.length * 5;
-    const preview = n ? App.Programs.totalSeconds(App.Programs.buildBlocks({ exerciseIds: new Array(n).fill('plank') }, currentMode())) : 0;
+    const st = S.settings();
+    // Platzhalterprogramm mit gleicher Struktur (5 Übungen je Bereich bzw. Referenzliste) für die Zeitschätzung
+    const ids = isRef() ? D.REFERENCE.slice() : [].concat.apply([], D.AREAS.filter(a => st.areas.indexOf(a.id) >= 0).map(a => new Array(5).fill(a.hiit ? 'hampelmann' : 'plank')));
+    const n = ids.length, preview = n ? App.Programs.totalSeconds(blocksOf({ exerciseIds: ids }, currentMode())) : 0;
     $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
-    $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5;
+    $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5; $('start').textContent = isRef() ? 'Referenztraining starten' : 'Training starten';
   }
 
   /* ---------------- Training ---------------- */
@@ -1261,11 +1452,13 @@ App.UI = (function () {
   function esc(t) { return String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]); }
   function openPreview(program, mode, kind) {
     pending = { program: program, mode: mode, kind: kind };
-    const blocks = App.Programs.buildBlocks(program, mode, S.offsets()), perEx = {};
+    const blocks = blocksOf(program, mode), perEx = {};
     blocks.forEach(b => { if (b.type === 'work') perEx[b.exerciseIndex] = (perEx[b.exerciseIndex] || 0) + b.duration; });
-    $('pvTitle').textContent = kind === 'stretch' ? program.label : 'Dein Training';
-    $('pvSummary').textContent = program.exerciseIds.length + ' Übungen · ca. ' + Math.round(App.Programs.totalSeconds(blocks) / 60) + ' Minuten · ' + mode.label +
-      (program.type === 'random' ? ' · Zufallsprogramm' : '');
+    $('pvTitle').textContent = kind === 'stretch' ? program.label : program.type === 'reference' ? '📋 Referenztraining' : 'Dein Training';
+    const hasH = program.exerciseIds.some(id => D.byId[id].category === 'hiit'), hasK = program.exerciseIds.some(id => D.byId[id].category !== 'hiit');
+    const label = kind !== 'strength' ? mode.label : [hasH ? hiitMode().label : '', hasK ? mode.label : ''].filter(Boolean).join(' + ');
+    $('pvSummary').textContent = program.exerciseIds.length + ' Übungen · ca. ' + Math.round(App.Programs.totalSeconds(blocks) / 60) + ' Minuten · ' + label +
+      (program.type === 'random' ? ' · Zufallsprogramm' : program.type === 'reference' ? ' · Leistungscheck, am Ende Vergleich mit dem letzten Mal' : '');
     // Material
     const gear = App.Programs.equipmentSummary(program.exerciseIds), ul = $('pvGear'); ul.textContent = '';
     if (!gear.length) ul.innerHTML = '<li>Kein Material nötig 🎉</li>';
@@ -1295,9 +1488,11 @@ App.UI = (function () {
   function startStretch(program) { App.Audio.unlock(); run(program, D.modeById('stretch'), { kind: 'stretch' }); }   // direkt, ohne Übersicht (Folgefrage)
 
   function run(program, mode, meta) {
-    const blocks = App.Programs.buildBlocks(program, mode, S.offsets());
-    const totalAll = App.Programs.totalSeconds(blocks);
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, ui: { lastCount: null, lastCue: null, lastRem: null, lastEl: 0 } };
+    const blocks = blocksOf(program, mode);
+    const totalAll = App.Programs.totalSeconds(blocks), workSecs = {};
+    blocks.forEach(b => { if (b.type === 'work') { const id = program.exerciseIds[b.exerciseIndex]; workSecs[id] = (workSecs[id] || 0) + b.duration; } });
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, workSecs: workSecs, savedId: null,
+      ui: { lastCount: null, lastCue: null, lastRem: null, lastEl: 0 } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
       onBlockStart: function (b) {
@@ -1349,14 +1544,21 @@ App.UI = (function () {
     releaseWake();
     const secs = Math.round((Date.now() - session.startedAt.getTime()) / 1000), p = session.program;
     if (session.doneCount > 0) {
-      S.addSession({ id: 's' + session.startedAt.getTime() + Math.random().toString(36).slice(2, 6), date: session.startedAt.toISOString(),
+      const rec = { id: 's' + session.startedAt.getTime() + Math.random().toString(36).slice(2, 6), date: session.startedAt.toISOString(),
         kind: session.kind, areaIds: p.areaIds, modeId: session.mode.id, programType: p.type, exerciseIds: p.exerciseIds,
-        completed: completed, durationSec: secs });
+        completed: completed, durationSec: secs, t: Date.now() };
+      // Referenztraining: Belastungszeit je vollständig absolvierter Übung + Empfinden (wird bei der Bewertung ergänzt)
+      if (p.type === 'reference') {
+        rec.ref = { mode: session.mode.label, secs: {}, felt: {} };
+        session.completed.forEach(id => { rec.ref.secs[id] = session.workSecs[id]; });
+      }
+      S.addSession(rec); session.savedId = rec.id;
       if (App.Sync.hasToken()) App.Sync.sync();
     }
     if (!completed) { show('home'); renderHome(); return; }
     $('dText').textContent = fmt(secs) + ' Minuten · ' + p.exerciseIds.length + ' Übungen';
-    renderRating(session.completed);
+    $('dTitle').textContent = p.type === 'reference' ? 'Referenztraining geschafft! 📋' : 'Geschafft! 🎉';
+    renderRating(session.completed); renderCompare();
     $('dAsk').hidden = session.kind !== 'strength'; show('done');
   }
 
@@ -1412,6 +1614,7 @@ App.UI = (function () {
             if (!(id in session.base)) session.base[id] = (S.level(id) || {}).offset || 0;      // Stand vor diesem Training
             const off = Math.max(-CFG.levelMax, Math.min(CFG.levelMax, session.base[id] + l[2] * CFG.levelStep));
             session.chosen[id] = l[0]; S.setLevel(id, off, l[0]);
+            if (session.program.type === 'reference' && session.savedId) { S.updateSession(session.savedId, s => { s.ref.felt[id] = l[0]; }); renderCompare(); }
             Array.prototype.forEach.call(row.children, (x, k) => x.setAttribute('aria-pressed', LEVELS[k][0] === l[0]));
             hint.textContent = off === session.base[id] ? 'Dauer bleibt gleich.' : 'Nächstes Mal ' + (l[2] > 0 ? 'um ' : 'um ') + CFG.levelStep + ' s ' + (l[2] > 0 ? 'länger' : 'kürzer') + ' (gesamt ' + (off > 0 ? '+' : off < 0 ? '−' : '') + Math.abs(off) + ' s).';
           });
@@ -1422,6 +1625,40 @@ App.UI = (function () {
       }
       ul.appendChild(li);
     });
+  }
+
+  /**
+   * Vergleich Referenztraining: aktuelles vs. vorheriges. Belastungszeit kann sich durch die Schwierigkeitsanpassung geändert haben,
+   * das Empfinden ist jedes Mal anders. Leistungswert je Übung = Sekunden + Empfinden (zu leicht +5 s, zu schwer −5 s).
+   */
+  const FELT = { leicht: ['Zu leicht', 1], richtig: ['Richtig', 0], schwer: ['Zu schwer', -1] };
+  function renderCompare() {
+    const box = $('dCmp'), body = $('dCmpBody');
+    if (!session || session.program.type !== 'reference' || !session.savedId) { box.hidden = true; return; }
+    const refs = refSessions(), cur = refs.filter(s => s.id === session.savedId)[0];
+    if (!cur) { box.hidden = true; return; }
+    const prev = refs.filter(s => s.id !== cur.id && s.date < cur.date).pop();
+    box.hidden = false;
+    if (!prev) { body.innerHTML = '<p class="muted">Dein erstes Referenztraining ist gespeichert. Beim nächsten (ab ' + fmtDate(new Date(cur.date).getTime() + CFG.reference.intervalDays * 864e5) + ') siehst du hier den Vergleich.</p>'; return; }
+    const score = (s, id) => s.ref.secs[id] == null ? null : s.ref.secs[id] + (s.ref.felt[id] ? FELT[s.ref.felt[id]][1] * CFG.levelStep : 0);
+    const feltTxt = (s, id) => s.ref.secs[id] == null ? '–' : s.ref.felt[id] ? FELT[s.ref.felt[id]][0] : 'offen';
+    const secTxt = (s, id) => s.ref.secs[id] == null ? '–' : s.ref.secs[id] + ' s';
+    let up = 0, down = 0, same = 0, rows = '';
+    cur.exerciseIds.forEach(function (id) {
+      const a = score(prev, id), b = score(cur, id);
+      let tr = '<span class="muted">–</span>';
+      if (a != null && b != null) {
+        if (b > a) { tr = '<span class="up">▲ besser</span>'; up++; } else if (b < a) { tr = '<span class="down">▼ schwächer</span>'; down++; } else { tr = '= gleich'; same++; }
+      }
+      rows += '<tr><td>' + esc(D.byId[id].name) + '</td><td>' + secTxt(prev, id) + ' → <b>' + secTxt(cur, id) + '</b></td><td>' + feltTxt(prev, id) + ' → <b>' + feltTxt(cur, id) + '</b></td><td>' + tr + '</td></tr>';
+    });
+    const tot = s => Object.keys(s.ref.secs).reduce((x, k) => x + s.ref.secs[k], 0), cnt = (s, f) => Object.keys(s.ref.felt).filter(k => s.ref.felt[k] === f).length;
+    const feltSum = s => cnt(s, 'leicht') + '× zu leicht · ' + cnt(s, 'richtig') + '× richtig · ' + cnt(s, 'schwer') + '× zu schwer';
+    body.innerHTML = '<p class="muted">' + fmtDate(prev.date) + ' → <b>' + fmtDate(cur.date) + '</b></p>' +
+      '<p><b>' + up + '</b> Übungen besser · <b>' + same + '</b> gleich · <b>' + down + '</b> schwächer</p>' +
+      '<p class="muted small">Belastungszeit gesamt: ' + Math.round(tot(prev) / 60 * 10) / 10 + ' → ' + Math.round(tot(cur) / 60 * 10) / 10 + ' min<br>Empfinden damals: ' + feltSum(prev) + '<br>Empfinden heute: ' + feltSum(cur) + '</p>' +
+      '<div class="tscroll"><table class="cmp"><thead><tr><th>Übung</th><th>Dauer</th><th>Empfinden</th><th>Trend</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<p class="muted small">Trend = Dauer plus Empfinden (zu leicht zählt +' + CFG.levelStep + ' s, zu schwer −' + CFG.levelStep + ' s). Offene Bewertungen oben ergänzen – der Vergleich aktualisiert sich sofort.</p>';
   }
 
   /* ---------------- Übungs-Overlay (Katalog) ---------------- */
@@ -1458,6 +1695,7 @@ App.UI = (function () {
     $('vol').oninput = e => { S.setVolume(e.target.value); App.Audio.setVolume(e.target.value); };
     $('vol').onchange = () => { App.Audio.unlock(); App.Audio.play('double'); };   // Hörprobe
     $('start').onclick = startStrength;
+    $('refStart').onclick = startReference;
     $('ovClose').onclick = closeOverlay;
     $('overlay').onclick = e => { if (e.target === $('overlay')) closeOverlay(); };
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('overlay').hidden) closeOverlay(); });
@@ -1513,12 +1751,15 @@ App.SelfTest = (function () {
   function run() {
     const out = [], fails = [];
     const check = (name, ok, info) => { out.push((ok ? 'PASS ' : 'FAIL ') + name + (info ? ' – ' + info : '')); if (!ok) fails.push(name); };
-    const D = App.Data;
+    const D = App.Data, C2 = App.Config;
 
     // 1. Datenmodell: Pflichtfelder
     const req = ['id', 'name', 'category', 'subCategory', 'targetMuscles', 'difficulty', 'equipment', 'description', 'instructions', 'svgAnimation'];
     const all = D.EXERCISES.concat(D.STRETCHES);
-    check('Anzahl Kraftübungen = 43', D.EXERCISES.length === 43, D.EXERCISES.length);
+    const nH = D.EXERCISES.filter(e => e.category === 'hiit').length;
+    check('Anzahl Übungen = 74 (davon 13 HIIT)', D.EXERCISES.length === 74 && nH === 13, D.EXERCISES.length + '/' + nH);
+    check('Mindestens 7 Kettlebell-Übungen', D.EXERCISES.filter(e => e.equipment.some(q => /kettlebell/i.test(q))).length >= 7);
+    check('Liegestütz-Aufbau vorhanden (Wand, Knie, Negativ, Schräg)', ['wand_liegestuetz', 'knie_liegestuetz', 'negativ_liegestuetz', 'schraeg_liegestuetz'].every(id => D.byId[id] && D.byId[id].subCategory === 'Drücken'));
     check('Anzahl Dehnübungen = 20', D.STRETCHES.length === 20, D.STRETCHES.length);
     check('Pflichtfelder vollständig', all.every(e => req.every(k => e[k] != null && e[k] !== '')));
     check('IDs eindeutig', new Set(all.map(e => e.id)).size === all.length);
@@ -1528,7 +1769,14 @@ App.SelfTest = (function () {
       });
     }));
     check('Dehnprogramme referenzieren existierende Übungen', D.STRETCH_PROGRAMS.every(p => p.exerciseIds.length === 5 && p.exerciseIds.every(id => D.byId[id])));
-    check('Standardprogramme gültig (5 Übungen je Bereich)', D.AREAS.every(a => a.standard.length === 5 && a.standard.every(id => D.byId[id].category === a.id)));
+    const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);
+    check('Referenztraining: 12 Übungen, je 4 aus Oberkörper/Rumpf/Unterkörper, alle Unterkategorien',
+      R.length === 12 && R.every(Boolean) && ['upper', 'core', 'lower'].every(c => R.filter(e => e.category === c).length === 4) &&
+      ['Drücken', 'Ziehen', 'Arme', 'Bauch', 'Rücken', 'Seitliche Stabilität', 'Knie dominant', 'Hüftdominant', 'Stabilität'].every(s => subs.indexOf(s) >= 0));
+    const rp = App.Programs.buildProgram({ areaIds: ['hiit'], programType: 'reference' });
+    check('Referenztraining ignoriert Bereichsauswahl, fester Stil Kieser 90 s', rp.type === 'reference' && rp.exerciseIds.join() === D.REFERENCE.join() &&
+      App.Programs.totalSeconds(D.modeById('reference').buildBlocks(D.byId.plank)) === 100);
+    check('HIIT steht links/zuerst', D.AREAS[0].id === 'hiit');
 
     // 2. Zufallsregeln (2/2/1) – 300 Ziehungen
     let rulesOk = true;
@@ -1540,11 +1788,12 @@ App.SelfTest = (function () {
       });
     }
     check('Zufallsmodus hält Regeln ein', rulesOk);
-    check('Mehrfachauswahl: 3 Bereiche = 15 Übungen in fester Reihenfolge',
-      (function () { const p = App.Programs.buildProgram({ areaIds: ['lower', 'upper', 'core'], programType: 'standard' }); return p.exerciseIds.length === 15 && p.areaIds.join() === 'upper,core,lower'; })());
+    check('Mehrfachauswahl: 4 Bereiche = 20 Übungen in fester Reihenfolge, HIIT zuerst',
+      (function () { const p = App.Programs.buildProgram({ areaIds: ['lower', 'upper', 'hiit', 'core'], programType: 'random', history: [] });
+        return p.exerciseIds.length === 20 && p.areaIds.join() === 'hiit,upper,core,lower' && p.exerciseIds.slice(0, 5).every(id => D.byId[id].category === 'hiit'); })());
 
     // 2b. Bewertung und Befestigung
-    check('Standardprogramme ohne Band/TRX', D.AREAS.every(a => a.standard.every(id => !D.byId[id].needsAnchor)));
+    check('Referenztraining ohne Band/TRX', R.every(e => !e.needsAnchor));
     let anchorOk = true;
     for (let i = 0; i < 200; i++) D.AREAS.forEach(a => { if (App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] }).exerciseIds.some(id => D.byId[id].needsAnchor)) anchorOk = false; });
     check('Zufallsmodus schlägt keine Band/TRX-Übungen vor', anchorOk && D.EXERCISES.filter(e => e.needsAnchor).length === 4);
@@ -1572,6 +1821,17 @@ App.SelfTest = (function () {
     const km = D.modeById('kieser').buildBlocks(ex)[1].motion;
     check('Kieser-Zyklus 4/2/4/2', km(0).p === 0 && km(4).p === 1 && km(5).cue === 'Halten' && km(8).p === 0.5 && km(10).p === 0 && km(11).cue === 'Halten');
     check('Stretch-Programm 5 Übungen', App.Programs.stretchForAreas(['upper']).exerciseIds.length === 5 && App.Programs.stretchForAreas(['upper', 'core']).exerciseIds.length === 10);
+
+    // 3b. HIIT + Kraft: HIIT-Teil im Intervall (2 Runden, 30 s / 15 s, 60 s Rundenpause), danach Klassisch
+    //     HIIT: 10 + 4×30 + 15 + 60 + 15 = 220 s; Plank klassisch 120 s -> 340 s
+    const hb = App.Programs.buildBlocks({ exerciseIds: ['hampelmann', 'high_knees', 'plank'] }, D.modeById('classic'), {}, D.modeById('hiit', { hiitRounds: 2, hiitWork: 30, hiitRest: 15 }));
+    const hw = hb.filter(b => b.type === 'work');
+    check('HIIT + Kraft: Dauer 340 s', App.Programs.totalSeconds(hb) === 340, App.Programs.totalSeconds(hb));
+    check('HIIT + Kraft: Reihenfolge, Indizes und Abschlüsse stimmen',
+      hw.map(b => b.exercise.id + b.exerciseIndex).join() === 'hampelmann0,high_knees1,hampelmann0,high_knees1,plank2,plank2,plank2' &&
+      hb.every(b => b.exerciseCount === 3) && hb.filter(b => b.exerciseEnd).length === 3 && hw[3].nextEx === D.byId.plank);
+    const ho = App.Programs.buildBlocks({ exerciseIds: ['burpee'] }, D.modeById('kieser'));
+    check('Nur HIIT: Kraftstil wird ignoriert', ho.filter(b => b.type === 'work').length === C2.hiit.rounds.def && ho[1].duration === C2.hiit.work.def);
 
     // 4. Timer mit simulierter Zeit
     const events = [], blocks = App.Programs.buildBlocks({ exerciseIds: ['plank', 'bird_dog'] }, D.modeById('classic'));
@@ -1616,6 +1876,10 @@ App.SelfTest = (function () {
     const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },
       { updatedAt: 2, levels: { a: { offset: 10, last: 'leicht', t: 20 }, b: { offset: 0, last: 'richtig', t: 40 } }, sessions: [] });
     check('Merge: Schwierigkeitsstufen je Übung nach Zeitstempel', ml.levels.a.offset === 10 && ml.levels.b.offset === -5);
+
+    const ms = App.Store.merge({ updatedAt: 5, sessions: [{ id: 'r', date: '2026-01-01', t: 20, ref: { felt: { plank: 'leicht' } } }] },
+      { updatedAt: 9, sessions: [{ id: 'r', date: '2026-01-01', t: 10, ref: { felt: {} } }] });
+    check('Merge: später bearbeitete Session gewinnt (Empfinden im Referenztraining)', ms.sessions.length === 1 && ms.sessions[0].ref.felt.plank === 'leicht');
 
     // 5. Merge der Fortschrittsdaten
     const m = App.Store.merge({ updatedAt: 1, settings: { x: 1 }, sessions: [{ id: 'a', date: '2026-01-01' }] }, { updatedAt: 2, settings: { x: 2 }, sessions: [{ id: 'a', date: '2026-01-01' }, { id: 'b', date: '2026-01-02' }] });

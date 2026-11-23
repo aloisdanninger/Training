@@ -30,7 +30,8 @@ App.Profile = (function () {
 App.Store = (function () {
   const KEY = App.Profile.storageKey(), DEV = App.Config.storageKey;   // KEY: Daten je Profil, DEV: Geräteeinstellungen (Ton)
   const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser', kieserSeconds: App.Config.kieser.def, classicSets: App.Config.classic.sets.def, classicSeconds: App.Config.classic.seconds.def,
-      circuitRounds: App.Config.circuit.rounds.def, circuitSeconds: App.Config.circuit.seconds.def, programType: 'standard', sound: false },
+      circuitRounds: App.Config.circuit.rounds.def, circuitSeconds: App.Config.circuit.seconds.def,
+      hiitRounds: App.Config.hiit.rounds.def, hiitWork: App.Config.hiit.work.def, hiitRest: App.Config.hiit.rest.def, programType: 'random', sound: false },
     sessions: [], favorites: [], weights: {}, ratings: {}, levels: {} });   // levels: { id: { offset: s, last: 'leicht'|'richtig'|'schwer', t: ms } }
   let state = load();
 
@@ -55,7 +56,8 @@ App.Store = (function () {
   /** Vereinigt zwei Zustände (siehe Merge-Regel oben). */
   function merge(a, b) {
     const newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, byId = {};
-    (a.sessions || []).concat(b.sessions || []).forEach(s => { byId[s.id] = s; });
+    // gleiche Session auf beiden Seiten: die später geänderte gewinnt (t = Zeitpunkt der letzten Änderung, z. B. Empfinden im Referenztraining)
+    (a.sessions || []).concat(b.sessions || []).forEach(s => { const o = byId[s.id]; if (!o || (s.t || 0) >= (o.t || 0)) byId[s.id] = s; });
     const sessions = Object.keys(byId).map(k => byId[k]).sort((x, y) => x.date < y.date ? -1 : 1);
     const older = newer === a ? b : a;
     return Object.assign(defaults(), newer, { ratings: Object.assign({}, older.ratings, newer.ratings), levels: mergeLevels(a.levels, b.levels), sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
@@ -66,6 +68,8 @@ App.Store = (function () {
     settings: () => state.settings,
     setSettings: function (patch) { Object.assign(state.settings, patch); save(); },
     addSession: function (s) { state.sessions.push(s); save(); },
+    /** Nachträgliche Änderung einer gespeicherten Session (z. B. Empfinden je Übung); setzt den Änderungszeitpunkt t. */
+    updateSession: function (id, fn) { const s = state.sessions.filter(x => x.id === id)[0]; if (!s) return; fn(s); s.t = Date.now(); save(); },
     /* Ton ist geräteabhängig (nicht synchronisiert): iPhone und iPad dürfen unterschiedlich eingestellt sein */
     sound: () => { try { return localStorage.getItem(DEV + '-sound') === '1'; } catch (e) { return false; } },
     setSound: v => { try { localStorage.setItem(DEV + '-sound', v ? '1' : '0'); } catch (e) { /* ignorieren */ } },

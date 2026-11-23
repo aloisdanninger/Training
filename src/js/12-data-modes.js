@@ -28,6 +28,9 @@ App.Data.MODES = (function () {
   /** Klassisch/Zirkel: kontinuierliche Wiederholungen, eine Wiederholung dauert 5 s (langsam, kontrolliert). */
   function loopMotion(t) { const k = (t % 5) / 5; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Los!' }; }
 
+  /** HIIT: zügiges Tempo, eine Wiederholung dauert 2 s. */
+  function fastMotion(t) { const k = (t % 2) / 2; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Gas geben!' }; }
+
   /** Dehnung: langsam in die Dehnung gleiten (9 s), dann halten. */
   function stretchMotion(t) { return { p: ease(clamp01(t / 9)), cue: t < 9 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
 
@@ -63,21 +66,24 @@ App.Data.MODES = (function () {
    * Zirkel: alle Übungen nacheinander je `secs` Sekunden, kurzer Wechsel dazwischen,
    * nach jeder Runde eine längere Pause. Eine Übung gilt nach ihrer Arbeitsphase in der letzten Runde als erledigt.
    */
-  function circuit(rounds, secs) {
+  function circuit(rounds, secs, o) {
+    o = o || {};
+    const tr = o.transition != null ? o.transition : C.circuit.transition, rr = o.roundRest != null ? o.roundRest : C.circuit.roundRest;
+    const motion = o.motion || loopMotion, trLabel = o.transitionLabel || 'Wechsel';
     return {
-      id: 'circuit', short: 'Zirkel', label: 'Zirkel ' + rounds + ' Runden × ' + secs + ' s', kind: 'strength',
+      id: o.id || 'circuit', short: o.short || 'Zirkel', label: o.label || 'Zirkel ' + rounds + ' Runden × ' + secs + ' s', kind: 'strength',
       buildAll: function (entries) {
         const n = entries.length, out = [];
         const tag = (b, i, end, next) => { b.exerciseIndex = i; b.exerciseCount = n; b.exerciseEnd = !!end; b.nextEx = next; return b; };
-        out.push(tag(prepare(entries[0].ex, C.prepareSeconds, loopMotion), 0, false, n > 1 ? entries[1].ex : null));
+        out.push(tag(prepare(entries[0].ex, C.prepareSeconds, motion), 0, false, n > 1 ? entries[1].ex : null));
         for (let r = 1; r <= rounds; r++) {
           for (let i = 0; i < n; i++) {
             const lastOfAll = r === rounds && i === n - 1;
             const next = i + 1 < n ? entries[i + 1] : (r < rounds ? entries[0] : null);
-            out.push(tag(work(entries[i].ex, 'Runde ' + r + ' / ' + rounds, dur(secs, entries[i].offset), loopMotion), i, r === rounds, next && next.ex));
+            out.push(tag(work(entries[i].ex, 'Runde ' + r + ' / ' + rounds, dur(secs, entries[i].offset), motion), i, r === rounds, next && next.ex));
             if (lastOfAll) continue;
-            if (i + 1 < n) out.push(tag(rest(entries[i + 1].ex, 'Wechsel', C.circuit.transition, 'Weiter: ' + entries[i + 1].ex.name), i + 1, false, entries[i + 1].ex));
-            else out.push(tag(rest(entries[0].ex, 'Pause', C.circuit.roundRest, 'Pause vor Runde ' + (r + 1)), 0, false, entries[0].ex));
+            if (i + 1 < n) out.push(tag(rest(entries[i + 1].ex, trLabel, tr, 'Weiter: ' + entries[i + 1].ex.name), i + 1, false, entries[i + 1].ex));
+            else out.push(tag(rest(entries[0].ex, 'Pause', rr, 'Pause vor Runde ' + (r + 1)), 0, false, entries[0].ex));
           }
         }
         return out;
@@ -85,7 +91,13 @@ App.Data.MODES = (function () {
     };
   }
 
-  App.Data.modeFactories = { kieser: kieser, classic: classic, circuit: circuit };
+  /** HIIT: wie Zirkel, aber Belastung/Pause im Intervall, zügiges Tempo und längere Rundenpause. */
+  function hiit(rounds, work, pause) {
+    return circuit(rounds, work, { id: 'hiit', short: 'HIIT', label: 'HIIT ' + rounds + ' × (' + work + ' s / ' + pause + ' s Pause)',
+      transition: pause, roundRest: C.hiit.roundRest, motion: fastMotion, transitionLabel: 'Pause' });
+  }
+
+  App.Data.modeFactories = { kieser: kieser, classic: classic, circuit: circuit, hiit: hiit };
   return [
     kieser(C.kieser.def),
     classic(C.classic.sets.def, C.classic.seconds.def),
@@ -99,11 +111,13 @@ App.Data.MODES = (function () {
   ];
 })();
 
-/** Modus per ID; `st` = Einstellungen (kieserSeconds, classicSets, classicSeconds, circuitRounds, circuitSeconds). */
+/** Modus per ID; `st` = Einstellungen (kieserSeconds, classicSets, classicSeconds, circuitRounds, circuitSeconds, hiitRounds, hiitWork, hiitRest). */
 App.Data.modeById = function (id, st) {
   const C = App.Config, f = App.Data.modeFactories; st = st || {};
   if (id === 'kieser') return f.kieser(st.kieserSeconds || C.kieser.def);
   if (id === 'classic') return f.classic(st.classicSets || C.classic.sets.def, st.classicSeconds || C.classic.seconds.def);
   if (id === 'circuit') return f.circuit(st.circuitRounds || C.circuit.rounds.def, st.circuitSeconds || C.circuit.seconds.def);
+  if (id === 'hiit') return f.hiit(st.hiitRounds || C.hiit.rounds.def, st.hiitWork || C.hiit.work.def, st.hiitRest || C.hiit.rest.def);
+  if (id === 'reference') return f.kieser(C.reference.seconds);      // Referenztraining: immer gleicher Stil
   return App.Data.MODES.filter(m => m.id === id)[0];
 };

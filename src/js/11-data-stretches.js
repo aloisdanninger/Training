@@ -71,7 +71,7 @@
   App.Data.STRETCH_PROGRAMS = [
     { id: 'stretch_upper', label: 'Oberkörper Dehnung', forAreas: ['upper'], secondsEach: 60,
       exerciseIds: ['st_brust', 'st_schulter', 'st_latissimus', 'st_trizeps', 'st_bizeps'] },
-    { id: 'stretch_lower', label: 'Unterkörper Dehnung', forAreas: ['lower'], secondsEach: 60,
+    { id: 'stretch_lower', label: 'Unterkörper Dehnung', forAreas: ['lower', 'hiit'], secondsEach: 60,
       exerciseIds: ['st_waden', 'st_quad', 'st_hamstring', 'st_hueftbeuger', 'st_gesaess'] },
     { id: 'stretch_core', label: 'Rumpf Dehnung', forAreas: ['core'], secondsEach: 60,
       exerciseIds: ['st_catcow', 'st_child', 'st_cobra', 'st_rotation', 'st_seitbeuge'] },
