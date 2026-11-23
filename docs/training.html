@@ -84,12 +84,15 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 .lvl{display:flex;gap:8px;flex-basis:100%;margin:2px 0 6px}.lvl .btn{flex:1;min-height:44px;padding:6px 8px;font-size:.95rem}
 .ratelist li.ex{display:block}.ratelist .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-weight:600;min-height:44px;padding:6px 16px;border-radius:999px;cursor:pointer;touch-action:manipulation}
+
 </style>
 </head>
 <body>
 <!-- ============ STARTBILDSCHIRM ============ -->
 <main id="home" class="screen">
-  <h1>Training</h1>
+  <div class="topbar"><h1>Training</h1><button id="profileBtn" class="chip" aria-label="Benutzer wechseln"></button></div>
   <section><h2>Trainingsbereiche</h2><div id="areas" class="grid3"></div></section>
   <section><h2>Trainingsstil</h2><div id="styles" class="seg"></div></section>
   <section id="styleOpts" class="opts"></section>
@@ -102,7 +105,6 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
   <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
     <div class="row wrap"><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
     <label class="btn">⬆ Import<input type="file" id="importFile" accept="application/json" hidden></label><a class="btn" href="#gallery">Übungskatalog</a></div>
-    <div class="row wrap"><span id="profileLbl" class="muted small"></span><button id="profileBtn" class="btn">👤 Profil wechseln</button></div>
     <p id="syncInfo" class="muted small"></p></section>
 </main>
 
@@ -1226,7 +1228,7 @@ App.UI = (function () {
     D.STRETCH_PROGRAMS.forEach(p => st2.appendChild(btn('🧘 ' + p.label, '', null, () => openPreview(App.Programs.buildStretch([p.id]), D.modeById('stretch'), 'stretch'))));
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
-    $('profileLbl').textContent = 'Profil: ' + App.Profile.label();
+    $('profileBtn').textContent = '👤 ' + App.Profile.label();
     $('syncBtn').textContent = App.Sync.hasToken() ? '☁ Jetzt synchronisieren' : '🔑 GitHub-Sync';
   }
 

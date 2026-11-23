@@ -74,3 +74,6 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 .opts .slider{margin-top:10px}.opts:empty{display:none}
 .lvl{display:flex;gap:8px;flex-basis:100%;margin:2px 0 6px}.lvl .btn{flex:1;min-height:44px;padding:6px 8px;font-size:.95rem}
 .ratelist li.ex{display:block}.ratelist .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-weight:600;min-height:44px;padding:6px 16px;border-radius:999px;cursor:pointer;touch-action:manipulation}
