@@ -10,19 +10,23 @@
    ========================================================================== */
 /**
  * Profile: getrennte Daten je Benutzer. Das Profil wird pro Gerät gespeichert.
- * Profil "Lois" (= Standard, auch ohne Auswahl) = bisheriger Schlüssel + progress/training.json; Profil "anna" = Schlüssel ...-p-anna + progress/training-anna.json.
+ * Profil "Lois" (= Standard, auch ohne Auswahl) = bisheriger lokaler Schlüssel + progress/training-lois.json; Profil "anna" = Schlüssel ...-p-anna + progress/training-anna.json;
+ * Profil "Test" = progress/training.json (für Tests, damit die echten Daten sauber bleiben).
  */
 App.Profile = (function () {
   const C = App.Config;
   const slugOf = n => String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
-  const OWNER = 'lois';   // Profil "Lois" = Standardprofil mit den bisherigen Daten (alter Schlüssel, progress/training.json)
+  const TEST = 'test';
+  const OWNER = 'lois';   // Profil "Lois" = Standardprofil mit den bisherigen Daten (alter lokaler Schlüssel, Sync-Datei training-lois.json)
   const name = () => { try { return (localStorage.getItem(C.profileKey) || '').trim() || 'Lois'; } catch (e) { return 'Lois'; } };
   const slug = () => { const s = slugOf(name()); return s === OWNER ? '' : s; };
   return {
     slugOf: slugOf, name: name, slug: slug,
     label: name,
     storageKey: () => C.storageKey + (slug() ? '-p-' + slug() : ''),
-    remotePath: () => slug() ? C.github.path.replace(/\.json$/, '-' + slug() + '.json') : C.github.path,
+    /* Sync-Datei: Profil "Test" = progress/training.json (Testversion), jedes andere Profil (auch Lois) = progress/training-<profil>.json */
+    remotePath: () => slugOf(name()) === TEST ? C.github.path : C.github.path.replace(/\.json$/, '-' + (slugOf(name()) || OWNER) + '.json'),
+    remoteSlug: () => slugOf(name()) || OWNER,
     set: function (n) { try { n = (n || '').trim(); n ? localStorage.setItem(C.profileKey, n) : localStorage.removeItem(C.profileKey); } catch (e) { /* ignorieren */ } }
   };
 })();
@@ -113,7 +117,7 @@ App.Sync = (function () {
   }
 
   function put() {
-    const body = { message: 'progress training' + (App.Profile.slug() ? ' (' + App.Profile.slug() + ')' : ''), content: enc(App.Store.exportJson()), branch: G.branch };
+    const body = { message: 'progress training' + ' (' + App.Profile.remoteSlug() + ')', content: enc(App.Store.exportJson()), branch: G.branch };
     if (sha) body.sha = sha;
     return fetch(url(), { method: 'PUT', headers: headers(), body: JSON.stringify(body) }).then(function (r) {
       if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }

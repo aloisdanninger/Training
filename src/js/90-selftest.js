@@ -163,10 +163,16 @@ App.SelfTest = (function () {
 
     check('Profile: Standard = alte Schlüssel/Datei, Name -> eigener Schlüssel und Datei',
       App.Profile.slugOf('Änna Müller!') === 'anna-muller' && App.Profile.slugOf('') === '' &&
-      (App.Profile.slug() !== '' || (App.Profile.storageKey() === App.Config.storageKey && App.Profile.remotePath() === 'progress/training.json')));
+      (App.Profile.slug() !== '' || (App.Profile.storageKey() === App.Config.storageKey && App.Profile.remotePath() === 'progress/training-lois.json')));
 
     const pb = D.modeById('classic').buildBlocks(D.byId.plank)[0];
     check('Vorbereitung: Animation läuft durch, Text bleibt', pb.type === 'prepare' && pb.motion(1.25).p > 0 && pb.motion(1.25).cue === 'Gleich geht es los');
+    check('Sync-Dateien: Lois = training-lois.json, Test = training.json', (function () {
+      const old = localStorage.getItem(App.Config.profileKey), r = {};
+      ['Lois', 'Test', 'Elke'].forEach(n => { App.Profile.set(n); r[n] = App.Profile.remotePath(); });
+      old ? localStorage.setItem(App.Config.profileKey, old) : localStorage.removeItem(App.Config.profileKey);
+      return r.Lois === 'progress/training-lois.json' && r.Test === 'progress/training.json' && r.Elke === 'progress/training-elke.json';
+    })());
     check('Profil Lois = Standarddaten, Elke eigene', App.Profile.slugOf('Elke') === 'elke' && App.Profile.slugOf('Lois') === 'lois');
 
     // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag
