@@ -1,9 +1,8 @@
 {
  "version": 1,
- "updatedAt": 1795410300601,
+ "updatedAt": 1795413615075,
  "settings": {
   "areas": [
-   "core",
    "upper"
   ],
   "style": "circuit",
