@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795462290210,
+ "updatedAt": 1795463158946,
  "settings": {
   "areas": [
    "full"
@@ -220,6 +220,25 @@
    "completed": false,
    "durationSec": 34,
    "t": 1795462290210
+  },
+  {
+   "id": "s1795463072032hbct",
+   "date": "2026-11-23T19:44:32.032Z",
+   "kind": "foam",
+   "areaIds": [],
+   "modeId": "foam",
+   "programType": "foam",
+   "exerciseIds": [
+    "fr_waden",
+    "fr_quad",
+    "fr_bws_ext",
+    "fr_flanke",
+    "fr_trizeps",
+    "fr_unterarm"
+   ],
+   "completed": false,
+   "durationSec": 87,
+   "t": 1795463158946
   }
  ],
  "favorites": [],
