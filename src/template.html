@@ -17,7 +17,9 @@
   <section id="refDue" class="card due" hidden><h2>📋 Referenztraining fällig</h2><p id="refDueText" class="muted"></p>
     <button id="refStart" class="btn primary">Referenztraining starten</button></section>
   <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div><p id="refInfo" class="muted small" hidden></p></section>
-  <section id="secAreas"><h2>Trainingsbereiche</h2><div id="areas" class="grid4"></div></section>
+  <section id="secAreas"><h2>Trainingsbereiche</h2><div id="areas" class="areas"></div></section>
+  <section id="secFilter"><h2>Rahmenbedingungen</h2><div id="filters" class="chips"></div>
+    <h2>Vorhandenes Material</h2><div id="gear" class="chips"></div></section>
   <section id="hiitOpts" class="opts" hidden></section>
   <section id="secStyle"><h2>Trainingsstil (Kraft)</h2><div id="styles" class="seg"></div></section>
   <section id="styleOpts" class="opts"></section>
@@ -84,7 +86,7 @@
   <h1 id="dTitle">Geschafft! 🎉</h1>
   <p id="dText" class="muted"></p>
   <div id="dRate" class="card" hidden>
-    <h2>Übungen bewerten</h2><p class="muted small">Sterne: Gut bewertete Übungen kommen im Zufallsmodus öfter (erneut auf den gleichen Stern tippen = unbewertet). Zu leicht / zu schwer: Die Übung wird beim nächsten Mal um 5 s länger bzw. kürzer.</p>
+    <h2>Übungen bewerten</h2><p class="muted small">Sterne: Gut bewertete Übungen kommen im Zufallsmodus öfter (erneut auf den gleichen Stern tippen = unbewertet). Zu leicht / zu schwer: Die Übung wird beim nächsten Mal um 5 s länger bzw. kürzer. Gewicht (optional): wird gespeichert und beim nächsten Mal vorausgewählt.</p>
     <ul id="dRateList" class="ratelist"></ul>
   </div>
   <div id="dCmp" class="card" hidden><h2>Vergleich mit dem letzten Referenztraining</h2><div id="dCmpBody"></div></div>
@@ -105,7 +107,7 @@
     <h1 id="ovName"></h1><p id="ovMuscles" class="muscles"></p>
     <div class="ovbody">
       <svg id="ovFig" aria-hidden="true"></svg>
-      <div><p id="ovDesc" class="lead"></p><h2>Anleitung</h2><p id="ovInstr"></p><p id="ovEquip" class="muted"></p>
+      <div><p id="ovDesc" class="lead"></p><h2>Anleitung</h2><p id="ovInstr"></p><p id="ovEquip" class="muted"></p><p id="ovAttr" class="muted small"></p>
         <h2>Deine Bewertung</h2><div id="ovStars"></div></div>
     </div>
   </div>

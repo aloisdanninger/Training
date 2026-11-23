@@ -34,6 +34,9 @@ App.Data.MODES = (function () {
   /** Dehnung: langsam in die Dehnung gleiten (9 s), dann halten. */
   function stretchMotion(t) { return { p: ease(clamp01(t / 9)), cue: t < 9 ? 'In die Dehnung gehen' : 'Halten & ruhig atmen' }; }
 
+  /** Mobilität (dynamisch): langsame, kontrollierte Wiederholungen, eine Wiederholung dauert 6 s. */
+  function mobilityMotion(t) { const k = (t % 6) / 6; return { p: k < 0.5 ? ease(k * 2) : ease(2 - k * 2), cue: 'Langsam & kontrolliert' }; }
+
   /** Vorbereitungsphase: Die Animation der Übung läuft schon durch (Vorschau der Bewegung), Text bleibt "Gleich geht es los". */
   const prepare = (ex, secs, motion) => ({ type: 'prepare', label: 'Bereit machen', duration: secs, exercise: ex, sound: null,
     motion: t => ({ p: motion(t).p, cue: 'Gleich geht es los' }) });
@@ -105,7 +108,8 @@ App.Data.MODES = (function () {
     {
       id: 'stretch', short: 'Dehnen', label: 'Dehnen', kind: 'stretch',
       buildBlocks: function (ex, ctx) {
-        return [prepare(ex, 5, stretchMotion), work(ex, 'Dehnen', (ctx && ctx.secondsEach) || 60, stretchMotion)];
+        const m = ex.dynamic ? mobilityMotion : stretchMotion;      // Mobilität = Bewegung, Dehnung = gleiten + halten
+        return [prepare(ex, 5, m), work(ex, ex.dynamic ? 'Mobilität' : 'Dehnen', (ctx && ctx.secondsEach) || 60, m)];
       }
     }
   ];

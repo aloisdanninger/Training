@@ -16,6 +16,11 @@ App.UI = (function () {
     circuit: [['circuitRounds', 'Anzahl Runden', 'Runden', CFG.circuit.rounds], ['circuitSeconds', 'Dauer pro Übung', 'Sekunden', CFG.circuit.seconds]]
   };
   const HIIT_OPTS = [['hiitRounds', 'HIIT-Runden', 'Runden', CFG.hiit.rounds], ['hiitWork', 'Belastung', 'Sekunden', CFG.hiit.work], ['hiitRest', 'Pause', 'Sekunden', CFG.hiit.rest]];
+  /* Rahmenbedingungen für den Zufallsgenerator: [Einstellung, Beschriftung] */
+  const FILTERS = [['noJump', '🚫 Ohne Springen'], ['kneeFriendly', '🦵 Knieschonend'], ['wristFriendly', '✋ Handgelenke schonen']];
+  const gearOf = st => Object.assign({}, CFG.gear, st.gear);
+  const filterOf = st => ({ noJump: !!st.noJump, kneeFriendly: !!st.kneeFriendly, wristFriendly: !!st.wristFriendly, gear: gearOf(st) });
+  const kgTxt = ex => { const k = S.weight(ex.id); return k ? 'zuletzt ' + k + ' kg' : ex.weight ? 'Gewicht ' + ex.weight : ''; };
   const PINGS = [60, 30, 10, 3, 2, 1];            // verbleibende Sekunden mit einfachem Ping
   let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
@@ -55,7 +60,7 @@ App.UI = (function () {
     const rd = refDue();
     $('refDue').hidden = !rd.due || ref;
     $('refDueText').textContent = rd.last ? 'Letztes Referenztraining am ' + fmtDate(rd.last.date) + ' – Zeit für den monatlichen Leistungscheck.' : 'Noch kein Referenztraining – starte deinen ersten Leistungscheck.';
-    $('secAreas').hidden = ref; $('hiitOpts').hidden = ref || !hasH; $('secStyle').hidden = $('styleOpts').hidden = ref || (hasH && !hasK);
+    $('secAreas').hidden = $('secFilter').hidden = ref; $('hiitOpts').hidden = ref || !hasH; $('secStyle').hidden = $('styleOpts').hidden = ref || (hasH && !hasK);
     $('refInfo').hidden = !ref;
     $('refInfo').textContent = 'Immer dieselben ' + D.REFERENCE.length + ' Übungen aus Oberkörper, Rumpf und Unterkörper · Kieser ' + CFG.reference.seconds +
       ' s je Übung (plus deine Anpassungen) · 1× pro Monat. ' + (rd.last ? 'Zuletzt: ' + fmtDate(rd.last.date) + (rd.due ? ' – fällig.' : ' · nächstes ab ' + fmtDate(rd.next) + '.') : 'Noch keines gemacht.');
@@ -68,6 +73,12 @@ App.UI = (function () {
         S.setSettings({ areas: sel }); renderHome();
       }, '<span class="ic">' + (on ? '☑' : '☐') + '</span><span>' + a.icon + ' ' + a.label + '</span>'));
     });
+    const fb = $('filters'); fb.textContent = '';
+    FILTERS.forEach(f => fb.appendChild(btn(f[1], '', !!st[f[0]], () => { S.setSettings({ [f[0]]: !st[f[0]] }); renderHome(); })));
+    const gb = $('gear'), gear = gearOf(st); gb.textContent = '';
+    Object.keys(CFG.gearLabel).forEach(k => gb.appendChild(btn((gear[k] ? '✓ ' : '') + CFG.gearLabel[k], '', !!gear[k], () => {
+      S.setSettings({ gear: Object.assign(gearOf(st), { [k]: !gear[k] }) }); renderHome();
+    })));
     const styles = $('styles'); styles.textContent = '';
     STRENGTH_MODES.forEach(m => styles.appendChild(btn(m.short, 'choice', st.style === m.id, () => { S.setSettings({ style: m.id }); renderHome(); })));
     renderStyleOpts(st);
@@ -97,8 +108,8 @@ App.UI = (function () {
   }
   function updateSummary() {
     const st = S.settings();
-    // Platzhalterprogramm mit gleicher Struktur (5 Übungen je Bereich bzw. Referenzliste) für die Zeitschätzung
-    const ids = isRef() ? D.REFERENCE.slice() : [].concat.apply([], D.AREAS.filter(a => st.areas.indexOf(a.id) >= 0).map(a => new Array(5).fill(a.hiit ? 'hampelmann' : 'plank')));
+    // Platzhalterprogramm mit gleicher Struktur (Übungen je Bereich laut Regeln bzw. Referenzliste) für die Zeitschätzung
+    const ids = isRef() ? D.REFERENCE.slice() : [].concat.apply([], D.AREAS.filter(a => st.areas.indexOf(a.id) >= 0).map(a => new Array(App.Programs.slotCount(a)).fill(a.hiit ? 'hampelmann' : 'plank')));
     const n = ids.length, preview = n ? App.Programs.totalSeconds(blocksOf({ exerciseIds: ids }, currentMode())) : 0;
     $('summary').textContent = n ? n + ' Übungen · ca. ' + Math.round(preview / 60) + ' Minuten' : 'Bitte mindestens einen Bereich wählen.';
     $('start').disabled = !n; $('start').style.opacity = n ? 1 : .5; $('start').textContent = isRef() ? 'Referenztraining starten' : 'Training starten';
@@ -107,7 +118,7 @@ App.UI = (function () {
   /* ---------------- Training ---------------- */
   function buildStrength() {
     const st = S.settings();
-    return App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history(), ratings: S.ratings() });
+    return App.Programs.buildProgram({ areaIds: st.areas, programType: st.programType, history: S.history(), ratings: S.ratings(), filter: filterOf(st) });
   }
   function startStrength() { openPreview(buildStrength(), currentMode(), 'strength'); }
 
@@ -137,12 +148,14 @@ App.UI = (function () {
     const ol = $('pvList'); ol.textContent = ''; let lastCat = null;
     program.exerciseIds.forEach(function (id, i) {
       const ex = D.byId[id];
-      if (kind === 'strength' && ex.category !== lastCat) {
-        lastCat = ex.category; const h = document.createElement('li'); h.className = 'area'; h.textContent = App.Programs.areaById(ex.category).label; ol.appendChild(h);
+      const cat = program.areaOf ? program.areaOf[i] : ex.category;
+      if (kind === 'strength' && cat !== lastCat) {
+        lastCat = cat; const h = document.createElement('li'); h.className = 'area'; h.textContent = App.Programs.areaById(cat).label; ol.appendChild(h);
       }
-      const li = document.createElement('li');
-      const w = (ex.weight ? ' · Hantel ' + ex.weight : '') + (kind === 'strength' && S.offsets()[id] ? ' · ' + (S.offsets()[id] > 0 ? '+' : '−') + Math.abs(S.offsets()[id]) + ' s angepasst' : '');
-      li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(ex.subCategory) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
+      const li = document.createElement('li'), kt = kgTxt(ex);
+      const w = (kt ? ' · ' + kt : '') + (kind === 'strength' && S.offsets()[id] ? ' · ' + (S.offsets()[id] > 0 ? '+' : '−') + Math.abs(S.offsets()[id]) + ' s angepasst' : '');
+      const what = cat === 'full' && ex.pattern ? D.PATTERN_LABEL[ex.pattern] : ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.subCategory;
+      li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(what) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
       ol.appendChild(li);
     });
     $('pvReroll').hidden = !(kind === 'strength' && program.type === 'random');
@@ -154,7 +167,7 @@ App.UI = (function () {
     const blocks = blocksOf(program, mode);
     const totalAll = App.Programs.totalSeconds(blocks), workSecs = {};
     blocks.forEach(b => { if (b.type === 'work') { const id = program.exerciseIds[b.exerciseIndex]; workSecs[id] = (workSecs[id] || 0) + b.duration; } });
-    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, workSecs: workSecs, savedId: null,
+    session = { program: program, mode: mode, kind: meta.kind, startedAt: new Date(), doneCount: 0, completed: [], base: {}, chosen: {}, kg: {}, workSecs: workSecs, savedId: null,
       ui: { lastCount: null, lastCue: null, lastRem: null, lastEl: 0 } };
     shownEx = null; show('train'); requestWake();
     timer = App.Timer(blocks, {
@@ -196,7 +209,7 @@ App.UI = (function () {
     const ex = b.exercise;
     $('tName').textContent = ex.name; $('tMuscles').textContent = ex.targetMuscles.join(' · ');
     $('tDesc').textContent = ex.description; $('tInstr').textContent = ex.instructions;
-    $('tEquip').textContent = ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (ex.weight ? ' (Hantel ' + ex.weight + ')' : '') : 'Kein Material nötig';
+    $('tEquip').textContent = ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (kgTxt(ex) ? ' (' + kgTxt(ex) + ')' : '') : 'Kein Material nötig';
     player.setExercise(ex);
     const nextIdx = b.exerciseIndex + 1, ids = session.program.exerciseIds;
     const nextEx = b.nextEx !== undefined ? b.nextEx : (nextIdx < ids.length ? D.byId[ids[nextIdx]] : null);   // Zirkel liefert nextEx selbst
@@ -215,6 +228,9 @@ App.UI = (function () {
         rec.ref = { mode: session.mode.label, secs: {}, felt: {} };
         session.completed.forEach(id => { rec.ref.secs[id] = session.workSecs[id]; });
       }
+      // Gewichte: zuletzt verwendetes Gewicht je Übung vorbelegen (am Ende per Auswahlliste änderbar)
+      session.completed.forEach(id => { const k = S.weight(id); if (k && App.Programs.kgOptions(D.byId[id]).length) session.kg[id] = k; });
+      if (Object.keys(session.kg).length) rec.kg = Object.assign({}, session.kg);
       S.addSession(rec); session.savedId = rec.id;
       if (App.Sync.hasToken()) App.Sync.sync();
     }
@@ -233,7 +249,8 @@ App.UI = (function () {
     const grid = $('galleryGrid'); if (grid.firstChild) return;
     D.EXERCISES.concat(D.STRETCHES).forEach(ex => {
       const c = document.createElement('div'); c.className = 'gcell';
-      c.innerHTML = '<b>' + ex.name + '</b><small class="muted">' + ex.subCategory + (ex.needsAnchor ? ' · Befestigung nötig' : '') + '</small><br>';
+      const sc = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.subCategory;
+      c.innerHTML = '<b>' + ex.name + '</b><small class="muted">' + sc + (ex.needsAnchor ? ' · Befestigung nötig' : '') + '</small><br>';
       c.tabIndex = 0; c.setAttribute('role', 'button'); c.onclick = () => openOverlay(ex);
       c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOverlay(ex); } };
       [0, 1].forEach(k => {
@@ -270,6 +287,8 @@ App.UI = (function () {
       const li = document.createElement('li'), top = document.createElement('div'), n = document.createElement('span');
       li.className = 'ex'; top.className = 'top'; n.textContent = D.byId[id].name;
       top.appendChild(n); top.appendChild(starsEl(id)); li.appendChild(top);
+      const opts = session.kind === 'strength' ? App.Programs.kgOptions(D.byId[id]) : [];
+      if (opts.length) li.appendChild(kgSelect(id, opts));
       if (session.kind === 'strength') {
         const row = document.createElement('div'); row.className = 'lvl';
         LEVELS.forEach(function (l) {
@@ -288,6 +307,23 @@ App.UI = (function () {
       }
       ul.appendChild(li);
     });
+  }
+
+  /** Auswahlliste "Gewicht" je Übung; Standard = zuletzt eingetragenes Gewicht. Speichert in der Session und als neuen Standard. */
+  function kgSelect(id, opts) {
+    const box = document.createElement('label'), sel = document.createElement('select'), cur = session.kg[id] || S.weight(id) || '';
+    box.className = 'kg'; box.appendChild(document.createTextNode('Gewicht'));
+    [['', '– nicht angeben']].concat(opts.map(k => [k, k + ' kg'])).forEach(function (o) {
+      const op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; if (String(o[0]) === String(cur)) op.selected = true; sel.appendChild(op);
+    });
+    if (cur && opts.indexOf(+cur) < 0) { const op = document.createElement('option'); op.value = cur; op.textContent = cur + ' kg'; op.selected = true; sel.appendChild(op); }
+    sel.setAttribute('aria-label', 'Gewicht für ' + D.byId[id].name);
+    sel.onchange = function () {
+      const v = +sel.value || 0;
+      if (v) { session.kg[id] = v; S.setWeight(id, v); } else delete session.kg[id];
+      if (session.savedId) S.updateSession(session.savedId, s => { s.kg = Object.assign({}, session.kg); });
+    };
+    box.appendChild(sel); return box;
   }
 
   /**
@@ -330,8 +366,12 @@ App.UI = (function () {
     if (!ovPlayer) ovPlayer = App.Animation.createPlayer($('ovFig'));
     $('ovName').textContent = ex.name; $('ovMuscles').textContent = ex.targetMuscles.join(' · ');
     $('ovDesc').textContent = ex.description; $('ovInstr').textContent = ex.instructions;
-    $('ovEquip').textContent = (ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (ex.weight ? ' (Hantel ' + ex.weight + ')' : '') : 'Kein Material nötig') +
+    $('ovEquip').textContent = (ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (kgTxt(ex) ? ' (' + kgTxt(ex) + ')' : '') : 'Kein Material nötig') +
       (ex.needsAnchor ? ' · braucht einen Befestigungspunkt' : '');
+    const fl = Object.keys(ex.flags || {}).map(k => D.FLAG_LABEL[k]);
+    $('ovAttr').textContent = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität: langsam wiederholen' : 'Dehnung: in die Position gleiten und halten') :
+      [ex.pattern ? 'Muster: ' + D.PATTERN_LABEL[ex.pattern] : '', 'Position: ' + ex.position, 'Belastung: ' + D.LOAD_LABEL[ex.load], 'Niveau: ' + D.LEVEL_LABEL[ex.difficulty],
+        fl.length ? fl.join(', ') : (ex.category !== 'hiit' || !ex.flags.jump ? 'ohne Sprünge' : '')].filter(Boolean).join(' · ');
     const sb = $('ovStars'); sb.textContent = ''; sb.appendChild(starsEl(ex.id));
     ovPlayer.setExercise(ex);
     $('overlay').hidden = false; document.body.style.overflow = 'hidden';

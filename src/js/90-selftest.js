@@ -13,10 +13,17 @@ App.SelfTest = (function () {
     const req = ['id', 'name', 'category', 'subCategory', 'targetMuscles', 'difficulty', 'equipment', 'description', 'instructions', 'svgAnimation'];
     const all = D.EXERCISES.concat(D.STRETCHES);
     const nH = D.EXERCISES.filter(e => e.category === 'hiit').length;
-    check('Anzahl Übungen = 74 (davon 13 HIIT)', D.EXERCISES.length === 74 && nH === 13, D.EXERCISES.length + '/' + nH);
+    check('Anzahl Übungen = 111 (davon 24 HIIT), keine TRX-Übungen', D.EXERCISES.length === 111 && nH === 24 && !D.EXERCISES.some(e => e.equipment.some(q => /trx/i.test(q))), D.EXERCISES.length + '/' + nH);
+    check('Neue Übungen (7-Minuten-Workout, Tragen, Unterschenkel, Schulter) vorhanden',
+      ['dampflok', 'trizepsheben', 'liegestuetz_rotation', 'farmers_carry', 'suitcase_carry', 'dead_hang', 'scapular_pushup', 'wadenheben', 'tibialis_raise', 'copenhagen_plank',
+        'bear_crawl', 'single_leg_glute_bridge', 'push_up_plus'].every(id => D.byId[id]) && ['m_9090_switch', 'm_open_book', 'm_knee_to_wall', 'm_wgs'].every(id => D.byId[id] && D.byId[id].dynamic));
+    check('Attribute: jede Kraft-/HIIT-Übung hat Bewegungsmuster, Position, Belastung', D.EXERCISES.every(e => e.pattern && D.PATTERN_LABEL[e.pattern] && e.position && D.LOAD_LABEL[e.load] && e.flags),
+      D.EXERCISES.filter(e => !e.pattern).map(e => e.id).join());
+    check('Attribute: Beispiele', D.byId.burpee.flags.jump && !D.byId.dampflok.flags.jump && D.byId.liegestuetz.flags.wrist && D.byId.kb_press.load === 'KB' &&
+      D.byId.goblet_squat.load === 'KH/KB' && D.byId.plank.position === 'Stütz' && D.byId.dead_bug.position === 'Rückenlage' && D.byId.suitcase_carry.flags.unilateral);
     check('Mindestens 7 Kettlebell-Übungen', D.EXERCISES.filter(e => e.equipment.some(q => /kettlebell/i.test(q))).length >= 7);
     check('Liegestütz-Aufbau vorhanden (Wand, Knie, Negativ, Schräg)', ['wand_liegestuetz', 'knie_liegestuetz', 'negativ_liegestuetz', 'schraeg_liegestuetz'].every(id => D.byId[id] && D.byId[id].subCategory === 'Drücken'));
-    check('Anzahl Dehnübungen = 20', D.STRETCHES.length === 20, D.STRETCHES.length);
+    check('Anzahl Dehn-/Mobilitätsübungen = 35', D.STRETCHES.length === 35, D.STRETCHES.length);
     check('Pflichtfelder vollständig', all.every(e => req.every(k => e[k] != null && e[k] !== '')));
     check('IDs eindeutig', new Set(all.map(e => e.id)).size === all.length);
     check('Posen vorhanden und endlich', all.every(function (e) {
@@ -24,7 +31,9 @@ App.SelfTest = (function () {
         const j = App.Pose.joints(App.Pose.resolve(p)); return [j.head, j.neck].concat(j.near.arm, j.near.leg).every(q => isFinite(q[0]) && isFinite(q[1]));
       });
     }));
-    check('Dehnprogramme referenzieren existierende Übungen', D.STRETCH_PROGRAMS.every(p => p.exerciseIds.length === 5 && p.exerciseIds.every(id => D.byId[id])));
+    check('Dehnprogramme referenzieren existierende Übungen', D.STRETCH_PROGRAMS.length === 6 && D.STRETCH_PROGRAMS.every(p => p.exerciseIds.length >= 5 && p.exerciseIds.every(id => D.byId[id] && D.byId[id].category === 'stretch')));
+    const mb = D.modeById('stretch').buildBlocks(D.byId.m_9090_switch, { secondsEach: 45 }), sb0 = D.modeById('stretch').buildBlocks(D.byId.st_brust, {});
+    check('Mobilität: dynamisch wiederholt (6 s), Dehnung gleitet und hält', mb[1].duration === 45 && mb[1].motion(3).p === 1 && mb[1].motion(6).p === 0 && sb0[1].motion(30).p === 1);
     const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);
     check('Referenztraining: 12 Übungen, je 4 aus Oberkörper/Rumpf/Unterkörper, alle Unterkategorien',
       R.length === 12 && R.every(Boolean) && ['upper', 'core', 'lower'].every(c => R.filter(e => e.category === c).length === 4) &&
@@ -34,16 +43,37 @@ App.SelfTest = (function () {
       App.Programs.totalSeconds(D.modeById('reference').buildBlocks(D.byId.plank)) === 100);
     check('HIIT steht links/zuerst', D.AREAS[0].id === 'hiit');
 
-    // 2. Zufallsregeln (2/2/1) – 300 Ziehungen
-    let rulesOk = true;
+    // 2. Zufallsregeln (Unterkategorien bzw. Bewegungsmuster) – 300 Ziehungen
+    let rulesOk = true, rulesInfo = '';
     for (let i = 0; i < 300 && rulesOk; i++) {
       D.AREAS.forEach(function (a) {
-        const p = App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] });
-        if (p.exerciseIds.length !== 5 || new Set(p.exerciseIds).size !== 5) rulesOk = false;
-        a.slots.forEach(s => { if (p.exerciseIds.filter(id => D.byId[id].subCategory === s.sub).length !== s.n) rulesOk = false; });
+        const p = App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] }), n = App.Programs.slotCount(a);
+        if (p.exerciseIds.length !== n || new Set(p.exerciseIds).size !== n) rulesOk = false;
+        a.slots.forEach(s => { if (p.exerciseIds.filter(id => s.pat ? s.pat.indexOf(D.byId[id].pattern) >= 0 : D.byId[id].subCategory === s.sub).length < s.n) { rulesOk = false; rulesInfo = a.id + ' ' + (s.sub || s.pat) + ': ' + p.exerciseIds; } });
       });
     }
-    check('Zufallsmodus hält Regeln ein', rulesOk);
+    check('Zufallsmodus hält Regeln ein (HIIT 5, Ganzkörper 6, Ober-/Unterkörper/Rumpf je 5)', rulesOk && D.AREAS.map(a => App.Programs.slotCount(a)).join() === '5,6,5,5,5', rulesInfo);
+    check('Ganzkörper: Squat/Lunge, Drücken, Hüftbeuge, Ziehen, Tragen, Rumpf; mit Oberkörper keine Doppelten', (function () {
+      for (let i = 0; i < 100; i++) {
+        const p = App.Programs.buildProgram({ areaIds: ['upper', 'full'], programType: 'random', history: [] });
+        if (p.exerciseIds.length !== 11 || new Set(p.exerciseIds).size !== 11 || p.areaOf.slice(0, 6).join() !== 'full,full,full,full,full,full' || D.byId[p.exerciseIds[4]].pattern !== 'carry') return false;
+      }
+      return true;
+    })());
+    // Beispiel: Ganzkörper · ohne Springen · nur 1 Kettlebell
+    const kbOnly = { noJump: true, kneeFriendly: false, wristFriendly: false, gear: { KH: false, KB: true, Band: false, Stange: false, Stuhl: false } };
+    let fOk = true, fInfo = '';
+    for (let i = 0; i < 200 && fOk; i++) {
+      const p = App.Programs.buildProgram({ areaIds: ['hiit', 'full', 'upper', 'core', 'lower'], programType: 'random', history: [], filter: kbOnly });
+      p.exerciseIds.forEach(id => { const e = D.byId[id]; if (e.flags.jump || /hantel(?!.*kettlebell)|stange|band|bank|stuhl|stufe/i.test(e.equipment.filter(q => !/optional|kettlebell/i.test(q)).join(' ')) || !App.Programs.allowed(e, kbOnly)) { fOk = false; fInfo = id; } });
+      if (p.exerciseIds.length !== 26 || new Set(p.exerciseIds).size !== 26) { fOk = false; fInfo = 'Anzahl ' + p.exerciseIds.length; }
+    }
+    check('Rahmenbedingungen: ohne Springen + nur Kettlebell werden eingehalten, Bereiche trotzdem voll', fOk, fInfo);
+    const kp = App.Programs.buildProgram({ areaIds: ['full'], programType: 'random', history: [], filter: kbOnly, rnd: (function () { let x = 7; return () => (x = (x * 9301 + 49297) % 233280) / 233280; })() });
+    check('Beispiel Ganzkörper mit Kettlebell: Tragen mit Kettlebell, kein Sprung', kp.exerciseIds.length === 6 && D.byId[kp.exerciseIds[4]].load === 'KB' && kp.exerciseIds.every(id => !D.byId[id].flags.jump), kp.exerciseIds.join());
+    check('Knieschonend / Handgelenke schonen filtern', !App.Programs.allowed(D.byId.jump_lunge, { kneeFriendly: true }) && !App.Programs.allowed(D.byId.liegestuetz, { wristFriendly: true }) &&
+      App.Programs.allowed(D.byId.schulterdruecken, { wristFriendly: true, gear: { KH: true } }) && !App.Programs.allowed(D.byId.schulterdruecken, { gear: { KH: false } }) &&
+      App.Programs.allowed(D.byId.goblet_squat, { gear: { KH: false, KB: true } }) && App.Programs.allowed(D.byId.single_leg_deadlift, { gear: {} }));
     check('Mehrfachauswahl: 4 Bereiche = 20 Übungen in fester Reihenfolge, HIIT zuerst',
       (function () { const p = App.Programs.buildProgram({ areaIds: ['lower', 'upper', 'hiit', 'core'], programType: 'random', history: [] });
         return p.exerciseIds.length === 20 && p.areaIds.join() === 'hiit,upper,core,lower' && p.exerciseIds.slice(0, 5).every(id => D.byId[id].category === 'hiit'); })());
@@ -52,7 +82,9 @@ App.SelfTest = (function () {
     check('Referenztraining ohne Band/TRX', R.every(e => !e.needsAnchor));
     let anchorOk = true;
     for (let i = 0; i < 200; i++) D.AREAS.forEach(a => { if (App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] }).exerciseIds.some(id => D.byId[id].needsAnchor)) anchorOk = false; });
-    check('Zufallsmodus schlägt keine Band/TRX-Übungen vor', anchorOk && D.EXERCISES.filter(e => e.needsAnchor).length === 4);
+    check('Zufallsmodus schlägt keine befestigten Band-Übungen vor', anchorOk && D.EXERCISES.filter(e => e.needsAnchor).length === 2 && !D.byId.band_pull_apart.needsAnchor);
+    check('Gewichtsauswahl: Hanteln 1–4 kg, Kettlebell 8/12/16 kg, sonst keine', App.Programs.kgOptions(D.byId.bizeps_curl).join() === '1,2,3,4' &&
+      App.Programs.kgOptions(D.byId.kb_press).join() === '8,12,16' && App.Programs.kgOptions(D.byId.goblet_squat).join() === '1,2,3,4,8,12,16' && App.Programs.kgOptions(D.byId.plank).length === 0);
     const rt = { liegestuetz: 5, schulterdruecken: 1 }; let hi = 0, lo = 0;
     for (let i = 0; i < 400; i++) { const ids = App.Programs.buildProgram({ areaIds: ['upper'], programType: 'random', history: [], ratings: rt }).exerciseIds; if (ids.indexOf('liegestuetz') >= 0) hi++; if (ids.indexOf('schulterdruecken') >= 0) lo++; }
     check('Hohe Bewertung kommt öfter als niedrige', hi > lo * 1.5, hi + ' vs ' + lo);
@@ -117,6 +149,13 @@ App.SelfTest = (function () {
     const a0 = ankle(0), a5 = ankle(0.5), a1 = ankle(1);
     check('Kniebeuge: Fuß bleibt am Boden und an derselben Stelle', [a5, a1].every(a => Math.abs(a[0] - a0[0]) < 0.2 && Math.abs(a[1] - a0[1]) < 0.2), a0 + ' / ' + a5 + ' / ' + a1);
 
+    pl.setExercise(D.byId.thruster);
+    const t0 = ankle(0), t1 = ankle(1);
+    check('Thruster: Füße bleiben in Hocke und Streckung am Boden', Math.abs(t0[1] - t1[1]) < 0.2 && Math.abs(t0[1] - (App.Config.stage.floorY)) < 0.5, t0 + ' / ' + t1);
+    pl.setExercise(D.byId.wadenheben);
+    const w0 = ankle(0), w1 = ankle(1);
+    check('Wadenheben: Figur hebt sich in den Zehenstand', w1[1] < w0[1] - 5, w0 + ' / ' + w1);
+
     check('Einseitige Übungen markiert (Bulgarian Split Squat, Seitstütz, Dehnung mit Seitenwechsel), Plank nicht',
       D.byId.bulgarian_split_squat.oneSided && D.byId.side_plank.oneSided && D.byId.st_schulter.oneSided && !D.byId.plank.oneSided);
 
@@ -132,6 +171,10 @@ App.SelfTest = (function () {
     const ml = App.Store.merge({ updatedAt: 1, levels: { a: { offset: 5, last: 'leicht', t: 10 }, b: { offset: -5, last: 'schwer', t: 50 } }, sessions: [] },
       { updatedAt: 2, levels: { a: { offset: 10, last: 'leicht', t: 20 }, b: { offset: 0, last: 'richtig', t: 40 } }, sessions: [] });
     check('Merge: Schwierigkeitsstufen je Übung nach Zeitstempel', ml.levels.a.offset === 10 && ml.levels.b.offset === -5);
+
+    const mw = App.Store.merge({ updatedAt: 9, sessions: [], weights: { kb_press: { kg: 8, t: 10 }, goblet_squat: { kg: 12, t: 50 } } },
+      { updatedAt: 1, sessions: [], weights: { kb_press: { kg: 12, t: 20 }, bizeps_curl: { kg: 3, t: 5 } } });
+    check('Merge: Gewichte je Übung nach Zeitstempel', mw.weights.kb_press.kg === 12 && mw.weights.goblet_squat.kg === 12 && mw.weights.bizeps_curl.kg === 3);
 
     const ms = App.Store.merge({ updatedAt: 5, sessions: [{ id: 'r', date: '2026-01-01', t: 20, ref: { felt: { plank: 'leicht' } } }] },
       { updatedAt: 9, sessions: [{ id: 'r', date: '2026-01-01', t: 10, ref: { felt: {} } }] });

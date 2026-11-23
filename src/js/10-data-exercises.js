@@ -3,7 +3,8 @@
    Neue Übung = eine neue Zeile in EXERCISE_ROWS. Sonst ist nichts anzupassen.
    Spalten: id, Name, Kategorie, Unterkategorie, Zielmuskeln, Schwierigkeit(1-3),
             Equipment, Beschreibung, Anleitung, Animation {a, b, props}
-   Props (optional): 'dumbbell' | 'step' | 'wall' | {rope:[x,y]}
+   Props (optional): 'dumbbell' (Gewicht in beiden Händen) | 'kb' (eine Kettlebell, vordere Hand) | 'bar' (Stange) | 'step' | 'wall' | {rope:[x,y]}
+   Pose-Option y: senkt/hebt die ganze Figur (z. B. y: -7 = Zehenstand); dafür anchor 'free' verwenden.
    ========================================================================== */
 App.Data = App.Data || {};
 
@@ -11,13 +12,17 @@ App.Data = App.Data || {};
    Reihenfolge = Ablauf im Training: HIIT (Aufwärmen/Kondition) zuerst, dann Kraft. */
 App.Data.AREAS = [
   { id: 'hiit', label: 'HIIT', icon: '🔥', hiit: true,
-    slots: [{ sub: 'Cardio', n: 3 }, { sub: 'Ganzkörper', n: 2 }] },
+    slots: [{ sub: 'Cardio', n: 2 }, { sub: 'Lokomotion', n: 1 }, { sub: 'Ganzkörper', n: 2 }] },
+  /* Ganzkörper: Auswahl nach Bewegungsmuster aus allen Kraftübungen (+ Tragen) */
+  { id: 'full', label: 'Ganzkörper', icon: '⚡',
+    slots: [{ pat: ['squat', 'lunge'], n: 1 }, { pat: ['push_h', 'push_v'], n: 1 }, { pat: ['hinge'], n: 1 },
+      { pat: ['pull_h', 'pull_v'], n: 1 }, { pat: ['carry'], n: 1 }, { pat: ['anti_ext', 'anti_rot', 'anti_lat'], n: 1 }] },
   { id: 'upper', label: 'Oberkörper', icon: '💪',
-    slots: [{ sub: 'Drücken', n: 2 }, { sub: 'Ziehen', n: 2 }, { sub: 'Arme', n: 1 }] },
+    slots: [{ sub: 'Drücken', n: 2 }, { sub: 'Ziehen', n: 1 }, { sub: 'Schulter', n: 1 }, { sub: 'Arme', n: 1 }] },
   { id: 'core', label: 'Rumpf', icon: '🎯',
     slots: [{ sub: 'Bauch', n: 2 }, { sub: 'Rücken', n: 2 }, { sub: 'Seitliche Stabilität', n: 1 }] },
   { id: 'lower', label: 'Unterkörper', icon: '🦵',
-    slots: [{ sub: 'Knie dominant', n: 2 }, { sub: 'Hüftdominant', n: 2 }, { sub: 'Stabilität', n: 1 }] }
+    slots: [{ sub: 'Knie dominant', n: 2 }, { sub: 'Hüftdominant', n: 1 }, { sub: 'Stabilität', n: 1 }, { sub: 'Unterschenkel', n: 1 }] }
 ];
 
 /**
@@ -52,17 +57,11 @@ App.Data.REFERENCE = [
     ['arnold_press', 'Arnold Press', 'upper', 'Drücken', ['Schulter', 'Trizeps'], 2, ['Kurzhanteln'],
       'Schulterdrücken mit Drehbewegung.', 'Hanteln vor der Brust, Handflächen zu dir. Beim Hochdrücken die Hände nach außen drehen.',
       { a: P(0, [135, 350]), b: P(0, [0, 0]), props: ['dumbbell'] }],
-    ['trx_chest_press', 'TRX Chest Press', 'upper', 'Drücken', ['Brust', 'Trizeps', 'Rumpf'], 2, ['TRX'],
-      'Brustpresse am Schlingentrainer.', 'Körper gestreckt nach vorn lehnen, Griffe auf Brusthöhe. Kontrolliert absenken und wegdrücken.',
-      { a: P(20, [110, 110], [200, 200]), b: P(32, [150, 60], [212, 212]), props: [{ rope: [25, 20] }] }],
     ['enge_liegestuetz', 'Enge Liegestütz', 'upper', 'Drücken', ['Trizeps', 'Brust'], 3, [],
       'Liegestütz mit engem Handabstand.', 'Hände unter der Brust eng zusammen. Ellbogen nah am Körper führen.',
       { a: PU_UP, b: P(72, [215, 170], [252, 252]) }],
 
     /* ---------- OBERKÖRPER · Ziehen ---------- */
-    ['trx_row', 'TRX Rows', 'upper', 'Ziehen', ['oberer Rücken', 'Bizeps', 'hintere Schulter'], 2, ['TRX'],
-      'Rudern am Schlingentrainer.', 'Körper gestreckt nach hinten lehnen. Brust zu den Griffen ziehen, Schulterblätter zusammen.',
-      { a: P(-22, [60, 60], [158, 158]), b: P(-10, [215, 95], [170, 170]), props: [{ rope: [215, 15] }] }],
     ['kurzhantelrudern', 'Kurzhantelrudern', 'upper', 'Ziehen', ['Latissimus', 'Bizeps', 'Rautenmuskel'], 2, ['Kurzhantel'],
       'Einarmiges Rudern im Vorbeugen.', 'Rücken gerade, eine Hand stützt. Hantel zur Hüfte ziehen, Ellbogen nah am Körper.',
       { a: P(72, [180, 180], [170, 190], { b: [140, 170] }), b: P(72, [250, 175], [170, 190], { b: [140, 170] }), props: ['dumbbell'] }],
@@ -142,8 +141,8 @@ App.Data.REFERENCE = [
     ['kniebeuge', 'Kniebeuge', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 1, [],
       'Grundübung für die Beine.', 'Füße schulterbreit, Gewicht auf der ganzen Sohle. Hüfte nach hinten unten, Brust aufrecht.',
       { a: P(0, [90, 90]), b: P(35, [90, 90], [100, 215]) }],
-    ['goblet_squat', 'Goblet Squat', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß', 'Rumpf'], 1, ['Kurzhantel'],
-      'Kniebeuge mit Hantel vor der Brust.', 'Hantel mit beiden Händen vor die Brust, Ellbogen nach unten, tief beugen.',
+    ['goblet_squat', 'Goblet Squat', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß', 'Rumpf'], 1, ['Kurzhantel/Kettlebell'],
+      'Kniebeuge mit Hantel oder Kettlebell vor der Brust.', 'Hantel oder Kettlebell mit beiden Händen vor die Brust, Ellbogen nach unten, tief beugen.',
       { a: P(0, [160, 70]), b: P(30, [160, 70], [100, 215]), props: ['dumbbell'] }],
     ['step_up', 'Step Up', 'lower', 'Knie dominant', ['Oberschenkel vorne', 'Gesäß'], 1, ['Stufe/Bank'],
       'Auf eine Stufe steigen.', 'Ganzer Fuß auf der Stufe, mit dem vorderen Bein hochdrücken, kontrolliert zurück.',
@@ -284,13 +283,143 @@ App.Data.REFERENCE = [
       { anchor: 'free', a: P(0, [150, 60], [95, 190], { b: [210, 150], r: [200, 275] }), b: P(0, [210, 150], [200, 275], { b: [150, 60], r: [95, 190] }) }],
     ['thruster', 'Thruster', 'hiit', 'Ganzkörper', ['Oberschenkel', 'Gesäß', 'Schulter', 'Trizeps'], 2, ['Kurzhanteln'],
       'Kniebeuge und Drücken über Kopf in einer Bewegung.', 'Hanteln auf Schulterhöhe, tief in die Kniebeuge. Kraftvoll aufrichten und den Schwung nutzen, um die Hanteln über den Kopf zu drücken.',
-      { a: P(30, [160, 20], [100, 215]), b: P(0, [0, 0]), props: ['dumbbell'] }],
+      { anchor: 'foot', a: P(30, [150, 15], [100, 215]), b: P(0, [0, 0]), props: ['dumbbell'] }],
     ['inchworm', 'Inchworm (Raupe)', 'hiit', 'Ganzkörper', ['hintere Oberschenkel', 'Schulter', 'Rumpf'], 2, [],
       'Mit den Händen vom Stand in den Stütz laufen.', 'Aus dem Stand nach vorn beugen, Hände auf den Boden, mit kleinen Schritten in den hohen Stütz gehen, zurücklaufen und aufrichten.',
       { a: P(110, [165, 195], [175, 185]), b: PU_UP }],
     ['shoulder_taps', 'Plank Shoulder Taps', 'hiit', 'Ganzkörper', ['Rumpf', 'Schulter', 'Brust'], 2, [],
       'Im hohen Stütz abwechselnd die Schulter antippen.', 'Hoher Stütz, Füße etwas breiter. Abwechselnd mit einer Hand die gegenüberliegende Schulter antippen, die Hüfte bleibt ruhig. Leichter: auf den Knien.',
-      { a: PU_UP, b: P(63, [170, 330], [243, 243], { b: [180, 180] }) }]
+      { a: PU_UP, b: P(63, [170, 330], [243, 243], { b: [180, 180] }) }],
+    /* ---------- HIIT · Cardio (gelenkschonend bis zügig) ---------- */
+    ['dampflok', 'Dampflok (Knie zum Ellbogen)', 'hiit', 'Cardio', ['schräge Bauchmuskeln', 'Hüftbeuger', 'Herz-Kreislauf'], 1, [],
+      'Im Stand Knie zum gegenüberliegenden Ellbogen.', 'Aufrecht stehen, Hände hinter dem Kopf. Abwechselnd ein Knie hochziehen und den gegenüberliegenden Ellbogen dazu drehen. Zügig, aber ohne Springen.',
+      { anchor: 'free', a: P(0, [35, 255], [180, 180]), b: P(22, [140, 345], [95, 185], { r: [180, 180] }) }],
+    ['a_march', 'A-March (Marschieren)', 'hiit', 'Cardio', ['Hüftbeuger', 'Waden', 'Koordination'], 1, [],
+      'Kraftvolles Marschieren mit hohen Knien.', 'Aufrecht, auf dem Vorfuß. Knie abwechselnd bis Hüfthöhe ziehen, Fußspitze angezogen, Arme schwingen gegengleich – ohne Sprung.',
+      { anchor: 'free', a: P(0, [150, 70], [90, 180], { b: [210, 160], r: [180, 180] }), b: P(0, [210, 160], [180, 180], { b: [150, 70], r: [90, 180] }) }],
+    ['a_skip', 'A-Skip', 'hiit', 'Cardio', ['Hüftbeuger', 'Waden', 'Herz-Kreislauf'], 2, [],
+      'Hopserlauf mit hohen Knien.', 'Wie A-March, aber mit kleinem Hopser auf dem Standbein. Knie hoch, Arme schwingen aktiv mit, leise landen.',
+      { anchor: 'free', a: P(5, [145, 60], [85, 185], { b: [215, 150], r: [185, 185] }), b: P(5, [215, 150], [185, 185], { b: [145, 60], r: [85, 185] }) }],
+    ['fast_feet', 'Fast Feet', 'hiit', 'Cardio', ['Waden', 'Oberschenkel', 'Herz-Kreislauf'], 1, [],
+      'Schnelle, kleine Schritte auf der Stelle.', 'Leicht gebeugte Knie, Oberkörper etwas vor, auf den Fußballen. So schnell wie möglich kleine Schritte trippeln, Arme locker mitbewegen.',
+      { anchor: 'free', a: P(15, [150, 70], [150, 195], { b: [170, 80], r: [170, 205] }), b: P(15, [170, 80], [170, 205], { b: [150, 70], r: [150, 195] }) }],
+
+    /* ---------- HIIT · Lokomotion (Fortbewegung) ---------- */
+    ['bear_crawl', 'Bear Crawl (Bärengang)', 'hiit', 'Lokomotion', ['Schulter', 'Rumpf', 'Oberschenkel'], 2, [],
+      'Auf Händen und Füßen krabbeln, Knie knapp über dem Boden.', 'Vierfüßlerstand, Knie 2–3 cm anheben. Gegengleich Hand und Fuß kleine Schritte vor- und zurücksetzen, Rücken flach, Hüfte ruhig.',
+      { anchor: 'free', a: P(72, [165, 165], [195, 255], { b: [195, 195], r: [165, 260] }), b: P(72, [195, 195], [165, 260], { b: [165, 165], r: [195, 255] }) }],
+    ['lateral_bear_crawl', 'Bear Crawl seitlich', 'hiit', 'Lokomotion', ['Schulter', 'Rumpf', 'seitliche Hüfte'], 2, [],
+      'Bärengang zur Seite.', 'Position wie beim Bear Crawl (Knie schweben). Hände und Füße gleichzeitig seitlich versetzen, einige Schritte nach links, dann nach rechts.',
+      { anchor: 'free', a: P(74, [180, 180], [190, 255]), b: P(70, [170, 175], [180, 250]) }],
+    ['crab_walk', 'Krebsgang', 'hiit', 'Lokomotion', ['Trizeps', 'hintere Schulter', 'Gesäß'], 2, [],
+      'Auf Händen und Füßen rückwärts laufen, Bauch nach oben.', 'Sitzen, Hände hinter dem Gesäß (Finger zeigen nach vorn), Füße aufgestellt. Gesäß anheben und abwechselnd Hand und Fuß nach vorn und hinten setzen.',
+      { anchor: 'free', a: P(-70, [180, 180], [90, 180], { b: [195, 195], r: [110, 185] }), b: P(-70, [195, 195], [110, 185], { b: [180, 180], r: [90, 180] }) }],
+    ['duck_walk', 'Entengang', 'hiit', 'Lokomotion', ['Oberschenkel vorne', 'Gesäß', 'Hüftbeweglichkeit'], 3, [],
+      'In tiefer Hocke gehen.', 'Tiefe Hocke, Oberkörper aufrecht, Hände vor der Brust. Kleine Schritte nach vorn, ohne aufzustehen. Nur bei schmerzfreien Knien.',
+      { anchor: 'free', a: P(25, [140, 50], [80, 205], { r: [110, 215] }), b: P(25, [140, 50], [110, 215], { r: [80, 205] }) }],
+    ['gorilla_walk', 'Gorilla Walk', 'hiit', 'Lokomotion', ['Oberschenkel', 'Gesäß', 'Schulter'], 2, [],
+      'Tiefe Hocke, Hände am Boden, seitlich fortbewegen.', 'Breite Hocke, Hände zwischen den Füßen am Boden. Gewicht auf die Hände verlagern, Füße seitlich nachsetzen – wie ein Gorilla.',
+      { anchor: 'free', a: P(60, [180, 180], [110, 200]), b: P(45, [190, 190], [95, 210], { r: [120, 195] }) }],
+    ['carioca', 'Carioca (Überkreuzschritt)', 'hiit', 'Lokomotion', ['seitliche Hüfte', 'Rumpf', 'Koordination'], 2, [],
+      'Seitwärts laufen mit Überkreuzen der Beine.', 'Seitlich laufen, das hintere Bein abwechselnd vor und hinter dem Standbein kreuzen, Hüfte dreht mit, Arme locker zur Seite.',
+      { view: 'front', anchor: 'free', a: P(0, [230, 200], [200, 185], { b: [130, 160], r: [175, 180] }), b: P(0, [230, 200], [165, 175], { b: [130, 160], r: [195, 185] }) }],
+    ['lateral_shuffle', 'Seitliches Shuffle', 'hiit', 'Lokomotion', ['seitliche Hüfte', 'Oberschenkel', 'Herz-Kreislauf'], 1, [],
+      'Seitliche Nachstellschritte in der Athletenposition.', 'Leicht in die Knie, Oberkörper vor. Schnell seitlich nachstellen, Füße kreuzen nicht, nach 3–4 Schritten Richtung wechseln.',
+      { view: 'front', anchor: 'free', a: P(0, [205, 160], [210, 165], { b: [155, 200], r: [150, 195] }), b: P(0, [205, 160], [190, 170], { b: [155, 200], r: [170, 190] }) }],
+
+    /* ---------- OBERKÖRPER · Drücken / Arme (7-Minuten-Workout) ---------- */
+    ['liegestuetz_rotation', 'Liegestütz mit Rotation', 'upper', 'Drücken', ['Brust', 'Trizeps', 'Schulter', 'schräge Bauchmuskeln'], 3, [],
+      'Liegestütz, oben in den Seitstütz drehen (T-Liegestütz).', 'Liegestütz ausführen, oben den Körper zur Seite drehen und einen Arm zur Decke strecken. Zurück in den Stütz, nächster Liegestütz, andere Seite.',
+      { a: PU_DN, b: P(63, [180, 180], [243, 243], { b: [0, 0] }) }],
+    ['trizepsheben', 'Trizepsheben in Bauchlage', 'upper', 'Arme', ['Trizeps', 'hintere Schulter', 'oberer Rücken'], 1, [],
+      'Gestreckte Arme in Bauchlage nach hinten oben heben.', 'Bauchlage, Arme lang neben dem Körper, Handflächen nach oben. Arme gestreckt anheben, 3 s halten, langsam ablegen.',
+      { a: P(90, [262, 262], [270, 270]), b: P(86, [318, 318], [270, 270], { hd: 80 }) }],
+
+    /* ---------- OBERKÖRPER · Schulter (gesunde Schultern; Aufbau: Wall Slide -> Scapular Push-up -> Push-up Plus -> Drücken) ---------- */
+    ['wall_slide', 'Wall Slides', 'upper', 'Schulter', ['unterer Trapez', 'Serratus', 'Rotatorenmanschette'], 1, ['Wand'],
+      'Arme an der Wand von W nach Y schieben.', 'Rücken und Hinterkopf an der Wand, Arme in W-Form (Ellbogen und Handrücken an der Wand). Langsam nach oben in ein Y schieben, Kontakt halten, zurück.',
+      { view: 'front', a: P(0, [255, 345], [180, 180], { b: [105, 15] }), b: P(0, [325, 335], [180, 180], { b: [35, 25] }) }],
+    ['scapular_pushup', 'Scapular Push-up', 'upper', 'Schulter', ['Serratus', 'Schulterblatt', 'Rumpf'], 1, [],
+      'Nur die Schulterblätter bewegen – Arme bleiben gestreckt.', 'Hoher Stütz (leichter: auf den Knien). Mit gestreckten Armen die Brust zwischen die Schulterblätter sinken lassen, dann den Boden wegdrücken, bis der obere Rücken rund ist.',
+      { a: P(65, [186, 186], [244, 244]), b: P(60, [174, 174], [242, 242]) }],
+    ['push_up_plus', 'Push-up Plus', 'upper', 'Schulter', ['Serratus', 'Brust', 'Trizeps'], 2, [],
+      'Liegestütz mit extra Wegdrücken oben.', 'Liegestütz (oder Knie-Liegestütz). Oben angekommen den Boden noch weiter wegdrücken, bis sich die Schulterblätter auseinanderschieben, dann absenken.',
+      { a: PU_DN, b: P(60, [174, 174], [242, 242]) }],
+    ['reverse_fly', 'Reverse Fly', 'upper', 'Schulter', ['hintere Schulter', 'Rautenmuskel', 'Trapez'], 1, ['Kurzhanteln'],
+      'Seitheben im Vorbeugen für den oberen Rücken.', 'Hüfte beugen, Rücken gerade, Arme hängen. Hanteln mit leicht gebeugten Ellbogen seitlich bis Schulterhöhe heben, Schulterblätter zusammen, langsam senken.',
+      { a: P(70, [180, 175], [165, 190]), b: P(70, [255, 245], [165, 190]), props: ['dumbbell'] }],
+    ['band_pull_apart', 'Band Pull-Apart', 'upper', 'Schulter', ['hintere Schulter', 'Rautenmuskel', 'Rotatorenmanschette'], 1, ['Gummiband'],
+      'Band vor der Brust auseinanderziehen.', 'Band schulterbreit greifen, Arme gestreckt auf Brusthöhe. Band auseinanderziehen, bis es die Brust berührt, Schultern tief, langsam zurück.',
+      { view: 'front', a: P(0, [130, 120], [180, 180], { b: [230, 240] }), b: P(0, [272, 272], [180, 180], { b: [88, 88] }) }],
+    ['aussenrotation_band', 'Außenrotation mit Band', 'upper', 'Schulter', ['Rotatorenmanschette', 'hintere Schulter'], 1, ['Gummiband'],
+      'Unterarme nach außen drehen, Ellbogen am Körper.', 'Band in beiden Händen, Ellbogen 90° gebeugt und fest an der Seite. Unterarme nach außen öffnen, Schulterblätter zusammen, langsam zurück.',
+      { view: 'front', a: P(0, [178, 100], [180, 180], { b: [182, 260] }), b: P(0, [178, 245], [180, 180], { b: [182, 115] }) }],
+    ['kb_bottom_up', 'Kettlebell Bottom-up halten', 'upper', 'Schulter', ['Rotatorenmanschette', 'Unterarm', 'Schulter'], 2, ['Kettlebell'],
+      'Kettlebell kopfüber vor der Schulter balancieren.', 'Kettlebell am Griff, Boden zeigt nach oben, Ellbogen unter dem Handgelenk vor der Schulter. Fest greifen und ruhig halten, optional langsam über Kopf drücken. Seite wechseln.',
+      { a: P(0, [150, 0], [180, 180], { b: [180, 180] }), b: P(0, [115, 0], [180, 180], { b: [180, 180] }), props: ['kb'] }],
+    ['dead_hang', 'Dead Hang (Hängen)', 'upper', 'Ziehen', ['Unterarm (Griffkraft)', 'Latissimus', 'Schulter'], 2, ['Klimmzugstange'],
+      'An der Stange hängen.', 'Stange schulterbreit greifen und mit gestreckten Armen hängen, Schultern leicht aktiv (nicht bis zu den Ohren). Leichter: Füße bleiben am Boden.',
+      { anchor: 'free', a: P(0, [0, 0], [180, 180]), b: P(0, [6, 0], [178, 182]), props: ['bar'] }],
+
+    /* ---------- RUMPF ---------- */
+    ['long_lever_plank', 'Long-Lever Plank', 'core', 'Bauch', ['gerade Bauchmuskeln', 'Rumpf', 'Schulter'], 2, [],
+      'Unterarmstütz mit Ellbogen weiter vorn.', 'Plank, aber Ellbogen eine Handbreit vor den Schultern. Gesäß fest, Becken leicht einrollen, kein Hohlkreuz.',
+      { a: P(76, [150, 90], [256, 256]), b: P(76, [138, 88], [256, 256]) }],
+    ['plank_walkout', 'Plank Walkout', 'core', 'Bauch', ['gerade Bauchmuskeln', 'Schulter', 'Rumpf'], 3, [],
+      'Im hohen Stütz mit den Händen nach vorn laufen.', 'Hoher Stütz. Hände abwechselnd in kleinen Schritten nach vorn setzen, so weit es ohne Hohlkreuz geht, und zurücklaufen.',
+      { a: PU_UP, b: P(70, [140, 140], [250, 250]) }],
+    ['bird_dog_row', 'Bird Dog Row', 'core', 'Rücken', ['Rückenstrecker', 'Latissimus', 'Gesäß', 'Rumpf'], 3, ['Kurzhantel'],
+      'Bird Dog mit Rudern des freien Arms.', 'Vierfüßlerstand, ein Bein nach hinten strecken. Mit dem gegenüberliegenden Arm die Hantel zur Hüfte rudern, Becken bleibt ruhig. Seite wechseln.',
+      { a: P(68, [180, 180], [185, 270], { r: [272, 272] }), b: P(68, [180, 180], [185, 270], { b: [250, 160], r: [272, 272] }), props: ['kb'] }],
+    ['suitcase_hold', 'Suitcase Hold', 'core', 'Seitliche Stabilität', ['seitliche Bauchmuskeln', 'Griffkraft', 'Rumpf'], 1, ['Kettlebell'],
+      'Kettlebell einseitig halten, ohne zur Seite zu kippen.', 'Aufrecht stehen, Kettlebell in einer Hand neben dem Bein. Schultern waagrecht, Rumpf fest – nicht zur Gewichtsseite neigen. Seite wechseln.',
+      { view: 'front', a: P(0, [185, 180], [182, 180], { b: [175, 178], r: [178, 180] }), b: P(-3, [183, 180], [182, 180], { b: [175, 178], r: [178, 180] }), props: ['kb'] }],
+    ['copenhagen_plank', 'Copenhagen Plank', 'core', 'Seitliche Stabilität', ['Adduktoren', 'seitliche Bauchmuskeln'], 3, ['Bank/Stuhl'],
+      'Seitstütz mit dem oberen Bein auf der Bank.', 'Seitstütz auf dem Unterarm, oberes Bein (Innenseite) auf Bank oder Stuhl, unteres Bein hängt frei. Hüfte anheben und halten. Leichter: Knie auf der Bank. Seite wechseln.',
+      { view: 'front', anchor: 'free', a: P(-60, [180, 180], [120, 120], { b: [0, 0], r: [140, 140] }), b: P(-68, [180, 180], [112, 112], { b: [0, 0], r: [112, 112] }) }],
+
+    /* ---------- UNTERKÖRPER ---------- */
+    ['single_leg_glute_bridge', 'Einbeinige Glute Bridge', 'lower', 'Hüftdominant', ['Gesäß', 'hintere Oberschenkel'], 2, [],
+      'Beckenheben auf einem Bein.', 'Rückenlage, ein Fuß aufgestellt, das andere Bein gestreckt. Becken anheben, bis Schulter–Knie eine Linie bilden, Becken bleibt waagrecht. Seite wechseln.',
+      { a: P(-90, [90, 90], [45, 180], { r: [45, 45] }), b: P(-105, [90, 90], [85, 190], { r: [82, 82] }) }],
+    ['heel_to_toe', 'Seiltänzergang (Ferse-Spitze)', 'lower', 'Stabilität', ['Fußmuskulatur', 'Gleichgewicht', 'Hüfte'], 1, [],
+      'Auf einer Linie gehen, Ferse an Zehen.', 'Arme zur Seite, Blick nach vorn. Langsam gehen, die Ferse jeweils direkt vor die Zehen des anderen Fußes setzen. Schwerer: Augen zu oder rückwärts.',
+      { view: 'front', anchor: 'free', a: P(-3, [262, 268], [183, 180], { b: [98, 92], r: [177, 180] }), b: P(3, [258, 264], [183, 180], { b: [102, 96], r: [177, 180] }) }],
+    ['einbeinstand_reach', 'Einbeinstand mit Reichen', 'lower', 'Stabilität', ['Fußmuskulatur', 'Gesäß', 'Gleichgewicht'], 2, [],
+      'Auf einem Bein stehen und mit dem anderen Fuß weit reichen.', 'Auf einem leicht gebeugten Bein stehen. Mit dem freien Fuß nach vorn, zur Seite und nach hinten tippen, so weit es kontrolliert geht. Seite wechseln.',
+      { a: STAND, b: P(25, [140, 140], [165, 200], { r: [112, 112] }) }],
+    ['wadenheben', 'Wadenheben', 'lower', 'Unterschenkel', ['Waden', 'Achillessehne', 'Fußmuskulatur'], 1, [],
+      'Auf die Zehenspitzen und langsam zurück.', 'Hüftbreit stehen, eventuell an der Wand abstützen. Langsam (2 s) auf die Zehenspitzen hoch, oben 1 s halten, langsam (3 s) absenken. Schwerer: auf einer Stufe.',
+      { anchor: 'free', a: STAND, b: P(0, [180, 180], [180, 180], { y: -8 }) }],
+    ['wadenheben_einbeinig', 'Wadenheben einbeinig', 'lower', 'Unterschenkel', ['Waden', 'Achillessehne', 'Gleichgewicht'], 2, ['Wand'],
+      'Einbeiniges Wadenheben mit Abstützen.', 'Auf einem Bein stehen, eine Hand an der Wand. Langsam auf die Zehenspitzen und kontrolliert zurück. Seite wechseln.',
+      { anchor: 'free', a: P(0, [180, 180], [180, 180], { r: [180, 250] }), b: P(0, [180, 180], [180, 180], { r: [180, 250], y: -8 }), props: ['wall'] }],
+    ['wadenheben_gebeugt', 'Wadenheben mit gebeugten Knien', 'lower', 'Unterschenkel', ['Schollenmuskel (tiefe Wade)', 'Achillessehne'], 1, [],
+      'Wadenheben mit leicht gebeugten Knien.', 'Knie etwa 30° beugen und gebeugt lassen. Langsam auf die Zehenspitzen und zurück – trainiert den tiefen Wadenmuskel (wichtig für Achillessehne und Knie).',
+      { anchor: 'free', a: P(10, [175, 175], [150, 205]), b: P(10, [175, 175], [150, 205], { y: -8 }) }],
+    ['tibialis_raise', 'Tibialis Raise an der Wand', 'lower', 'Unterschenkel', ['Schienbeinmuskel', 'Fußheber'], 1, ['Wand'],
+      'Zehen anheben, Rücken an der Wand.', 'Rücken an die Wand lehnen, Füße etwa 30 cm vor der Wand. Fersen bleiben am Boden, Zehen so weit wie möglich anheben und langsam senken.',
+      { a: P(-8, [180, 180], [168, 168]), b: P(-8, [180, 180], [163, 163]), props: ['wall'] }],
+
+    /* ---------- GANZKÖRPER · Tragen (Carry: 30–60 s gehen oder auf der Stelle marschieren) ---------- */
+    ['farmers_carry', "Farmer's Carry", 'full', 'Tragen', ['Griffkraft', 'Trapez', 'Rumpf', 'Beine'], 1, ['Kurzhanteln/Kettlebells'],
+      'Mit Gewicht in beiden Händen gehen.', 'Je ein Gewicht seitlich in jeder Hand, aufrecht, Schultern tief und hinten. Mit kleinen, ruhigen Schritten gehen (oder auf der Stelle marschieren).',
+      { anchor: 'free', a: P(0, [180, 180], [160, 190], { r: [200, 185] }), b: P(0, [180, 180], [200, 185], { r: [160, 190] }), props: ['dumbbell'] }],
+    ['suitcase_carry', 'Suitcase Carry (einarmig)', 'full', 'Tragen', ['seitliche Bauchmuskeln', 'Griffkraft', 'Rumpf'], 1, ['Kettlebell'],
+      'Gewicht einseitig tragen wie einen Koffer.', 'Kettlebell in einer Hand neben dem Bein, nicht zur Seite neigen. Ruhig gehen oder auf der Stelle marschieren. Nach der halben Zeit Seite wechseln.',
+      { anchor: 'free', a: P(0, [180, 180], [160, 190], { b: [200, 170], r: [200, 185] }), b: P(0, [180, 180], [200, 185], { b: [160, 130], r: [160, 190] }), props: ['kb'] }],
+    ['front_rack_carry', 'Front-Rack Carry', 'full', 'Tragen', ['Rumpf', 'oberer Rücken', 'Schulter'], 2, ['Kettlebell'],
+      'Kettlebell an der Schulter (Rack) tragen.', 'Kettlebell in Rack-Position vor der Schulter, Ellbogen nah am Körper, Rippen unten. Aufrecht gehen. Seite wechseln.',
+      { anchor: 'free', a: P(0, [165, 25], [160, 190], { b: [200, 170], r: [200, 185] }), b: P(0, [165, 25], [200, 185], { b: [160, 130], r: [160, 190] }), props: ['kb'] }],
+    ['overhead_carry', 'Overhead Carry', 'full', 'Tragen', ['Schulter', 'Rumpf', 'Trapez'], 3, ['Kettlebell'],
+      'Kettlebell mit gestrecktem Arm über Kopf tragen.', 'Kettlebell über dem Kopf, Arm gestreckt neben dem Ohr, Rippen unten (kein Hohlkreuz). Langsam gehen. Nur bei freier, schmerzfreier Schulter. Seite wechseln.',
+      { anchor: 'free', a: P(0, [0, 0], [160, 190], { b: [200, 170], r: [200, 185] }), b: P(0, [0, 0], [200, 185], { b: [160, 130], r: [160, 190] }), props: ['kb'] }],
+    ['kb_march', 'Marschieren mit Kettlebell', 'full', 'Tragen', ['Hüftbeuger', 'Rumpf', 'Schulter'], 1, ['Kettlebell'],
+      'Auf der Stelle marschieren, Kettlebell vor der Brust.', 'Kettlebell am Griff vor der Brust (Goblet), Ellbogen nah am Körper. Knie abwechselnd langsam bis Hüfthöhe heben, Oberkörper bleibt aufrecht.',
+      { anchor: 'free', a: P(0, [160, 60], [90, 180], { r: [180, 180] }), b: P(0, [160, 60], [180, 180], { r: [90, 180] }), props: ['kb'] }],
+    ['suitcase_march', 'Suitcase March', 'full', 'Tragen', ['seitliche Bauchmuskeln', 'Hüftbeuger', 'Gleichgewicht'], 2, ['Kettlebell'],
+      'Marschieren mit Kettlebell in einer Hand.', 'Kettlebell seitlich in einer Hand. Knie langsam abwechselnd bis Hüfthöhe heben, der Rumpf bleibt gerade und kippt nicht zur Seite. Seite wechseln.',
+      { anchor: 'free', a: P(0, [180, 180], [90, 180], { b: [190, 160], r: [180, 180] }), b: P(0, [180, 180], [180, 180], { b: [190, 160], r: [90, 180] }), props: ['kb'] }]
   ];
 
   App.Data.EXERCISES = EXERCISE_ROWS.map(function (r) {
@@ -301,22 +430,100 @@ App.Data.REFERENCE = [
   /* Material-Ergänzungen (zentral gepflegt, damit die Zeilen oben übersichtlich bleiben) */
   const MAT = ['liegestuetz', 'enge_liegestuetz', 'plank', 'dead_bug', 'hollow_hold', 'bicycle_crunch', 'reverse_crunch', 'superman', 'bird_dog',
     'hip_extension', 'side_plank', 'russian_twist', 'side_plank_reach', 'hip_thrust', 'glute_bridge',
-    'knie_liegestuetz', 'negativ_liegestuetz', 'floor_press', 'pullover', 'y_raise', 'crunch', 'slider_leg_curl', 'mountain_climber', 'shoulder_taps', 'burpee', 'inchworm'];
-  /* Empfohlene Hantelklasse: leicht (ca. 2–4 kg) · mittel (ca. 5–8 kg) · schwer (ca. 10 kg+) – individuell anpassen */
+    'knie_liegestuetz', 'negativ_liegestuetz', 'floor_press', 'pullover', 'y_raise', 'crunch', 'slider_leg_curl', 'mountain_climber', 'shoulder_taps', 'burpee', 'inchworm',
+    'liegestuetz_rotation', 'trizepsheben', 'scapular_pushup', 'push_up_plus', 'long_lever_plank', 'plank_walkout', 'bird_dog_row', 'copenhagen_plank', 'single_leg_glute_bridge', 'bear_crawl', 'lateral_bear_crawl', 'crab_walk'];
+  /* Empfohlene Gewichtsklasse (relativ): Kurzhanteln leicht 1–2 kg · mittel 3 kg · schwer 4 kg; Kettlebell leicht 8 · mittel 12 · schwer 16 kg.
+     Das tatsächlich verwendete Gewicht wird nach dem Training je Übung gespeichert (App.Store.weight). */
   const WEIGHT = { schulterdruecken: 'mittel', arnold_press: 'leicht', kurzhantelrudern: 'schwer', upright_row: 'leicht', bent_over_row: 'mittel',
     bizeps_curl: 'mittel', hammer_curl: 'mittel', trizeps_kickback: 'leicht', goblet_squat: 'schwer', romanian_deadlift: 'schwer',
     kettlebell_swing: 'schwer', single_leg_deadlift: 'leicht', floor_press: 'mittel', kb_press: 'leicht', seitheben: 'leicht', pullover: 'mittel',
-    kb_high_pull: 'mittel', trizeps_ueberkopf: 'mittel', holzhacker: 'mittel', kb_windmill: 'leicht', kb_deadlift: 'schwer', kb_sumo_squat: 'schwer', thruster: 'leicht' };
+    kb_high_pull: 'mittel', trizeps_ueberkopf: 'mittel', holzhacker: 'mittel', kb_windmill: 'leicht', kb_deadlift: 'schwer', kb_sumo_squat: 'schwer', thruster: 'leicht',
+    reverse_fly: 'leicht', kb_bottom_up: 'leicht', bird_dog_row: 'mittel', suitcase_hold: 'schwer', farmers_carry: 'schwer', suitcase_carry: 'schwer',
+    front_rack_carry: 'mittel', overhead_carry: 'leicht', kb_march: 'mittel', suitcase_march: 'mittel' };
   /* Einseitige Übungen (Seitenwechsel in der Mitte der Zeit -> Doppelping) */
   const ONE_SIDED = ['kurzhantelrudern', 'trizeps_kickback', 'step_up', 'bulgarian_split_squat', 'single_leg_deadlift', 'ausfallschritt',
     'seitlicher_ausfallschritt', 'einbeinstand', 'curtsy_lunge', 'side_plank', 'side_plank_reach',
-    'kb_press', 'holzhacker', 'kb_windmill', 'kniestrecken_sitzend', 'seitliches_beinheben'];
+    'kb_press', 'holzhacker', 'kb_windmill', 'kniestrecken_sitzend', 'seitliches_beinheben',
+    'kb_bottom_up', 'bird_dog_row', 'suitcase_hold', 'copenhagen_plank', 'single_leg_glute_bridge', 'einbeinstand_reach', 'wadenheben_einbeinig',
+    'suitcase_carry', 'front_rack_carry', 'overhead_carry', 'suitcase_march', 'liegestuetz_rotation'];
+
+  /* ---------- Attribute für den Generator ----------
+     pattern  Bewegungsmuster · position  Ausgangsposition · load  Belastungsart (aus dem Material abgeleitet)
+     flags    jump (Sprung/Aufprall), knee (belastet die Knie stark), wrist (Stütz auf den Händen), overhead, balance */
+  const PATTERN = {
+    push_h: 'liegestuetz schraeg_liegestuetz enge_liegestuetz wand_liegestuetz knie_liegestuetz negativ_liegestuetz floor_press liegestuetz_rotation push_up_plus',
+    push_v: 'schulterdruecken arnold_press kb_press',
+    pull_h: 'kurzhantelrudern bent_over_row face_pull reverse_fly band_pull_apart',
+    pull_v: 'upright_row kb_high_pull pullover dead_hang',
+    scap: 'scapular_pushup wall_slide y_raise kb_bottom_up',
+    iso: 'bizeps_curl hammer_curl trizeps_kickback trizeps_ueberkopf trizepsheben seitheben trizeps_dip aussenrotation_band kniestrecken_sitzend seitliches_beinheben',
+    squat: 'kniebeuge goblet_squat wall_sit kb_sumo_squat squat_jump thruster',
+    lunge: 'ausfallschritt seitlicher_ausfallschritt curtsy_lunge bulgarian_split_squat step_up jump_lunge',
+    hinge: 'romanian_deadlift kettlebell_swing single_leg_deadlift kb_deadlift good_morning hip_thrust glute_bridge single_leg_glute_bridge slider_leg_curl',
+    extension: 'superman rueckenstrecker hip_extension',
+    anti_ext: 'plank dead_bug hollow_hold long_lever_plank plank_walkout mountain_climber',
+    anti_rot: 'bird_dog bird_dog_row pallof_press shoulder_taps',
+    anti_lat: 'side_plank side_plank_reach copenhagen_plank suitcase_hold kb_windmill',
+    rotation: 'russian_twist holzhacker bicycle_crunch dampflok',
+    flexion: 'crunch reverse_crunch',
+    balance: 'einbeinstand heel_to_toe einbeinstand_reach',
+    calf: 'wadenheben wadenheben_einbeinig wadenheben_gebeugt tibialis_raise',
+    carry: 'farmers_carry suitcase_carry front_rack_carry overhead_carry kb_march suitcase_march',
+    locomotion: 'bear_crawl lateral_bear_crawl crab_walk duck_walk gorilla_walk carioca lateral_shuffle inchworm',
+    cardio: 'hampelmann high_knees anfersen skater schattenboxen seilspringen burpee a_march a_skip fast_feet'
+  };
+  const POSITION = {
+    'Rückenlage': 'dead_bug hollow_hold bicycle_crunch reverse_crunch hip_thrust glute_bridge single_leg_glute_bridge floor_press pullover crunch slider_leg_curl',
+    'Bauchlage': 'superman y_raise trizepsheben',
+    'Vierfüßler': 'bird_dog hip_extension bird_dog_row bear_crawl lateral_bear_crawl',
+    'Stütz': 'liegestuetz schraeg_liegestuetz enge_liegestuetz negativ_liegestuetz liegestuetz_rotation scapular_pushup push_up_plus plank long_lever_plank plank_walkout side_plank side_plank_reach copenhagen_plank mountain_climber shoulder_taps crab_walk',
+    'kniend': 'knie_liegestuetz',
+    'sitzend': 'russian_twist trizeps_dip kniestrecken_sitzend'
+  };
+  const FLAGS = {
+    jump: 'hampelmann high_knees anfersen skater seilspringen burpee squat_jump jump_lunge a_skip fast_feet',
+    knee: 'bulgarian_split_squat jump_lunge squat_jump duck_walk curtsy_lunge skater burpee gorilla_walk',
+    wrist: 'liegestuetz schraeg_liegestuetz enge_liegestuetz wand_liegestuetz knie_liegestuetz negativ_liegestuetz liegestuetz_rotation scapular_pushup push_up_plus plank_walkout ' +
+      'burpee mountain_climber inchworm shoulder_taps bear_crawl lateral_bear_crawl crab_walk gorilla_walk bird_dog hip_extension bird_dog_row trizeps_dip',
+    overhead: 'schulterdruecken arnold_press kb_press trizeps_ueberkopf thruster overhead_carry kb_windmill dead_hang wall_slide hampelmann',
+    balance: 'einbeinstand heel_to_toe einbeinstand_reach single_leg_deadlift bulgarian_split_squat curtsy_lunge wadenheben_einbeinig step_up kniestrecken_sitzend'
+  };
+  const words = s => s.split(' ');
+  const patternOf = {}, positionOf = {};
+  Object.keys(PATTERN).forEach(k => words(PATTERN[k]).forEach(id => { patternOf[id] = k; }));
+  Object.keys(POSITION).forEach(k => words(POSITION[k]).forEach(id => { positionOf[id] = k; }));
+  /** Belastungsart aus dem Material: KH, KB, Band, Stange, Stuhl/Wand oder Körpergewicht. */
+  function loadOf(eq) {
+    const s = eq.filter(q => !/optional/i.test(q)).join(' ');
+    if (/kettlebell/i.test(s) && /hantel/i.test(s)) return 'KH/KB';
+    if (/kettlebell/i.test(s)) return 'KB';
+    if (/hantel/i.test(s)) return 'KH';
+    if (/band/i.test(s)) return 'Band';
+    if (/stange/i.test(s)) return 'Stange';
+    if (/wand|stuhl|bank|stufe/i.test(s)) return 'Wand/Stuhl';
+    return 'BW';
+  }
   App.Data.EXERCISES.forEach(function (e) {
     e.oneSided = ONE_SIDED.indexOf(e.id) >= 0;
     if (MAT.indexOf(e.id) >= 0) e.equipment = e.equipment.concat('Matte');
     if (WEIGHT[e.id]) e.weight = WEIGHT[e.id];
     e.needsAnchor = e.equipment.some(q => /^(trx|band)/i.test(q));   // braucht Befestigungspunkt
+    e.pattern = patternOf[e.id] || null;
+    e.position = positionOf[e.id] || 'stehend';
+    e.load = loadOf(e.equipment);
+    e.flags = {};
+    Object.keys(FLAGS).forEach(k => { if (words(FLAGS[k]).indexOf(e.id) >= 0) e.flags[k] = true; });
+    if (e.oneSided) e.flags.unilateral = true;
   });
+
+  /** Anzeigenamen der Attribute (Katalog/Overlay). */
+  App.Data.PATTERN_LABEL = { push_h: 'Drücken horizontal', push_v: 'Drücken vertikal', pull_h: 'Ziehen horizontal', pull_v: 'Ziehen vertikal',
+    scap: 'Schulterblatt', iso: 'Isolation', squat: 'Kniebeuge', lunge: 'Ausfallschritt', hinge: 'Hüftbeuge', extension: 'Rückenstreckung',
+    anti_ext: 'Anti-Extension', anti_rot: 'Anti-Rotation', anti_lat: 'Anti-Seitneigung', rotation: 'Rotation', flexion: 'Rumpfbeugung',
+    balance: 'Gleichgewicht', calf: 'Unterschenkel', carry: 'Tragen', locomotion: 'Fortbewegung', cardio: 'Cardio' };
+  App.Data.LOAD_LABEL = { BW: 'Körpergewicht', KH: 'Kurzhanteln', KB: 'Kettlebell', 'KH/KB': 'Kurzhanteln oder Kettlebell', Band: 'Gummiband', Stange: 'Klimmzugstange', 'Wand/Stuhl': 'Wand / Stuhl' };
+  App.Data.FLAG_LABEL = { jump: 'mit Sprüngen', knee: 'belastet die Knie', wrist: 'Stütz auf den Händen', overhead: 'über Kopf', balance: 'Gleichgewicht', unilateral: 'einseitig' };
+  App.Data.LEVEL_LABEL = { 1: 'Einsteiger', 2: 'Mittel', 3: 'Fortgeschritten' };
 
   /* Hilfsfunktion für spätere Module (Dehnübungen nutzen dieselbe Struktur) */
   App.Data.byId = {};

@@ -32,7 +32,7 @@ App.Store = (function () {
   const defaults = () => ({ version: 1, updatedAt: 0, settings: { areas: ['upper'], style: 'kieser', kieserSeconds: App.Config.kieser.def, classicSets: App.Config.classic.sets.def, classicSeconds: App.Config.classic.seconds.def,
       circuitRounds: App.Config.circuit.rounds.def, circuitSeconds: App.Config.circuit.seconds.def,
       hiitRounds: App.Config.hiit.rounds.def, hiitWork: App.Config.hiit.work.def, hiitRest: App.Config.hiit.rest.def, programType: 'random', sound: false },
-    sessions: [], favorites: [], weights: {}, ratings: {}, levels: {} });   // levels: { id: { offset: s, last: 'leicht'|'richtig'|'schwer', t: ms } }
+    sessions: [], favorites: [], weights: {}, ratings: {}, levels: {} });   // levels: { id: { offset: s, last: 'leicht'|'richtig'|'schwer', t: ms } } · weights: { id: { kg, t } }
   let state = load();
 
   function load() {
@@ -60,7 +60,7 @@ App.Store = (function () {
     (a.sessions || []).concat(b.sessions || []).forEach(s => { const o = byId[s.id]; if (!o || (s.t || 0) >= (o.t || 0)) byId[s.id] = s; });
     const sessions = Object.keys(byId).map(k => byId[k]).sort((x, y) => x.date < y.date ? -1 : 1);
     const older = newer === a ? b : a;
-    return Object.assign(defaults(), newer, { ratings: Object.assign({}, older.ratings, newer.ratings), levels: mergeLevels(a.levels, b.levels), sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
+    return Object.assign(defaults(), newer, { ratings: Object.assign({}, older.ratings, newer.ratings), levels: mergeLevels(a.levels, b.levels), weights: mergeLevels(a.weights, b.weights), sessions: sessions, updatedAt: Math.max(a.updatedAt || 0, b.updatedAt || 0) });
   }
 
   return {
@@ -79,6 +79,9 @@ App.Store = (function () {
     /** Sekunden-Anpassung je Übung: { id: offset } */
     offsets: () => { const o = {}; Object.keys(state.levels).forEach(k => { o[k] = state.levels[k].offset || 0; }); return o; },
     setLevel: function (id, offset, last) { state.levels[id] = { offset: offset, last: last, t: Date.now() }; save(); },
+    /** Zuletzt verwendetes Gewicht (kg) je Übung – Standardauswahl am Trainingsende. */
+    weight: id => { const w = (state.weights || {})[id]; return w && w.kg ? w.kg : null; },
+    setWeight: function (id, kg) { state.weights = state.weights || {}; state.weights[id] = { kg: kg, t: Date.now() }; save(); },
     history: () => state.sessions,
     ratings: () => state.ratings,
     rating: id => state.ratings[id] || 0,

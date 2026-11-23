@@ -15,6 +15,10 @@ App.Config = {
   prepareSeconds: 10,
   /* Übungen, die Befestigung brauchen (Band/TRX), nicht vorschlagen. Auf false setzen, wenn ein Ankerpunkt vorhanden ist. */
   excludeAnchored: true,
+  /* Generator: vorhandenes Material (Standard) und Gewichtsauswahl am Trainingsende (kg) */
+  gear: { KH: true, KB: true, Band: false, Stange: false, Stuhl: true },
+  gearLabel: { KH: 'Kurzhanteln', KB: 'Kettlebell', Band: 'Gummiband', Stange: 'Klimmzugstange', Stuhl: 'Hocker / Bank / Stuhl' },
+  kg: { KH: [1, 2, 3, 4], KB: [8, 12, 16] },
   /* Kieser-Dauer: Standard und Reglerbereich (Sekunden) */
   kieser: { min: 60, max: 120, step: 5, def: 120 },
   /* Klassisch: Sätze und Sekunden pro Satz wählbar, Pause zwischen den Sätzen */

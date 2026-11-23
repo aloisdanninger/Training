@@ -1,6 +1,8 @@
 /* ==========================================================================
    20-logic-programs.js  –  TRAININGSLOGIK (keine UI, kein DOM)
    - Referenztraining (feste Liste) und "intelligenter" Zufallsmodus (Regeln aus App.Data.AREAS)
+   - Rahmenbedingungen (ohne Springen, knieschonend, Handgelenke schonen, vorhandenes Material)
+   - Ganzkörper: Auswahl nach Bewegungsmustern; gleiche Muster werden innerhalb eines Bereichs seltener gewählt
    - HIIT-Übungen laufen immer zuerst im HIIT-Intervall, danach die Kraftübungen im gewählten Stil
    - Dehnprogramm-Auswahl
    - Umwandlung eines Programms in zeitliche Blöcke für den Timer
@@ -24,7 +26,7 @@ App.Programs = (function () {
   function pickWeighted(pool, n, weightOf, rnd) {
     const items = pool.slice(), out = [];
     while (out.length < n && items.length) {
-      const w = items.map(weightOf), sum = w.reduce((x, y) => x + y, 0);
+      const w = items.map(x => weightOf(x, out)), sum = w.reduce((x, y) => x + y, 0);
       let r = rnd() * sum, i = 0;
       while (i < items.length - 1 && r >= w[i]) { r -= w[i]; i++; }
       out.push(items.splice(i, 1)[0]);
@@ -32,33 +34,67 @@ App.Programs = (function () {
     return out;
   }
 
-  /** Zufallsprogramm für einen Bereich: strikt nach den Slot-Regeln (2/2/1). */
-  function randomForArea(area, history, rnd, ratings) {
-    const recent = recentIds(history, 3), excl = App.Config.excludeAnchored;
-    let ids = [];
-    area.slots.forEach(function (slot) {
-      const pool = D.EXERCISES.filter(e => e.category === area.id && e.subCategory === slot.sub && !(excl && e.needsAnchor));
-      ids = ids.concat(pickWeighted(pool, slot.n, e => (recent[e.id] ? 0.25 : 1) * ratingWeight((ratings || {})[e.id]), rnd).map(e => e.id));
-    });
-    return ids;
+  /** Material -> Ausstattung (eine der Alternativen genügt). Wand, Matte, Handtuch und optionales Material sind immer verfügbar. */
+  const GEAR = [['KH', /hantel/i], ['KB', /kettlebell/i], ['Band', /band/i], ['Stange', /stange/i], ['Stuhl', /bank|stuhl|stufe|hocker/i]];
+  const gearNeeds = ex => ex.equipment.filter(q => !/optional/i.test(q)).map(q => GEAR.filter(g => g[1].test(q)).map(g => g[0])).filter(a => a.length);
+
+  /**
+   * Erfüllt eine Übung die Rahmenbedingungen?
+   * f = { noJump, kneeFriendly, wristFriendly, gear: { KH, KB, Band, Stange, Stuhl } } (null = alles erlaubt außer Befestigung)
+   */
+  function allowed(ex, f) {
+    if (App.Config.excludeAnchored && ex.needsAnchor) return false;
+    if (!f) return true;
+    const fl = ex.flags || {};
+    if ((f.noJump && fl.jump) || (f.kneeFriendly && fl.knee) || (f.wristFriendly && fl.wrist)) return false;
+    return !f.gear || gearNeeds(ex).every(alts => alts.some(k => f.gear[k]));
+  }
+
+  /** Mögliche Gewichte (kg) für die Auswahl am Trainingsende; leer = Übung ohne Hantel/Kettlebell. */
+  function kgOptions(ex) {
+    const s = (ex.equipment || []).join(' '), K = App.Config.kg;
+    return (/hantel/i.test(s) ? K.KH : []).concat(/kettlebell/i.test(s) ? K.KB : []);
   }
 
   /**
+   * Zufallsprogramm für einen Bereich nach den Slot-Regeln: { sub, n } = Unterkategorie, { pat: [...], n } = Bewegungsmuster (Ganzkörper).
+   * Gewichtung: Bewertung · kürzlich trainiert ×0.25 · gleiches Bewegungsmuster schon gewählt ×0.3 · vorhandene Gewichte ×1.5.
+   * Lassen die Rahmenbedingungen zu wenig übrig, wird aus dem ganzen Bereich aufgefüllt.
+   */
+  function randomForArea(area, ctx) {
+    const recent = recentIds(ctx.history, 3), f = ctx.filter, rt = ctx.ratings || {}, used = ctx.used, chosen = {};
+    const inArea = e => area.slots[0].pat ? e.category !== 'hiit' : e.category === area.id;
+    const fits = (e, s) => inArea(e) && (s.pat ? s.pat.indexOf(e.pattern) >= 0 : e.subCategory === s.sub);
+    const loaded = e => f && f.gear && /^(KH|KB|KH\/KB)$/.test(e.load) ? 1.5 : 1;
+    const weight = (e, out) => (recent[e.id] ? 0.25 : 1) * ratingWeight(rt[e.id]) * loaded(e) *
+      (chosen[e.pattern] || out.some(o => o.pattern === e.pattern) ? 0.3 : 1);
+    const ids = [];
+    area.slots.forEach(function (slot) {
+      let got = pickWeighted(D.EXERCISES.filter(e => fits(e, slot) && !used[e.id] && allowed(e, f)), slot.n, weight, ctx.rnd);
+      if (got.length < slot.n) got = got.concat(pickWeighted(D.EXERCISES.filter(e => inArea(e) && !used[e.id] && got.indexOf(e) < 0 && allowed(e, f)), slot.n - got.length, weight, ctx.rnd));
+      got.forEach(e => { used[e.id] = true; chosen[e.pattern] = true; ids.push(e.id); });
+    });
+    return ids;
+  }
+  const slotCount = area => area.slots.reduce((s, x) => s + x.n, 0);
+
+  /**
    * Erstellt ein Kraftprogramm.
-   * opts: { areaIds: ['hiit','upper',..], programType: 'random'|'reference', history: [...], ratings: {id: 0-5}, rnd: fn }
-   * Rückgabe (Program): { id, type, areaIds, exerciseIds }
+   * opts: { areaIds: ['hiit','upper',..], programType: 'random'|'reference', history: [...], ratings: {id: 0-5}, filter: {...}, rnd: fn }
+   * Rückgabe (Program): { id, type, areaIds, exerciseIds, areaOf } – areaOf[i] = Bereich, aus dem Übung i gewählt wurde (Ganzkörper mischt Kategorien).
+   * Keine Übung kommt doppelt vor, auch wenn mehrere Bereiche gewählt sind.
    * Referenztraining ignoriert die Bereichsauswahl (immer alle 3 Kraftbereiche, immer dieselben Übungen).
    */
   function buildProgram(opts) {
     if (opts.programType === 'reference') return { id: 'ref-' + Date.now(), type: 'reference', areaIds: ['upper', 'core', 'lower'], exerciseIds: D.REFERENCE.slice() };
-    const rnd = opts.rnd || Math.random;
+    const ctx = { history: opts.history, ratings: opts.ratings, filter: opts.filter || null, rnd: opts.rnd || Math.random, used: {} };
     const order = D.AREAS.map(a => a.id).filter(id => opts.areaIds.indexOf(id) >= 0);   // feste Reihenfolge
-    let ids = [];
+    let ids = [], areaOf = [];
     order.forEach(function (id) {
-      const a = areaById(id);
-      ids = ids.concat(randomForArea(a, opts.history, rnd, opts.ratings));
+      const got = randomForArea(areaById(id), ctx);
+      ids = ids.concat(got); areaOf = areaOf.concat(got.map(() => id));
     });
-    return { id: 'prog-' + Date.now(), type: 'random', areaIds: order, exerciseIds: ids };
+    return { id: 'prog-' + Date.now(), type: 'random', areaIds: order, exerciseIds: ids, areaOf: areaOf };
   }
 
   /** Passendes Dehnprogramm zu trainierten Bereichen (mehrere Bereiche -> aneinandergehängt). */
@@ -107,8 +143,8 @@ App.Programs = (function () {
   const totalSeconds = blocks => blocks.reduce((s, b) => s + b.duration, 0);
 
   /** Kanonische Materialnamen (Schreibvarianten in den Daten werden zusammengeführt). */
-  const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe|stuhl)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Gummiband / Kabel'],
-    [/^matte/i, 'Matte'], [/^trx/i, 'TRX / Schlingentrainer'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand']];
+  const CANON = [[/^kurzhantel/i, 'Kurzhanteln'], [/^(bank|stufe|stuhl)/i, 'Hocker / Bank / Stuhl'], [/^band/i, 'Band / Kabel (befestigt)'], [/^gummiband/i, 'Gummiband'],
+    [/^matte/i, 'Matte'], [/^klimmzug/i, 'Klimmzugstange'], [/^kettlebell/i, 'Kettlebell'], [/^wand/i, 'freie Wand']];
   const canon = n => { const c = CANON.filter(x => x[0].test(n))[0]; return c ? c[1] : n.replace(/\s*\(optional\)/, ''); };
 
   /**
@@ -132,6 +168,6 @@ App.Programs = (function () {
     return order.map(k => map[k]).sort((a, b) => (rank[a.item] == null ? 9 : rank[a.item]) - (rank[b.item] == null ? 9 : rank[b.item]));
   }
 
-  return { buildProgram: buildProgram, buildStretch: buildStretch, stretchForAreas: stretchForAreas,
+  return { allowed: allowed, kgOptions: kgOptions, slotCount: slotCount, buildProgram: buildProgram, buildStretch: buildStretch, stretchForAreas: stretchForAreas,
     buildBlocks: buildBlocks, totalSeconds: totalSeconds, equipmentSummary: equipmentSummary, ratingWeight: ratingWeight, areaById: areaById };
 })();

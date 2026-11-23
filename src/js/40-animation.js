@@ -85,6 +85,8 @@ App.Animation = (function () {
         const jA = jt(A), ank = sh(jA.near.leg[2]), hip = sh(jA.hip);
         if (pr === 'step') { el(g.props, 'rect', { 'class': 'fig-box', x: ank[0] - 22, y: ank[1], width: 44, height: Math.max(4, C.stage.floorY + 3 - ank[1]), rx: 3 }); }
         else if (pr === 'wall') { el(g.props, 'line', { 'class': 'fig-wall', x1: hip[0] - 16, x2: hip[0] - 16, y1: 14, y2: C.stage.floorY + 3 }); }
+        else if (pr === 'bar') { const hd = sh(jA.near.arm[2]); el(g.props, 'line', { 'class': 'fig-wall', x1: hd[0] - 30, x2: hd[0] + 30, y1: hd[1] - 2, y2: hd[1] - 2 }); }
+        else if (pr === 'kb') { propEls.push({ kind: 'kb', n: [el(g.front, 'circle', { 'class': 'fig-weight', r: 6.5 })] }); }
         else if (pr === 'dumbbell') { propEls.push({ kind: 'db', n: [el(g.front, 'circle', { 'class': 'fig-weight', r: 5 }), el(g.front, 'circle', { 'class': 'fig-weight', r: 5 })] }); }
         else if (pr.rope) { propEls.push({ kind: 'rope', anchor: pr.rope, n: [el(g.props, 'line', { 'class': 'fig-rope' }), el(g.props, 'circle', { 'class': 'fig-anchor', r: 3, cx: pr.rope[0], cy: pr.rope[1] })] }); }
       });
@@ -119,7 +121,8 @@ App.Animation = (function () {
       g.eye2.style.display = g.bars[0].style.display = g.bars[1].style.display = front ? '' : 'none';
       const hand = sh(j.near.arm[2]), hand2 = sh(j.far.arm[2]);
       propEls.forEach(function (pe) {
-        if (pe.kind === 'db') {
+        if (pe.kind === 'kb') { pe.n[0].setAttribute('cx', hand[0]); pe.n[0].setAttribute('cy', hand[1] + 4); }
+        else if (pe.kind === 'db') {
           [hand, hand2].forEach((h, i) => { pe.n[i].setAttribute('cx', h[0]); pe.n[i].setAttribute('cy', h[1]); });
         } else { line(pe.n[0], hand, pe.anchor); }
       });
