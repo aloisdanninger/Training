@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795460310050,
+ "updatedAt": 1795461775645,
  "settings": {
   "areas": [
    "full"
@@ -202,6 +202,35 @@
    ],
    "completed": true,
    "durationSec": 650
+  },
+  {
+   "id": "s1795460555945ukiy",
+   "date": "2026-11-23T19:02:35.945Z",
+   "kind": "stretch",
+   "areaIds": [],
+   "modeId": "stretch",
+   "programType": "stretch",
+   "exerciseIds": [
+    "st_catcow",
+    "st_child",
+    "st_cobra",
+    "st_rotation",
+    "st_seitbeuge",
+    "st_nacken",
+    "st_levator",
+    "st_brustoeffner",
+    "st_schulterblatt",
+    "st_thread",
+    "m_open_book",
+    "m_tspine_rot",
+    "m_wall_rotation",
+    "m_chair_ext",
+    "m_shoulder_cars",
+    "m_arm_circles"
+   ],
+   "completed": true,
+   "durationSec": 1220,
+   "t": 1795461775644
   }
  ],
  "favorites": [],
