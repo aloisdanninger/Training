@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795458733185,
+ "updatedAt": 1795459924189,
  "settings": {
   "areas": [
    "full"
@@ -14,8 +14,8 @@
   "wristFriendly": true,
   "gear": {
    "KH": true,
-   "KB": true,
-   "Band": true,
+   "KB": false,
+   "Band": false,
    "Stange": false,
    "Stuhl": true
   }
