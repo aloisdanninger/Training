@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SW-Architektur – Persönlicher Trainingsgenerator</title>
+<style>
+  :root { --bg:#f4f6fa; --ink:#14213d; --muted:#5b6785; --line:#c9d1e3; --card:#fff;
+    --c-ext:#6b7280; --c-start:#7c3aed; --c-ui:#0057b8; --c-svc:#0d9488; --c-logic:#d97706; --c-data:#be185d; --c-base:#475569; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:18px 24px 8px; }
+  h1 { margin:0 0 4px; font-size:22px; }
+  header p { margin:0; color:var(--muted); max-width:900px; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; padding:10px 24px 14px; align-items:center; }
+  .bar button { border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 12px; font:inherit; cursor:pointer; color:var(--ink); }
+  .bar button:hover { background:#eef2fb; }
+  .bar button.on { background:var(--c-ui); color:#fff; border-color:var(--c-ui); }
+  .legend { display:flex; gap:12px; flex-wrap:wrap; margin-left:auto; font-size:12px; color:var(--muted); }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+  #stage { position:relative; padding:0 24px 40px; }
+  #wires { position:absolute; inset:0; pointer-events:none; z-index:0; overflow:visible; }
+  .layer { position:relative; z-index:1; display:flex; gap:14px; align-items:flex-start; margin-bottom:34px; padding:26px 14px 14px; border-radius:14px; background:transparent; border:1px dashed var(--line); flex-wrap:wrap; }
+  .layer > .tag { position:absolute; top:5px; left:14px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .card { position:relative; flex:1 1 230px; max-width:360px; min-width:200px; background:var(--card); border:1px solid var(--line); border-left:6px solid var(--k); border-radius:10px; padding:10px 12px; cursor:pointer; transition:box-shadow .15s, opacity .15s; }
+  .card:hover { box-shadow:0 2px 10px rgba(20,33,61,.15); }
+  .card.sel { box-shadow:0 0 0 2px var(--k), 0 4px 14px rgba(20,33,61,.2); }
+  .card.dim { opacity:.35; }
+  .card .file { font:11px ui-monospace,Consolas,monospace; color:var(--muted); }
+  .card h3 { margin:1px 0 3px; font-size:15px; display:flex; justify-content:space-between; gap:8px; }
+  .card h3 .chev { color:var(--muted); transition:transform .15s; }
+  .card.open h3 .chev { transform:rotate(90deg); }
+  .card .task { color:var(--ink); font-size:13px; }
+  .card .io { display:none; margin-top:9px; border-top:1px solid var(--line); padding-top:8px; font-size:12.5px; }
+  .card.open .io { display:block; }
+  .io h4 { margin:8px 0 2px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
+  .io h4.in { color:#15803d; } .io h4.out { color:#b45309; } .io h4.api { color:var(--c-ui); } .io h4.dep { color:var(--muted); }
+  .io ul { margin:0; padding-left:16px; }
+  .io li { margin:1px 0; }
+  .io code { font:11.5px ui-monospace,Consolas,monospace; background:#eef2fb; padding:0 3px; border-radius:3px; }
+  .ext { --k:var(--c-ext); background:#f8fafc; }
+  .hint { color:var(--muted); font-size:12px; padding:0 24px 8px; }
+  @media print { .bar, .hint { display:none; } .card .io { display:block !important; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>SW-Architektur · Persönlicher Trainingsgenerator</h1>
+  <p>Offline-Web-App in einer HTML-Datei (14 JS-Module, Namespace <code>App</code>). Klick auf ein Modul blendet Hauptaufgabe-Details sowie Ein- und Ausgänge ein bzw. aus und hebt die Datenflüsse hervor.</p>
+</header>
+<div class="bar">
+  <button id="bAll">Alle ausklappen</button>
+  <button id="bNone">Alle einklappen</button>
+  <button id="bWires">Alle Verbindungen zeigen</button>
+  <span class="legend" id="legend"></span>
+</div>
+<div class="hint">Modul anklicken: zeigt Details und hebt seine Datenflüsse hervor (Pfeil = Quelle → Ziel, mit Signalname). Grün = Eingänge, Orange = Ausgänge. „Alle Verbindungen“ zeigt das Gesamtbild.</div>
+<div id="stage"><svg id="wires"></svg><div id="layers"></div></div>
+
+<script>
+/* ---------- Beschreibung der Architektur ---------- */
+const COL = { ext:'--c-ext', start:'--c-start', ui:'--c-ui', svc:'--c-svc', logic:'--c-logic', data:'--c-data', base:'--c-base' };
+const LAYERS = [
+  { id:'ext', title:'Extern (Umgebung)', color:'ext' },
+  { id:'start', title:'Start & Test', color:'start' },
+  { id:'ui', title:'Präsentation', color:'ui' },
+  { id:'svc', title:'Dienste', color:'svc' },
+  { id:'logic', title:'Logik', color:'logic' },
+  { id:'data', title:'Daten', color:'data' },
+  { id:'base', title:'Basis', color:'base' }
+];
+const M = [
+  /* ---- extern ---- */
+  { id:'user', layer:'ext', ext:true, name:'Benutzer / Browser', file:'iPhone · iPad · Mac',
+    task:'Bedient die App, sieht Bild und Timer, hört Signaltöne.',
+    in:['Bildschirm (DOM/SVG)','Signaltöne (WebAudio)'], out:['Klicks, Regler, Auswahl (Bereiche, Stil, Start, Pause, Skip, Abbruch)','Bewertungen, Empfinden, Gewichte'] },
+  { id:'ls', layer:'ext', ext:true, name:'localStorage', file:'Browser-Speicher je Gerät',
+    task:'Lokaler Speicher; die App läuft auch ohne Netz.',
+    in:['Zustand je Profil (JSON)','Profil, Token, Ton, Lautstärke, Beschreibung eingeklappt'], out:['gespeicherter Zustand beim Start'] },
+  { id:'gh', layer:'ext', ext:true, name:'GitHub (Branch progress)', file:'aloisdanninger/Training',
+    task:'Geräteübergreifender Fortschritt als JSON je Profil (training-lois.json, -elke.json, training.json = Test).',
+    in:['GET Datei + sha','PUT Datei (Fine-grained Token)'], out:['Remote-Zustand (JSON, Base64)','HTTP-Status 404/409/422'] },
+  { id:'cf', layer:'ext', ext:true, name:'Cloudflare Worker + Access', file:'wrangler.jsonc',
+    task:'Liefert docs/training.html aus, geschützt durch One-time-PIN; deployt automatisch bei Push auf main.',
+    in:['Push auf main (docs/)'], out:['training.html an den Browser'] },
+
+  /* ---- Start & Test ---- */
+  { id:'main', layer:'start', name:'Einstieg', file:'99-main.js',
+    task:'Startet die App nach dem Laden der Seite.',
+    in:['DOMContentLoaded','location.hash (#selftest)'], out:['App.UI.init()','App.SelfTest.run() bei #selftest'],
+    uses:['ui','selftest'] },
+  { id:'selftest', layer:'start', name:'Selbsttest', file:'90-selftest.js · App.SelfTest',
+    task:'Eingebauter Test (65 Prüfungen): Daten, Generator-Regeln, Dauer, Timer, Töne, Posen, Profile.',
+    in:['Aufruf über #selftest','liest App.Data, App.Programs, App.Timer, App.Animation, App.Store'], out:['document.title = SELFTEST PASS / FAIL (…)','Ergebnisliste im DOM'],
+    uses:['programs','timer','anim','store','ex','st','fo','modes'] },
+
+  /* ---- UI ---- */
+  { id:'ui', layer:'ui', name:'Benutzeroberfläche', file:'70-ui.js · App.UI',
+    task:'Alle Bildschirme (Start, Übersicht, Training, Abschluss, Katalog, Overlay), Ereignisse und Steuerung des Ablaufs.',
+    in:['Klicks/Regler des Benutzers','Timer-Callbacks: onTick(state), onBlockStart, onBlockEnd, onFinish','Store-Zustand: Einstellungen, Historie, Bewertungen, Offsets','Sync-Status'],
+    out:['DOM/HTML: Listen, Übersicht, Ringtimer, Zahl, Cue-Text','Programm + Modus → Blockliste','Session-Datensatz {id, date, kind, areaIds, modeId, exerciseIds, completed, durationSec, ref, kg}','Aufrufe: Animation.render(p), Audio.play(name), Sync.sync()'],
+    api:['init()'],
+    uses:['programs','timer','anim','audio','store','modes','ex','st','fo','user'] },
+
+  /* ---- Dienste ---- */
+  { id:'timer', layer:'svc', name:'Timer', file:'30-timer.js · App.Timer',
+    task:'Zeitstempelbasierter Block-Timer; kennt weder DOM noch Übungen. Bleibt bei Hintergrund-Drosselung korrekt.',
+    in:['blocks[] (Block = {type, duration, motion(t), sound, …})','Befehle: start · pause · skip · stop · advance(dt)','Callbacks cb.onTick / onBlockStart / onBlockEnd / onFinish'],
+    out:['onTick(state) = {index, block, elapsed, remaining, running, finished, motion {p, cue}}','Block-Wechsel-Ereignisse','Ende-Ereignis'],
+    api:['App.Timer(blocks, cb) → {start, pause, stop, skip, advance, state, isRunning, isFinished}'] },
+  { id:'anim', layer:'svc', name:'Animation', file:'40-animation.js · App.Animation',
+    task:'Zeichnet die Strichfigur als SVG und interpoliert zwischen Start- und Endpose. Verankerung: Fuß, frei, Rolle; Requisiten (Kettlebell, Stange, Faszienrolle).',
+    in:['SVG-Element','Übung (svgAnimation: Posen a/b, anchor, props, roll, view)','p = Bewegungsfortschritt 0…1'],
+    out:['SVG-Zeichnung (Figur, Gesicht, Boden, Requisiten)'],
+    api:['createPlayer(svg) → {setExercise(ex), render(p)}'],
+    uses:['pose','cfg'] },
+  { id:'audio', layer:'svc', name:'Audio', file:'50-audio.js · App.Audio',
+    task:'Signaltöne per WebAudio (keine Audiodateien); iOS-Entsperrung, Mischen mit laufender Musik.',
+    in:['play("ping" | "double" | "finish")','unlock() per Nutzergeste','setEnabled(bool), setVolume(0…1)'],
+    out:['Töne: Ping (60/30/10/3/2/1 s), Doppelping (Start/Ende, Seitenwechsel), Fanfare (Ende)'],
+    api:['play · unlock · setEnabled · setVolume'] },
+  { id:'store', layer:'svc', name:'Speicher, Profile & Sync', file:'60-storage.js · App.Profile · App.Store · App.Sync',
+    task:'Profile (Lois/Elke/Test), lokaler Zustand, Merge, Export/Import und GitHub-Abgleich.',
+    in:['setSettings(patch), addSession(rec), updateSession(id, fn)','setRating, setLevel, setWeight','importJson(text)','Remote-JSON von GitHub','Profilname, Token'],
+    out:['Zustand {settings, sessions, ratings, levels, weights, updatedAt}','offsets() = Sekunden-Anpassung je Übung','exportJson()','Sync-Status-Text','PUT-Aufruf an GitHub'],
+    api:['App.Profile: name, set, storageKey, remotePath','App.Store: get, settings, merge, onChange …','App.Sync: sync, setToken, onStatus'],
+    uses:['cfg','ls','gh'] },
+
+  /* ---- Logik ---- */
+  { id:'programs', layer:'logic', name:'Programmlogik', file:'20-logic-programs.js · App.Programs',
+    task:'Erstellt Programme (Kraft, Dehnen, Faszienrolle), prüft Rahmenbedingungen und wandelt Programm + Stil in zeitliche Blöcke um. Kein DOM.',
+    in:['opts {areaIds, programType, history, ratings, filter, rnd}','programIds (Dehnen) · areaIds (Faszienrolle)','Programm + Modus + offsets (+ HIIT-Modus)','Exercise-Daten aus App.Data'],
+    out:['Program {id, type, areaIds, exerciseIds, items, label}','Block[] mit exerciseIndex/-Count','totalSeconds(blocks)','equipmentSummary, kgOptions, allowed'],
+    api:['buildProgram · buildStretch · buildFoam · stretchForAreas · buildBlocks · totalSeconds · equipmentSummary · kgOptions · allowed'],
+    uses:['ex','st','fo','modes','cfg'] },
+
+  /* ---- Daten ---- */
+  { id:'ex', layer:'data', name:'Kraftübungen', file:'10-data-exercises.js · App.Data',
+    task:'111 Kraft- und HIIT-Übungen, Bereiche mit Slot-Regeln, Referenzliste, Attribute (Muster, Last, Flags, Gewichtsklasse, einseitig).',
+    in:['Pose-Kurzschreibweise P(…)'], out:['App.Data.EXERCISES, AREAS, REFERENCE, byId','register(list)'],
+    uses:['pose'] },
+  { id:'st', layer:'data', name:'Dehnübungen', file:'11-data-stretches.js',
+    task:'35 Dehn- und Mobilitätsübungen und 6 Dehnprogramme (Mobilität ziehen je 6 aus dem Pool).',
+    in:['Pose-Kurzschreibweise P(…)'], out:['App.Data.STRETCHES, STRETCH_PROGRAMS'],
+    uses:['pose'] },
+  { id:'modes', layer:'data', name:'Trainingsstile', file:'12-data-modes.js',
+    task:'Zerlegt eine Übung in Blöcke (Vorbereitung, Belastung, Pause) mit Bewegungsfunktion: Kieser, Klassisch, Zirkel, HIIT, Dehnen, Faszienrolle.',
+    in:['Regler-Werte aus Einstellungen (Dauer, Sätze, Runden)','Config (Zeiten)','ctx {offset, secondsEach}'],
+    out:['MODES','modeById(id, settings) → Mode {buildBlocks | buildAll}','Block {type, label, duration, exercise, motion(t) → {p, cue}, sound, endSound}'],
+    uses:['cfg'] },
+  { id:'fo', layer:'data', name:'Faszienrolle', file:'13-data-foam.js',
+    task:'14 Faszienrollen-Übungen (Unter-/Rumpf-/Oberkörper) und Bereichsregeln (Ganzkörper = je 2).',
+    in:['Pose-Kurzschreibweise P(…)'], out:['App.Data.FOAM, FOAM_AREAS'],
+    uses:['pose'] },
+
+  /* ---- Basis ---- */
+  { id:'pose', layer:'base', name:'Pose-Modell', file:'05-pose.js · App.Pose',
+    task:'Pose der Strichfigur mit absoluten Winkeln (0° oben, 90° vorn, 180° unten) und Vorwärtskinematik.',
+    in:['P(t, a, l, {b, r, hd, y}): Winkel für Rumpf, Arme, Beine, Kopf, Höhe'], out:['Pose-Objekte','resolve(pose) mit Defaults'],
+    api:['P · resolve'] },
+  { id:'cfg', layer:'base', name:'Konfiguration', file:'00-config.js · App.Config',
+    task:'Namespace App und alle Parameter der Anwendung.',
+    in:['–'], out:['github {owner, repo, branch, path}','gear, kg (KH 1–4 · KB 8/10/12/16)','kieser, classic, circuit, hiit, reference','levelStep, minSeconds, prepareSeconds','body, stage (Geometrie der Figur)'] }
+];
+/* Verbindungen mit Signalbeschriftung: [von, nach, Beschriftung] */
+const EDGES = [
+  ['main','ui','init()'], ['main','selftest','run()'],
+  ['user','ui','Klicks'], ['ui','user','DOM'],
+  ['ui','programs','opts → Program'], ['programs','ui','Program, Block[]'],
+  ['ui','timer','blocks, cb'], ['timer','ui','onTick(state)'],
+  ['ui','anim','render(p)'], ['ui','audio','play(name)'],
+  ['ui','store','Settings, Session'], ['store','ui','Zustand, Offsets'],
+  ['ui','modes','modeById'],
+  ['store','ls','Zustand JSON'], ['ls','store','Zustand JSON'],
+  ['store','gh','GET/PUT JSON'], ['gh','store','Remote-JSON'],
+  ['cf','user','training.html'],
+  ['programs','ex','Übungen'], ['programs','st','Dehnprogramme'], ['programs','fo','Faszien-Bereiche'], ['programs','modes','Blöcke'],
+  ['ex','pose','P()'], ['st','pose','P()'], ['fo','pose','P()'], ['anim','pose','resolve'],
+  ['modes','cfg','Zeiten'], ['store','cfg','Sync-Ziel'], ['programs','cfg','kg, excludeAnchored'], ['anim','cfg','Körpermaße'],
+  ['selftest','programs','prüft'], ['selftest','timer','prüft'], ['selftest','anim','prüft']
+];
+
+/* ---------- Aufbau ---------- */
+const host = document.getElementById('layers'), svg = document.getElementById('wires');
+const cardOf = {}, open = new Set(); let selected = null, showAll = false;
+
+document.getElementById('legend').innerHTML = LAYERS.map(l => '<span><i style="background:var(' + COL[l.color] + ')"></i>' + l.title + '</span>').join('');
+
+const li = a => (a || []).map(x => '<li>' + x.replace(/</g,'&lt;').replace(/`/g,'') + '</li>').join('');
+LAYERS.forEach(L => {
+  const row = document.createElement('div'); row.className = 'layer';
+  row.innerHTML = '<span class="tag">' + L.title + '</span>';
+  M.filter(m => m.layer === L.id).forEach(m => {
+    const c = document.createElement('div');
+    c.className = 'card' + (m.ext ? ' ext' : ''); c.style.setProperty('--k', 'var(' + COL[L.color] + ')'); c.dataset.id = m.id;
+    const deps = EDGES.filter(e => e[0] === m.id).map(e => (M.find(x => x.id === e[1]) || {}).name + ' (' + e[2] + ')');
+    const users = EDGES.filter(e => e[1] === m.id).map(e => (M.find(x => x.id === e[0]) || {}).name + ' (' + e[2] + ')');
+    c.innerHTML = '<div class="file">' + m.file + '</div><h3><span>' + m.name + '</span><span class="chev">›</span></h3><div class="task">' + m.task + '</div>' +
+      '<div class="io"><h4 class="in">Eingänge</h4><ul>' + li(m.in) + '</ul><h4 class="out">Ausgänge</h4><ul>' + li(m.out) + '</ul>' +
+      (m.api ? '<h4 class="api">Schnittstelle</h4><ul>' + li(m.api) + '</ul>' : '') +
+      (deps.length ? '<h4 class="dep">Sendet an / nutzt</h4><ul>' + li(deps) + '</ul>' : '') +
+      (users.length ? '<h4 class="dep">Empfängt von</h4><ul>' + li(users) + '</ul>' : '') + '</div>';
+    c.onclick = () => {
+      if (open.has(m.id)) { open.delete(m.id); c.classList.remove('open'); if (selected === m.id) selected = null; }
+      else { open.add(m.id); c.classList.add('open'); selected = m.id; }
+      refresh();
+    };
+    row.appendChild(c); cardOf[m.id] = c;
+  });
+  host.appendChild(row);
+});
+
+/* ---------- Verbindungen zeichnen ---------- */
+function rel(el) {
+  const s = document.getElementById('stage').getBoundingClientRect(), r = el.getBoundingClientRect();
+  return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height };
+}
+function draw() {
+  const stage = document.getElementById('stage');
+  svg.setAttribute('width', stage.scrollWidth); svg.setAttribute('height', stage.scrollHeight);
+  let out = '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>';
+  const used = {};
+  EDGES.forEach(e => {
+    const hit = selected && (e[0] === selected || e[1] === selected);
+    if (!hit && !(showAll && !selected)) return;
+    const a = rel(cardOf[e[0]]), b = rel(cardOf[e[1]]);
+    const n = (used[e[0] + '>' + e[1]] = (used[e[0] + '>' + e[1]] || 0) + 1);
+    // Anschlusspunkte: unten→oben bzw. oben→unten, bei gleicher Zeile seitlich
+    let x1, y1, x2, y2;
+    const sameRow = Math.abs(a.y - b.y) < 20;
+    if (sameRow) { const right = a.x < b.x; x1 = a.x + (right ? a.w : 0); y1 = a.y + a.h / 2; x2 = b.x + (right ? 0 : b.w); y2 = b.y + b.h / 2; }
+    else if (a.y < b.y) { x1 = a.x + a.w / 2; y1 = a.y + a.h; x2 = b.x + b.w / 2; y2 = b.y; }
+    else { x1 = a.x + a.w / 2; y1 = a.y; x2 = b.x + b.w / 2; y2 = b.y + b.h; }
+    const off = (hash([e[0], e[1]].sort().join()) % 31) - 15 + (e[0] < e[1] ? 7 : -7); x1 += off; x2 += off * 0.6;
+    const my = (y1 + y2) / 2, d = sameRow ? 'M' + x1 + ' ' + y1 + 'L' + x2 + ' ' + y2 : 'M' + x1 + ' ' + y1 + 'C' + x1 + ' ' + my + ' ' + x2 + ' ' + my + ' ' + x2 + ' ' + y2;
+    const col = hit ? '#0057b8' : '#94a3b8';
+    out += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + (hit ? 2 : 1) + '" opacity="' + (hit ? .95 : .45) + '" marker-end="url(#ah)"/>';
+    if (hit) { const lx = (x1 + x2) / 2, ly = my - 3 + (n - 1) * 12; out += '<text x="' + lx + '" y="' + ly + '" font-size="11" text-anchor="middle" fill="#14213d" stroke="#f4f6fa" stroke-width="3" paint-order="stroke">' + e[2].replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</text>'; }
+  });
+  svg.innerHTML = out;
+}
+function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+function refresh() {
+  const rel2 = new Set(); if (selected) { rel2.add(selected); EDGES.forEach(e => { if (e[0] === selected) rel2.add(e[1]); if (e[1] === selected) rel2.add(e[0]); }); }
+  Object.keys(cardOf).forEach(id => { const c = cardOf[id]; c.classList.toggle('sel', id === selected); c.classList.toggle('dim', !!selected && !rel2.has(id)); });
+  draw();
+}
+document.getElementById('bAll').onclick = () => { Object.keys(cardOf).forEach(id => { open.add(id); cardOf[id].classList.add('open'); }); refresh(); };
+document.getElementById('bNone').onclick = () => { open.clear(); selected = null; Object.keys(cardOf).forEach(id => cardOf[id].classList.remove('open')); refresh(); };
+document.getElementById('bWires').onclick = e => { showAll = !showAll; e.target.classList.toggle('on', showAll); refresh(); };
+window.addEventListener('resize', draw);
+refresh(); setTimeout(draw, 200);
+</script>
+</body>
+</html>

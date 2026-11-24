@@ -2,7 +2,7 @@
 
 Offline-fähige Trainings-App in **einer HTML-Datei** (`docs/training.html`), ohne Frameworks, für Mac, iPad und iPhone.
 Prompt/Anforderungen: `Prompt_Persönlicher_Trainingsgenerator.txt`.
-Software-Architektur (Module, Datenmodell, Abläufe, Sync): [ARCHITEKTUR.md](ARCHITEKTUR.md).
+Software-Architektur (Module, Datenmodell, Abläufe, Sync): [ARCHITEKTUR.md](ARCHITEKTUR.md) · interaktive Grafik: `Architektur_Interaktiv.html` (im Browser öffnen).
 
 ## Aufbau (Quellen in `src/`, getrennt nach Verantwortung)
 
