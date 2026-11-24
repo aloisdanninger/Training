@@ -102,7 +102,17 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 .fig-roller{fill:var(--accent);opacity:.35;stroke:var(--accent);stroke-width:2}.fig-roller-mark{stroke:var(--accent);stroke-width:2;stroke-linecap:round}
 
 /* Smartphone: Übersicht vor dem Start und Bewertung etwas kleiner, damit alles ohne Umbrüche passt */
+/* Startseite: Reiter + Tab-Leiste unten (nur auf der Startseite sichtbar, da Teil von #home) */
+#home{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+#home #start,#home #stretchStart,#home #foamStart{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:5;width:100%;margin-top:12px;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+#home .tabpane>section:first-child>h2:first-child{margin-top:.4em}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;background:var(--card);border-top:1px solid var(--line);padding:4px max(6px,env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
+.tabbar button{appearance:none;flex:1;max-width:180px;border:0;background:none;color:var(--muted);font:inherit;font-size:.75rem;font-weight:600;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;border-radius:12px;touch-action:manipulation}
+.tabbar button span{font-size:1.45rem;line-height:1.1;filter:grayscale(1);opacity:.65}
+.tabbar button[aria-selected=true]{color:var(--accent)}.tabbar button[aria-selected=true] span{filter:none;opacity:1}
 @media (max-width:500px){
+  #home{font-size:15px}#home h1{font-size:1.6rem}#home .btn.big{min-height:56px;font-size:1.05rem}
+  #home .choice{min-width:120px}#home .choice .ic{font-size:1.3rem}
   #preview,#done{font-size:14px}
   #preview h1,#done h1{font-size:1.6rem}
   #preview h2,#done h2{font-size:.85rem}
@@ -119,29 +129,50 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 <body>
 <!-- ============ STARTBILDSCHIRM ============ -->
 <main id="home" class="screen">
-  <div class="topbar"><h1>Training</h1><button id="profileBtn" class="chip" aria-label="Benutzer wechseln"></button></div>
+  <div class="topbar"><h1 id="homeTitle">Krafttraining</h1><button id="profileBtn" class="chip" aria-label="Benutzer wechseln"></button></div>
+
+  <!-- Reiter: Kraft -->
+  <div id="tab-kraft" class="tabpane">
   <section id="refDue" class="card due" hidden><h2>📋 Referenztraining fällig</h2><p id="refDueText" class="muted"></p>
     <button id="refStart" class="btn primary">Referenztraining starten</button></section>
   <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div><p id="refInfo" class="muted small" hidden></p></section>
   <section id="secAreas"><h2>Trainingsbereiche</h2><div id="areas" class="areas"></div></section>
-  <section id="secFilter"><h2>Rahmenbedingungen</h2><div id="filters" class="chips"></div>
-    <h2>Vorhandenes Material</h2><div id="gear" class="chips"></div></section>
   <section id="hiitOpts" class="opts" hidden></section>
   <section id="secStyle"><h2>Trainingsstil (Kraft)</h2><div id="styles" class="seg"></div></section>
   <section id="styleOpts" class="opts"></section>
-  <section class="row"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label>
-    <label class="slider" style="flex:1;min-width:160px">Lautstärke der Pings<input type="range" id="vol" min="0.1" max="1" step="0.1" aria-label="Lautstärke der Pings"></label></section>
   <p id="summary" class="muted"></p>
   <button id="start" class="btn primary big">Training starten</button>
-  <section><h2>Nur dehnen</h2><p class="muted small">Ein oder mehrere Programme wählen – sie werden zu einem längeren Programm verbunden.</p><div id="stretches" class="grid2"></div>
+  </div>
+
+  <!-- Reiter: Dehnen -->
+  <div id="tab-dehnen" class="tabpane" hidden>
+  <section><p class="muted small">Ein oder mehrere Programme wählen – sie werden zu einem längeren Programm verbunden.</p><div id="stretches" class="grid2"></div>
     <button id="stretchStart" class="btn primary big" hidden></button></section>
-  <section><h2>Faszienrolle</h2><p class="muted small">Bereiche wählen – die Übungen werden zufällig zusammengestellt. Langsam rollen, an Druckpunkten kurz halten, nicht über Knochen und Gelenke.</p>
+  </div>
+
+  <!-- Reiter: Faszien -->
+  <div id="tab-faszien" class="tabpane" hidden>
+  <section><p class="muted small">Bereiche wählen – die Übungen werden zufällig zusammengestellt. Langsam rollen, an Druckpunkten kurz halten, nicht über Knochen und Gelenke.</p>
     <div id="foams" class="areas"></div>
     <button id="foamStart" class="btn primary big" hidden></button></section>
+  </div>
+
+  <!-- Reiter: Profil & Einstellungen -->
+  <div id="tab-profil" class="tabpane" hidden>
   <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
-    <div class="row wrap"><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
+    <div class="row wrap"><button id="profileBtn2" class="btn">👤 Benutzer wechseln</button><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
     <label class="btn">⬆ Import<input type="file" id="importFile" accept="application/json" hidden></label><a class="btn" href="#gallery">Übungskatalog</a></div>
     <p id="syncInfo" class="muted small"></p></section>
+  <section id="secFilter"><h2>Rahmenbedingungen</h2><div id="filters" class="chips"></div>
+    <h2>Vorhandenes Material</h2><div id="gear" class="chips"></div></section>
+  <section><h2>Ton</h2><div class="row wrap"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label>
+    <label class="slider" style="flex:1;min-width:160px">Lautstärke der Pings<input type="range" id="vol" min="0.1" max="1" step="0.1" aria-label="Lautstärke der Pings"></label></div></section>
+  </div>
+
+  <nav id="tabbar" class="tabbar" aria-label="Bereiche">
+    <button data-tab="kraft"><span>💪</span>Kraft</button><button data-tab="dehnen"><span>🧘</span>Dehnen</button>
+    <button data-tab="faszien"><span>🧽</span>Faszien</button><button data-tab="profil"><span>👤</span>Profil</button>
+  </nav>
 </main>
 
 <!-- ============ ÜBERSICHT VOR DEM START ============ -->
@@ -1863,6 +1894,16 @@ App.UI = (function () {
   let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
   const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); };
+  /* Startseite in Reitern (Tab-Leiste unten); zuletzt gewählter Reiter wird gemerkt */
+  const TABS = { kraft: 'Krafttraining', dehnen: 'Dehnen', faszien: 'Faszienrolle', profil: 'Profil & Einstellungen' }, TAB_KEY = 'training-tab';
+  function curTab() { try { const t = localStorage.getItem(TAB_KEY); return TABS[t] ? t : 'kraft'; } catch (e) { return 'kraft'; } }
+  function setTab(t) {
+    if (!TABS[t]) t = 'kraft';
+    try { localStorage.setItem(TAB_KEY, t); } catch (e) { /* ignorieren */ }
+    Object.keys(TABS).forEach(k => { $('tab-' + k).hidden = k !== t; });
+    document.querySelectorAll('#tabbar button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+    $('homeTitle').textContent = TABS[t]; window.scrollTo(0, 0);
+  }
   function show(id) { ['home', 'preview', 'train', 'done', 'gallery'].forEach(n => { $(n).hidden = n !== id; }); window.scrollTo(0, 0); }
   function btn(label, cls, pressed, onClick, html) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls;
@@ -1899,7 +1940,7 @@ App.UI = (function () {
     const rd = refDue();
     $('refDue').hidden = !rd.due || ref;
     $('refDueText').textContent = rd.last ? 'Letztes Referenztraining am ' + fmtDate(rd.last.date) + ' – Zeit für den monatlichen Leistungscheck.' : 'Noch kein Referenztraining – starte deinen ersten Leistungscheck.';
-    $('secAreas').hidden = $('secFilter').hidden = ref; $('hiitOpts').hidden = ref || !hasH; $('secStyle').hidden = $('styleOpts').hidden = ref || (hasH && !hasK);
+    $('secAreas').hidden = ref; $('hiitOpts').hidden = ref || !hasH; $('secStyle').hidden = $('styleOpts').hidden = ref || (hasH && !hasK);
     $('refInfo').hidden = !ref;
     $('refInfo').textContent = 'Immer dieselben ' + D.REFERENCE.length + ' Übungen aus Oberkörper, Rumpf und Unterkörper · Kieser ' + CFG.reference.seconds +
       ' s je Übung (plus deine Anpassungen) · 1× pro Monat. ' + (rd.last ? 'Zuletzt: ' + fmtDate(rd.last.date) + (rd.due ? ' – fällig.' : ' · nächstes ab ' + fmtDate(rd.next) + '.') : 'Noch keines gemacht.');
@@ -2312,6 +2353,9 @@ App.UI = (function () {
       }
       App.Sync.sync().then(renderHome);
     };
+    document.querySelectorAll('#tabbar button').forEach(b => { b.onclick = () => setTab(b.dataset.tab); });
+    setTab(curTab());
+    $('profileBtn2').onclick = () => $('profileBtn').onclick();
     $('profileBtn').onclick = function () {
       const n = prompt('Profilname (z. B. Lois oder Elke). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());
       if (n === null) return;

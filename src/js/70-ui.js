@@ -25,6 +25,16 @@ App.UI = (function () {
   let player, timer = null, session = null, wakeLock = null, shownEx = null, pending = null;
 
   const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); };
+  /* Startseite in Reitern (Tab-Leiste unten); zuletzt gewählter Reiter wird gemerkt */
+  const TABS = { kraft: 'Krafttraining', dehnen: 'Dehnen', faszien: 'Faszienrolle', profil: 'Profil & Einstellungen' }, TAB_KEY = 'training-tab';
+  function curTab() { try { const t = localStorage.getItem(TAB_KEY); return TABS[t] ? t : 'kraft'; } catch (e) { return 'kraft'; } }
+  function setTab(t) {
+    if (!TABS[t]) t = 'kraft';
+    try { localStorage.setItem(TAB_KEY, t); } catch (e) { /* ignorieren */ }
+    Object.keys(TABS).forEach(k => { $('tab-' + k).hidden = k !== t; });
+    document.querySelectorAll('#tabbar button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+    $('homeTitle').textContent = TABS[t]; window.scrollTo(0, 0);
+  }
   function show(id) { ['home', 'preview', 'train', 'done', 'gallery'].forEach(n => { $(n).hidden = n !== id; }); window.scrollTo(0, 0); }
   function btn(label, cls, pressed, onClick, html) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls;
@@ -61,7 +71,7 @@ App.UI = (function () {
     const rd = refDue();
     $('refDue').hidden = !rd.due || ref;
     $('refDueText').textContent = rd.last ? 'Letztes Referenztraining am ' + fmtDate(rd.last.date) + ' – Zeit für den monatlichen Leistungscheck.' : 'Noch kein Referenztraining – starte deinen ersten Leistungscheck.';
-    $('secAreas').hidden = $('secFilter').hidden = ref; $('hiitOpts').hidden = ref || !hasH; $('secStyle').hidden = $('styleOpts').hidden = ref || (hasH && !hasK);
+    $('secAreas').hidden = ref; $('hiitOpts').hidden = ref || !hasH; $('secStyle').hidden = $('styleOpts').hidden = ref || (hasH && !hasK);
     $('refInfo').hidden = !ref;
     $('refInfo').textContent = 'Immer dieselben ' + D.REFERENCE.length + ' Übungen aus Oberkörper, Rumpf und Unterkörper · Kieser ' + CFG.reference.seconds +
       ' s je Übung (plus deine Anpassungen) · 1× pro Monat. ' + (rd.last ? 'Zuletzt: ' + fmtDate(rd.last.date) + (rd.due ? ' – fällig.' : ' · nächstes ab ' + fmtDate(rd.next) + '.') : 'Noch keines gemacht.');
@@ -474,6 +484,9 @@ App.UI = (function () {
       }
       App.Sync.sync().then(renderHome);
     };
+    document.querySelectorAll('#tabbar button').forEach(b => { b.onclick = () => setTab(b.dataset.tab); });
+    setTab(curTab());
+    $('profileBtn2').onclick = () => $('profileBtn').onclick();
     $('profileBtn').onclick = function () {
       const n = prompt('Profilname (z. B. Lois oder Elke). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());
       if (n === null) return;

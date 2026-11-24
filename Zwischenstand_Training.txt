@@ -116,12 +116,14 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
 - Seitenwechsel: einseitige Übungen werden zur Halbzeit geteilt (Seite 1 | 5 s Pause mit langem Ton | Seite 2), umgesetzt in App.Programs.adjustBlocks; Audio-Signal "long".
 - Vorbereitung +5 s bei Wechsel Boden<->Stand oder wenn die nächste Übung anderes Material braucht (Matte zählt nicht als Material).
 - Trainingsbildschirm: Chips über dem Zeitkreis (links letztes Gewicht, rechts Empfinden der letzten Durchführung).
+- Startseite mit Tab-Leiste unten: Kraft | Dehnen | Faszien | Profil (letzter Reiter gemerkt, Start-Buttons sticky
+  über der Leiste). Rahmenbedingungen, Material, Ton und Sync/Export/Import/Katalog liegen im Reiter Profil.
 - Bildschirm wach halten: Wake Lock mit Neuanforderung + NoSleep-Fallback (stummes Canvas-Video); gilt bis Trainingsende, auch in der Pause.
 
 =====================================================================
 4. GIT-STAND
 =====================================================================
-Alles gepusht bis Commit b1c51cb (Faszienrolle). Davor: Profile, Dehnen-Mehrfachauswahl, einklappbare Beschreibung.
+Alles gepusht bis Commit für die Tab-Leiste (Startseite in Reitern). Davor: Profile, Dehnen-Mehrfachauswahl, einklappbare Beschreibung.
 Nicht committen: Training-token.txt, 20261123_151638474_iOS.jpg, "Medizinische Trainingsmaschinen_ Kieser Österreich.pdf".
 
 =====================================================================

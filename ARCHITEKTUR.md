@@ -247,6 +247,19 @@ stateDiagram-v2
   gallery --> home
 ```
 
+**Startseite (home) mit Tab-Leiste unten:** vier Reiter, nur einer sichtbar (`#tab-kraft`, `#tab-dehnen`, `#tab-faszien`, `#tab-profil`).
+Der zuletzt gewählte Reiter wird in `localStorage['training-tab']` gemerkt (`setTab`/`curTab` in 70-ui.js).
+Die Leiste gehört zu `#home` und ist daher in Vorschau, Training, Bewertung und Katalog automatisch ausgeblendet.
+
+| Reiter | Inhalt |
+|---|---|
+| 💪 Kraft | Referenz-fällig-Hinweis, Programmtyp, Trainingsbereiche, HIIT-/Stil-Regler, Zusammenfassung, Start |
+| 🧘 Dehnen | Dehnprogramme (Mehrfachauswahl) + Start |
+| 🧽 Faszien | Faszienbereiche + Start |
+| 👤 Profil | Fortschritt, Benutzer wechseln, GitHub-Sync, Export/Import, Übungskatalog, Rahmenbedingungen, Material, Ton/Lautstärke |
+
+Die Start-Buttons kleben (sticky) direkt über der Tab-Leiste.
+
 ### 6.2 Ein Training von Anfang bis Ende
 
 ```mermaid

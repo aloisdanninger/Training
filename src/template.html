@@ -13,29 +13,50 @@
 <body>
 <!-- ============ STARTBILDSCHIRM ============ -->
 <main id="home" class="screen">
-  <div class="topbar"><h1>Training</h1><button id="profileBtn" class="chip" aria-label="Benutzer wechseln"></button></div>
+  <div class="topbar"><h1 id="homeTitle">Krafttraining</h1><button id="profileBtn" class="chip" aria-label="Benutzer wechseln"></button></div>
+
+  <!-- Reiter: Kraft -->
+  <div id="tab-kraft" class="tabpane">
   <section id="refDue" class="card due" hidden><h2>📋 Referenztraining fällig</h2><p id="refDueText" class="muted"></p>
     <button id="refStart" class="btn primary">Referenztraining starten</button></section>
   <section><h2>Programmtyp</h2><div id="ptype" class="seg"></div><p id="refInfo" class="muted small" hidden></p></section>
   <section id="secAreas"><h2>Trainingsbereiche</h2><div id="areas" class="areas"></div></section>
-  <section id="secFilter"><h2>Rahmenbedingungen</h2><div id="filters" class="chips"></div>
-    <h2>Vorhandenes Material</h2><div id="gear" class="chips"></div></section>
   <section id="hiitOpts" class="opts" hidden></section>
   <section id="secStyle"><h2>Trainingsstil (Kraft)</h2><div id="styles" class="seg"></div></section>
   <section id="styleOpts" class="opts"></section>
-  <section class="row"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label>
-    <label class="slider" style="flex:1;min-width:160px">Lautstärke der Pings<input type="range" id="vol" min="0.1" max="1" step="0.1" aria-label="Lautstärke der Pings"></label></section>
   <p id="summary" class="muted"></p>
   <button id="start" class="btn primary big">Training starten</button>
-  <section><h2>Nur dehnen</h2><p class="muted small">Ein oder mehrere Programme wählen – sie werden zu einem längeren Programm verbunden.</p><div id="stretches" class="grid2"></div>
+  </div>
+
+  <!-- Reiter: Dehnen -->
+  <div id="tab-dehnen" class="tabpane" hidden>
+  <section><p class="muted small">Ein oder mehrere Programme wählen – sie werden zu einem längeren Programm verbunden.</p><div id="stretches" class="grid2"></div>
     <button id="stretchStart" class="btn primary big" hidden></button></section>
-  <section><h2>Faszienrolle</h2><p class="muted small">Bereiche wählen – die Übungen werden zufällig zusammengestellt. Langsam rollen, an Druckpunkten kurz halten, nicht über Knochen und Gelenke.</p>
+  </div>
+
+  <!-- Reiter: Faszien -->
+  <div id="tab-faszien" class="tabpane" hidden>
+  <section><p class="muted small">Bereiche wählen – die Übungen werden zufällig zusammengestellt. Langsam rollen, an Druckpunkten kurz halten, nicht über Knochen und Gelenke.</p>
     <div id="foams" class="areas"></div>
     <button id="foamStart" class="btn primary big" hidden></button></section>
+  </div>
+
+  <!-- Reiter: Profil & Einstellungen -->
+  <div id="tab-profil" class="tabpane" hidden>
   <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
-    <div class="row wrap"><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
+    <div class="row wrap"><button id="profileBtn2" class="btn">👤 Benutzer wechseln</button><button id="syncBtn" class="btn">🔑 GitHub-Sync</button><button id="exportBtn" class="btn">⬇ Export</button>
     <label class="btn">⬆ Import<input type="file" id="importFile" accept="application/json" hidden></label><a class="btn" href="#gallery">Übungskatalog</a></div>
     <p id="syncInfo" class="muted small"></p></section>
+  <section id="secFilter"><h2>Rahmenbedingungen</h2><div id="filters" class="chips"></div>
+    <h2>Vorhandenes Material</h2><div id="gear" class="chips"></div></section>
+  <section><h2>Ton</h2><div class="row wrap"><label class="switch"><input type="checkbox" id="sound"><span>🔔 Akustische Signale</span></label>
+    <label class="slider" style="flex:1;min-width:160px">Lautstärke der Pings<input type="range" id="vol" min="0.1" max="1" step="0.1" aria-label="Lautstärke der Pings"></label></div></section>
+  </div>
+
+  <nav id="tabbar" class="tabbar" aria-label="Bereiche">
+    <button data-tab="kraft"><span>💪</span>Kraft</button><button data-tab="dehnen"><span>🧘</span>Dehnen</button>
+    <button data-tab="faszien"><span>🧽</span>Faszien</button><button data-tab="profil"><span>👤</span>Profil</button>
+  </nav>
 </main>
 
 <!-- ============ ÜBERSICHT VOR DEM START ============ -->
