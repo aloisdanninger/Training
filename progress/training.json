@@ -1,9 +1,9 @@
 {
  "version": 1,
- "updatedAt": 1795463158946,
+ "updatedAt": 1795463167823,
  "settings": {
   "areas": [
-   "full"
+   "upper"
   ],
   "style": "circuit",
   "kieserSeconds": 120,
@@ -18,7 +18,10 @@
    "Band": false,
    "Stange": false,
    "Stuhl": true
-  }
+  },
+  "foamAreas": [
+   "upper"
+  ]
  },
  "sessions": [
   {
