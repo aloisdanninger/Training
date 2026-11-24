@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795547944845,
+ "updatedAt": 1795548058287,
  "settings": {
   "areas": [
    "full"
@@ -366,7 +366,7 @@
   "st_child": 5,
   "st_cobra": 5,
   "st_rotation": 5,
-  "st_seitbeuge": 4,
+  "st_seitbeuge": 3,
   "trx_row": 1,
   "face_pull": 1,
   "trx_chest_press": 1,
@@ -387,7 +387,12 @@
   "kniebeuge": 5,
   "romanian_deadlift": 5,
   "glute_bridge": 5,
-  "ausfallschritt": 5
+  "ausfallschritt": 5,
+  "st_waden": 4,
+  "st_hamstring": 5,
+  "st_gesaess": 5,
+  "st_quad": 5,
+  "st_hueftbeuger": 5
  },
  "levels": {
   "liegestuetz": {
