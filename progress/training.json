@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795463167823,
+ "updatedAt": 1795498037982,
  "settings": {
   "areas": [
    "upper"
@@ -242,6 +242,53 @@
    "completed": false,
    "durationSec": 87,
    "t": 1795463158946
+  },
+  {
+   "id": "s1795497937741rizb",
+   "date": "2026-11-24T05:25:37.741Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper",
+    "core",
+    "lower"
+   ],
+   "modeId": "kieser",
+   "programType": "reference",
+   "exerciseIds": [
+    "knie_liegestuetz",
+    "schulterdruecken",
+    "bent_over_row",
+    "trizeps_ueberkopf",
+    "plank",
+    "dead_bug",
+    "superman",
+    "side_plank",
+    "kniebeuge",
+    "romanian_deadlift",
+    "glute_bridge",
+    "ausfallschritt"
+   ],
+   "completed": true,
+   "durationSec": 100,
+   "t": 1795498037982,
+   "ref": {
+    "mode": "Kieser 90 Sekunden",
+    "secs": {
+     "knie_liegestuetz": 90,
+     "schulterdruecken": 90,
+     "bent_over_row": 90,
+     "trizeps_ueberkopf": 90,
+     "plank": 90,
+     "dead_bug": 95,
+     "superman": 90,
+     "side_plank": 90,
+     "kniebeuge": 90,
+     "romanian_deadlift": 90,
+     "glute_bridge": 90,
+     "ausfallschritt": 90
+    },
+    "felt": {}
+   }
   }
  ],
  "favorites": [],
