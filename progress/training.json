@@ -1,10 +1,8 @@
 {
  "version": 1,
- "updatedAt": 1795533406052,
+ "updatedAt": 1795533706497,
  "settings": {
-  "areas": [
-   "upper"
-  ],
+  "areas": [],
   "style": "circuit",
   "kieserSeconds": 120,
   "programType": "random",
