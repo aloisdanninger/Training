@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795548905060,
+ "updatedAt": 1795548931566,
  "settings": {
   "areas": [
    "upper"
@@ -370,14 +370,32 @@
    ],
    "completed": true,
    "durationSec": 16,
-   "t": 1795548904753
+   "t": 1795548931566,
+   "kg": {
+    "schulterdruecken": 3,
+    "upright_row": 4,
+    "trizeps_ueberkopf": 2
+   }
   }
  ],
  "favorites": [],
- "weights": {},
+ "weights": {
+  "schulterdruecken": {
+   "kg": 3,
+   "t": 1795548908961
+  },
+  "upright_row": {
+   "kg": 4,
+   "t": 1795548918336
+  },
+  "trizeps_ueberkopf": {
+   "kg": 2,
+   "t": 1795548931566
+  }
+ },
  "ratings": {
   "side_plank": 5,
-  "liegestuetz": 3,
+  "liegestuetz": 5,
   "schulterdruecken": 5,
   "bent_over_row": 5,
   "kurzhantelrudern": 3,
@@ -400,7 +418,10 @@
   "face_pull": 1,
   "trx_chest_press": 1,
   "pallof_press": 1,
-  "y_raise": 5
+  "y_raise": 5,
+  "upright_row": 5,
+  "wall_slide": 5,
+  "trizeps_ueberkopf": 5
  },
  "levels": {
   "liegestuetz": {
@@ -411,7 +432,7 @@
   "schulterdruecken": {
    "offset": 0,
    "last": "richtig",
-   "t": 1795379835056
+   "t": 1795548910342
   },
   "bent_over_row": {
    "offset": 0,
@@ -452,6 +473,21 @@
    "offset": 0,
    "last": "richtig",
    "t": 1795379876612
+  },
+  "upright_row": {
+   "offset": 0,
+   "last": "richtig",
+   "t": 1795548918974
+  },
+  "wall_slide": {
+   "offset": -5,
+   "last": "schwer",
+   "t": 1795548922078
+  },
+  "trizeps_ueberkopf": {
+   "offset": 0,
+   "last": "richtig",
+   "t": 1795548928978
   }
  }
 }
