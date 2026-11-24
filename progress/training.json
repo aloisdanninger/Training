@@ -1,13 +1,13 @@
 {
  "version": 1,
- "updatedAt": 1795549081956,
+ "updatedAt": 1795549171362,
  "settings": {
   "areas": [
    "upper"
   ],
   "style": "circuit",
   "kieserSeconds": 120,
-  "programType": "reference",
+  "programType": "random",
   "sound": true,
   "noJump": true,
   "kneeFriendly": false,
@@ -446,6 +446,26 @@
     "schulterdruecken": 3,
     "trizeps_ueberkopf": 2
    }
+  },
+  {
+   "id": "s1795549123133ifpo",
+   "date": "2026-11-24T19:38:43.133Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "circuit",
+   "programType": "random",
+   "exerciseIds": [
+    "liegestuetz",
+    "seitheben",
+    "kurzhantelrudern",
+    "scapular_pushup",
+    "trizeps_kickback"
+   ],
+   "completed": true,
+   "durationSec": 48,
+   "t": 1795549171361
   }
  ],
  "favorites": [],
