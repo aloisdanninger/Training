@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795548931566,
+ "updatedAt": 1795548968147,
  "settings": {
   "areas": [
    "upper"
@@ -376,6 +376,26 @@
     "upright_row": 4,
     "trizeps_ueberkopf": 2
    }
+  },
+  {
+   "id": "s179554895854414b2",
+   "date": "2026-11-24T19:35:58.544Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "circuit",
+   "programType": "random",
+   "exerciseIds": [
+    "arnold_press",
+    "floor_press",
+    "upright_row",
+    "wall_slide",
+    "bizeps_curl"
+   ],
+   "completed": false,
+   "durationSec": 10,
+   "t": 1795548968147
   }
  ],
  "favorites": [],
