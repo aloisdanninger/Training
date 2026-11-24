@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795498037982,
+ "updatedAt": 1795532840240,
  "settings": {
   "areas": [
    "upper"
@@ -14,10 +14,10 @@
   "wristFriendly": true,
   "gear": {
    "KH": true,
-   "KB": false,
+   "KB": true,
    "Band": false,
    "Stange": false,
-   "Stuhl": true
+   "Stuhl": false
   },
   "foamAreas": [
    "upper"
@@ -289,6 +289,26 @@
     },
     "felt": {}
    }
+  },
+  {
+   "id": "s1795532826679g4l5",
+   "date": "2026-11-24T15:07:06.679Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "circuit",
+   "programType": "random",
+   "exerciseIds": [
+    "arnold_press",
+    "floor_press",
+    "kurzhantelrudern",
+    "kb_bottom_up",
+    "trizepsheben"
+   ],
+   "completed": true,
+   "durationSec": 14,
+   "t": 1795532840240
   }
  ],
  "favorites": [],
