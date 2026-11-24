@@ -52,7 +52,7 @@ h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;
 #ring{width:100%;display:block}
 .ring-bg{fill:none;stroke:var(--line);stroke-width:10}
 .ring-fg{fill:none;stroke:var(--ring);stroke-width:10;stroke-linecap:round}
-.chip{position:absolute;top:0;z-index:1;padding:.3em .8em;border-radius:6px;background:#1d6a8a;color:#fff;font-weight:700;font-size:.95rem;border:2px solid #0c3a52}.chip-l{left:0}.chip-r{right:0}
+.tchip{position:absolute;top:0;z-index:1;padding:.15em .6em;border-radius:6px;background:var(--card);border:1px solid var(--line);color:var(--muted);font-weight:700;font-size:.8rem;line-height:1.4}.tchip-l{left:0}.tchip-r{right:0}
 .count{position:absolute;left:0;right:0;top:66%;text-align:center;font-size:clamp(3rem,13vw,5.5rem);font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
 .cue{position:absolute;left:0;right:0;top:86%;text-align:center;font-weight:700;color:var(--muted)}
 .controls{display:flex;gap:10px;margin:18px 0}
@@ -100,6 +100,19 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 #tDetails>summary::before{content:"▾";margin-right:8px;color:var(--muted)}#tDetails:not([open])>summary::before{content:"▸"}
 #tDetails[open]>summary{margin-bottom:4px}
 .fig-roller{fill:var(--accent);opacity:.35;stroke:var(--accent);stroke-width:2}.fig-roller-mark{stroke:var(--accent);stroke-width:2;stroke-linecap:round}
+
+/* Smartphone: Übersicht vor dem Start und Bewertung etwas kleiner, damit alles ohne Umbrüche passt */
+@media (max-width:500px){
+  #preview,#done{font-size:14px}
+  #preview h1,#done h1{font-size:1.6rem}
+  #preview h2,#done h2{font-size:.85rem}
+  .exlist li,.ratelist li{padding:5px 0}
+  .exlist small,.gear small{font-size:.78rem}
+  #done .stars button{font-size:1.5rem;min-width:36px;min-height:36px;padding:2px}
+  #done .stars.small button{font-size:1.25rem;min-width:32px;min-height:32px}
+  #done .btn:not(.big),#done .kg select{min-height:36px;font-size:.85rem;padding:4px 10px}
+  .kg{gap:6px}
+}
 
 </style>
 </head>
@@ -160,7 +173,7 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
         <circle id="ringFg" class="ring-fg" cx="160" cy="160" r="150" transform="rotate(-90 160 160)"/>
         <svg id="fig" x="50" y="40" width="220" height="183"></svg>
       </svg>
-      <span id="tKg" class="chip chip-l" hidden></span><span id="tFelt" class="chip chip-r" hidden></span>
+      <span id="tKg" class="tchip tchip-l" hidden></span><span id="tFelt" class="tchip tchip-r" hidden></span>
       <div id="count" class="count" aria-live="off">0</div>
       <div id="cue" class="cue"></div>
     </div>
