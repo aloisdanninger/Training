@@ -113,6 +113,11 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
   Auswahl in settings.foamAreas). Modus 'foam': 12 s Vorbereitung, 60 s bzw. 90 s bei einseitigen Übungen
   (Seite wechseln), Zyklus 24 s rollen + 6 s Druckpunkt halten. Animation: Anker 'roller' (Rolle unter Körpersegment).
 
+- Seitenwechsel: einseitige Übungen werden zur Halbzeit geteilt (Seite 1 | 5 s Pause mit langem Ton | Seite 2), umgesetzt in App.Programs.adjustBlocks; Audio-Signal "long".
+- Vorbereitung +5 s bei Wechsel Boden<->Stand oder wenn die nächste Übung anderes Material braucht (Matte zählt nicht als Material).
+- Trainingsbildschirm: Chips über dem Zeitkreis (links letztes Gewicht, rechts Empfinden der letzten Durchführung).
+- Bildschirm wach halten: Wake Lock mit Neuanforderung + NoSleep-Fallback (stummes Canvas-Video); gilt bis Trainingsende, auch in der Pause.
+
 =====================================================================
 4. GIT-STAND
 =====================================================================

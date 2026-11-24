@@ -57,7 +57,7 @@ App.SelfTest = (function () {
     check('Faszienrolle: Ganzkörper je 2 (unten -> oben), Bereiche kombinierbar, keine Doppelten', foOk, foInfo);
     const fz = App.Programs.buildFoam(['lower']), fzb = App.Programs.buildBlocks(fz, D.modeById('foam'));
     check('Faszienrolle: Zeiten 60 s / einseitig 90 s, Rollen + Druckpunkt halten', fz.items.every(it => it.secondsEach === (D.byId[it.id].oneSided ? 90 : 60)) &&
-      fzb.filter(b => b.type === 'work').length === fz.exerciseIds.length && fzb[1].motion(3).p === 1 && fzb[1].motion(26).cue === 'Druckpunkt halten & atmen');
+      fzb.filter(b => b.exerciseEnd).length === fz.exerciseIds.length && fzb[1].motion(3).p === 1 && /Druckpunkt halten & atmen$/.test(fzb[1].motion(26).cue));
     check('Dehnen: 12 s Vorbereitung zwischen den Übungen', D.modeById('stretch').buildBlocks(D.byId.st_brust, {})[0].duration === 12);
     check('Mobilität: dynamisch wiederholt (6 s), Dehnung gleitet und hält', mb[1].duration === 45 && mb[1].motion(3).p === 1 && mb[1].motion(6).p === 0 && sb0[1].motion(30).p === 1);
     const R = D.REFERENCE.map(id => D.byId[id]), subs = R.map(e => e.subCategory);
@@ -137,10 +137,21 @@ App.SelfTest = (function () {
     check('Stretch-Programm 5 Übungen', App.Programs.stretchForAreas(['upper']).exerciseIds.length === 5 && App.Programs.stretchForAreas(['upper', 'core']).exerciseIds.length === 10);
 
     // 3b. HIIT + Kraft: HIIT-Teil im Intervall (2 Runden, 30 s / 15 s, 60 s Rundenpause), danach Klassisch
-    //     HIIT: 10 + 4×30 + 15 + 60 + 15 = 220 s; Plank klassisch 120 s -> 340 s
+    //     HIIT: 10 + 4×30 + 15 + 60 + 15 = 220 s; Plank klassisch 120 s + 5 s (Wechsel Stand -> Boden) -> 345 s
     const hb = App.Programs.buildBlocks({ exerciseIds: ['hampelmann', 'high_knees', 'plank'] }, D.modeById('classic'), {}, D.modeById('hiit', { hiitRounds: 2, hiitWork: 30, hiitRest: 15 }));
     const hw = hb.filter(b => b.type === 'work');
-    check('HIIT + Kraft: Dauer 340 s', App.Programs.totalSeconds(hb) === 340, App.Programs.totalSeconds(hb));
+    check('HIIT + Kraft: Dauer 345 s', App.Programs.totalSeconds(hb) === 345, App.Programs.totalSeconds(hb));
+    // 3c. Seitenwechsel (einseitige Übung: Hälfte, 5 s Pause mit langem Ton, Hälfte) und längere Vorbereitung bei Lagewechsel/neuem Material
+    const sw = App.Programs.buildBlocks({ exerciseIds: ['bulgarian_split_squat'] }, D.modeById('kieser', { kieserSeconds: 60 }));
+    check('Einseitig: 2 × 30 s mit 5 s Seitenwechsel (langer Ton), Übung gilt erst nach Seite 2 als erledigt',
+      sw.length === 4 && sw[1].duration === 30 && sw[2].type === 'rest' && sw[2].duration === 5 && sw[2].sound === 'long' && sw[3].duration === 30 &&
+      sw.filter(b => b.exerciseEnd).length === 1 && sw[3].exerciseEnd && App.Programs.totalSeconds(sw) === 10 + 65, sw.map(b => b.duration).join());
+    check('Langer Ton vorhanden, einseitige Dehnung wird ebenfalls geteilt', typeof App.Audio.play === 'function' &&
+      App.Programs.buildBlocks({ exerciseIds: ['st_schulter'], items: [{ id: 'st_schulter', secondsEach: 40 }] }, D.modeById('stretch')).some(b => b.label === 'Seitenwechsel'));
+    const pre = ids => App.Programs.buildBlocks({ exerciseIds: ids }, D.modeById('kieser', { kieserSeconds: 60 })).filter(b => b.type === 'prepare').map(b => b.duration);
+    check('Vorbereitung +5 s bei Boden/Stand-Wechsel oder neuem Material, sonst normal',
+      pre(['plank', 'dead_bug']).join() === '10,10' && pre(['plank', 'hampelmann']).join() === '10,15' && pre(['hampelmann', 'plank']).join() === '10,15' &&
+      pre(['hampelmann', 'goblet_squat']).join() === '10,15' && pre(['bizeps_curl', 'hammer_curl']).join() === '10,10', pre(['plank', 'hampelmann']).join());
     check('HIIT + Kraft: Reihenfolge, Indizes und Abschlüsse stimmen',
       hw.map(b => b.exercise.id + b.exerciseIndex).join() === 'hampelmann0,high_knees1,hampelmann0,high_knees1,plank2,plank2,plank2' &&
       hb.every(b => b.exerciseCount === 3) && hb.filter(b => b.exerciseEnd).length === 3 && hw[3].nextEx === D.byId.plank);

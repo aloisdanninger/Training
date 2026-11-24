@@ -135,7 +135,8 @@ App.Programs = (function () {
    * Programm + Modus -> flache Blockliste (TrainingSession-Ablauf).
    * Jeder Block erhält exerciseIndex/exerciseCount für die Anzeige.
    */
-  function buildBlocks(program, mode, offsets, hiitMode) {
+  function buildBlocks(program, mode, offsets, hiitMode) { return adjustBlocks(buildRaw(program, mode, offsets, hiitMode)); }
+  function buildRaw(program, mode, offsets, hiitMode) {
     const items = program.items || program.exerciseIds.map(id => ({ id: id }));
     const isH = it => D.byId[it.id].category === 'hiit';
     const h = mode.kind === 'strength' && mode.id !== 'hiit' ? items.filter(isH) : [];
@@ -146,6 +147,32 @@ App.Programs = (function () {
     hb.forEach(b => { b.exerciseCount = n; if (b.nextEx === null && rest.length) b.nextEx = D.byId[rest[0].id]; });
     sb.forEach(b => { b.exerciseIndex += h.length; b.exerciseCount = n; });
     return hb.concat(sb);
+  }
+
+  /* Einseitige Übungen: Arbeitszeit wird zur Hälfte geteilt, dazwischen 5 s Pause (langer Ton) für den Seitenwechsel. */
+  const SIDE_PAUSE = 5, EXTRA_PREPARE = 5;
+  const FLOOR_POS = ['Rückenlage', 'Bauchlage', 'Vierfüßler', 'Stütz', 'kniend', 'sitzend'];
+  const FLOOR_IDS = ['st_gesaess', 'st_catcow', 'st_child', 'st_cobra', 'st_rotation', 'st_thread', 'm_9090_switch', 'm_9090_stretch', 'm_adductor_rock', 'm_frog', 'm_open_book', 'm_tspine_rot'];
+  const onFloor = ex => ex.category === 'foam' || FLOOR_POS.indexOf(ex.position) >= 0 || FLOOR_IDS.indexOf(ex.id) >= 0;
+  const needsOf = ex => (ex.equipment || []).filter(q => !/optional/i.test(q)).map(canon).filter(n => n !== 'Matte');
+  /** Lagewechsel (Boden ↔ Stand) oder neues Material -> mehr Zeit zum Umbauen. */
+  const changeover = (a, b) => onFloor(a) !== onFloor(b) || needsOf(b).some(n => needsOf(a).indexOf(n) < 0);
+
+  function adjustBlocks(blocks) {
+    const out = []; let prev = null;
+    blocks.forEach(function (b) {
+      if (prev && b.exercise !== prev && b.type !== 'work' && changeover(prev, b.exercise)) b.duration += EXTRA_PREPARE;
+      prev = b.exercise;
+      if (b.type === 'work' && b.exercise.oneSided && b.duration >= 20) {
+        const h = b.duration / 2, m = b.motion;
+        const side = n => t => { const x = m(t); return { p: x.p, cue: 'Seite ' + n + ' · ' + x.cue }; };
+        out.push(Object.assign({}, b, { duration: h, endSound: null, exerciseEnd: false, motion: side(1) }));
+        out.push({ type: 'rest', label: 'Seitenwechsel', duration: SIDE_PAUSE, exercise: b.exercise, sound: 'long', motion: () => ({ p: 0, cue: 'Seite wechseln' }),
+          exerciseIndex: b.exerciseIndex, exerciseCount: b.exerciseCount, exerciseEnd: false, nextEx: b.nextEx });
+        out.push(Object.assign({}, b, { duration: h, sound: null, motion: side(2) }));
+      } else out.push(b);
+    });
+    return out;
   }
 
   function blocksFor(items, mode, offsets) {

@@ -1,13 +1,14 @@
 /* ==========================================================================
    50-audio.js  –  Akustische Signale (WebAudio, keine Audiodateien)
    Auf iOS muss der AudioContext durch eine Nutzergeste entsperrt werden: unlock().
-   Signale: ping (einfach) | double (Doppelping) | finish (Trainingsende)
+   Signale: ping (einfach) | double (Doppelping) | long (langer Ton = Seitenwechsel) | finish (Trainingsende)
    ========================================================================== */
 App.Audio = (function () {
   let ctx = null, enabled = false, volume = 1, bus = null;
   const PATTERNS = {            // [Frequenz Hz, Dauer s, Pause bis zum nächsten Ton s]
     ping:   [[1320, 0.18, 0]],                         // Restzeit-Hinweis (60/30/10/3/2/1 s)
     double: [[1320, 0.16, 0.08], [1320, 0.16, 0]],        // Start und Ende einer Übung bzw. eines Satzes
+    long:   [[1320, 0.9, 0]],                          // Seitenwechsel: ein langer Ton
     finish: [[523, 0.15, 0.18], [659, 0.15, 0.18], [784, 0.15, 0.18], [1047, 0.35, 0]]
   };
   /** iOS 16.4+: 'ambient' mischt die Pings über laufende Musik/Podcasts (statt sie zu unterbrechen). */

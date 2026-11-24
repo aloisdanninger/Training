@@ -210,11 +210,9 @@ App.UI = (function () {
         $('ringFg').style.strokeDashoffset = CIRC * Math.min(1, s.elapsed / b.duration);
         if (u.lastCount !== rem) { $('count').textContent = rem; u.lastCount = rem; }
         // Einfacher Ping bei 60/30/10/3/2/1 s Restzeit (nur wenn der Block länger ist als der Schwellwert)
-        // Einseitige Übung: Doppelping in der Mitte der Übungszeit (= Seitenwechsel); ersetzt dort einen evtl. gleichzeitigen Ping
-        const mid = b.type === 'work' && b.exercise.oneSided && s.running && u.lastEl < b.duration / 2 && s.elapsed >= b.duration / 2;
+        // Seitenwechsel bei einseitigen Übungen: eigener Pausenblock mit langem Ton (siehe App.Programs.buildBlocks)
         u.lastEl = s.elapsed;
-        if (mid) App.Audio.play('double');
-        else if (s.running && u.lastRem !== null && u.lastRem !== rem && PINGS.indexOf(rem) >= 0 && rem < b.duration) App.Audio.play('ping');
+        if (s.running && u.lastRem !== null && u.lastRem !== rem && PINGS.indexOf(rem) >= 0 && rem < b.duration) App.Audio.play('ping');
         u.lastRem = rem;
         const cue = (/^(Satz|Runde)/.test(b.label) ? b.label + ' · ' : '') + s.motion.cue;
         if (u.lastCue !== cue) { $('cue').textContent = cue; u.lastCue = cue; }
@@ -234,6 +232,9 @@ App.UI = (function () {
     $('tDesc').textContent = ex.description; $('tInstr').textContent = ex.instructions;
     $('tEquip').textContent = ex.equipment.length ? 'Material: ' + ex.equipment.join(', ') + (kgTxt(ex) ? ' (' + kgTxt(ex) + ')' : '') : 'Kein Material nötig';
     player.setExercise(ex);
+    const kg = App.Programs.kgOptions(ex).length ? S.weight(ex.id) : null, lv = S.level(ex.id);
+    $('tKg').hidden = !kg; $('tKg').textContent = kg ? kg + ' kg' : '';
+    $('tFelt').hidden = !(lv && FELT[lv.last]); $('tFelt').textContent = lv && FELT[lv.last] ? FELT[lv.last][0] : '';
     const nextIdx = b.exerciseIndex + 1, ids = session.program.exerciseIds;
     const nextEx = b.nextEx !== undefined ? b.nextEx : (nextIdx < ids.length ? D.byId[ids[nextIdx]] : null);   // Zirkel liefert nextEx selbst
     $('tNext').textContent = nextEx ? 'Als Nächstes: ' + nextEx.name : 'Letzte Übung';
@@ -264,8 +265,37 @@ App.UI = (function () {
     $('dAsk').hidden = session.kind !== 'strength'; show('done');
   }
 
-  function requestWake() { try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wakeLock = w; }, () => {}); } catch (e) { /* optional */ } }
-  function releaseWake() { try { if (wakeLock) wakeLock.release(); } catch (e) { /* optional */ } wakeLock = null; }
+  /* Bildschirm während des Trainings wach halten (sonst Sperrbildschirm und iPhone beendet den Ton):
+     1. Screen Wake Lock API (wird beim Zurückkehren in die App und nach Freigabe neu angefordert)
+     2. Fallback für ältere iOS-Versionen: winziges, stummes Video aus einem Canvas, das dauerhaft läuft (NoSleep-Verfahren) */
+  let noSleep = null, wakeWanted = false;
+  function requestWake() {
+    wakeWanted = true;
+    try {
+      if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) {
+        wakeLock = w;
+        w.addEventListener('release', () => { if (wakeLock === w) wakeLock = null; if (wakeWanted && document.visibilityState === 'visible') requestWake(); });
+      }, () => {});
+    } catch (e) { /* optional */ }
+    startNoSleep();
+  }
+  function startNoSleep() {
+    try {
+      if (noSleep) { noSleep.v.play().catch(() => {}); return; }
+      const c = document.createElement('canvas'); c.width = c.height = 4;
+      if (!c.captureStream) return;
+      const g = c.getContext('2d'), v = document.createElement('video'); let k = 0;
+      v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.muted = true; v.loop = true;
+      v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none';
+      g.fillRect(0, 0, 4, 4); v.srcObject = c.captureStream(2); document.body.appendChild(v); v.play().catch(() => {});
+      noSleep = { v: v, iv: setInterval(() => { g.fillStyle = (k++ % 2) ? '#000' : '#020202'; g.fillRect(0, 0, 4, 4); }, 500) };
+    } catch (e) { noSleep = null; }
+  }
+  function releaseWake() {
+    wakeWanted = false;
+    try { if (wakeLock) wakeLock.release(); } catch (e) { /* optional */ } wakeLock = null;
+    if (noSleep) { try { clearInterval(noSleep.iv); noSleep.v.pause(); noSleep.v.srcObject = null; noSleep.v.remove(); } catch (e) { /* optional */ } noSleep = null; }
+  }
 
   /* ---------------- Katalog (Kontrolle aller Animationen) ---------------- */
   function renderGallery() {
@@ -461,7 +491,7 @@ App.UI = (function () {
     App.Sync.onStatus(s => { $('syncInfo').textContent = s.text; });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return;
-      if (timer && timer.isRunning()) requestWake(); else if (App.Sync.hasToken() && !$('home').hidden) App.Sync.sync().then(renderHome);
+      if (timer && !timer.isFinished()) requestWake(); else if (App.Sync.hasToken() && !$('home').hidden) App.Sync.sync().then(renderHome);
     });
     window.addEventListener('hashchange', route);
     renderHome(); route();

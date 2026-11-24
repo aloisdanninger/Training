@@ -43,6 +43,7 @@ h1{font-size:2rem;margin:.3em 0 .2em}h2{font-size:1rem;text-transform:uppercase;
 #ring{width:100%;display:block}
 .ring-bg{fill:none;stroke:var(--line);stroke-width:10}
 .ring-fg{fill:none;stroke:var(--ring);stroke-width:10;stroke-linecap:round}
+.chip{position:absolute;top:0;z-index:1;padding:.3em .8em;border-radius:6px;background:#1d6a8a;color:#fff;font-weight:700;font-size:.95rem;border:2px solid #0c3a52}.chip-l{left:0}.chip-r{right:0}
 .count{position:absolute;left:0;right:0;top:66%;text-align:center;font-size:clamp(3rem,13vw,5.5rem);font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
 .cue{position:absolute;left:0;right:0;top:86%;text-align:center;font-weight:700;color:var(--muted)}
 .controls{display:flex;gap:10px;margin:18px 0}
