@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795549171362,
+ "updatedAt": 1795549242913,
  "settings": {
   "areas": [
    "upper"
@@ -465,7 +465,35 @@
    ],
    "completed": true,
    "durationSec": 48,
-   "t": 1795549171361
+   "t": 1795549199673,
+   "kg": {
+    "seitheben": 3,
+    "kurzhantelrudern": 4,
+    "trizeps_kickback": 2
+   }
+  },
+  {
+   "id": "s1795549226620of65",
+   "date": "2026-11-24T19:40:26.620Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "circuit",
+   "programType": "random",
+   "exerciseIds": [
+    "schulterdruecken",
+    "knie_liegestuetz",
+    "pullover",
+    "kb_bottom_up",
+    "trizepsheben"
+   ],
+   "completed": true,
+   "durationSec": 16,
+   "t": 1795549242913,
+   "kg": {
+    "schulterdruecken": 3
+   }
   }
  ],
  "favorites": [],
@@ -481,6 +509,18 @@
   "trizeps_ueberkopf": {
    "kg": 2,
    "t": 1795548931566
+  },
+  "seitheben": {
+   "kg": 3,
+   "t": 1795549184404
+  },
+  "kurzhantelrudern": {
+   "kg": 4,
+   "t": 1795549187662
+  },
+  "trizeps_kickback": {
+   "kg": 2,
+   "t": 1795549199673
   }
  },
  "ratings": {
@@ -511,7 +551,10 @@
   "y_raise": 5,
   "upright_row": 5,
   "wall_slide": 5,
-  "trizeps_ueberkopf": 5
+  "trizeps_ueberkopf": 5,
+  "seitheben": 5,
+  "scapular_pushup": 5,
+  "trizeps_kickback": 5
  },
  "levels": {
   "liegestuetz": {
@@ -532,7 +575,7 @@
   "kurzhantelrudern": {
    "offset": 0,
    "last": "richtig",
-   "t": 1795379846424
+   "t": 1795549189793
   },
   "bizeps_curl": {
    "offset": 5,
@@ -578,6 +621,16 @@
    "offset": 0,
    "last": "richtig",
    "t": 1795548928978
+  },
+  "scapular_pushup": {
+   "offset": -5,
+   "last": "schwer",
+   "t": 1795549193181
+  },
+  "trizeps_kickback": {
+   "offset": 5,
+   "last": "leicht",
+   "t": 1795549200167
   }
  }
 }
