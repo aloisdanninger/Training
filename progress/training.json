@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795550190072,
+ "updatedAt": 1795550877696,
  "settings": {
   "areas": [
    "upper"
@@ -494,6 +494,44 @@
    "kg": {
     "schulterdruecken": 3
    }
+  },
+  {
+   "id": "s1795550409460qsjd",
+   "date": "2026-11-24T20:00:09.460Z",
+   "kind": "stretch",
+   "areaIds": [],
+   "modeId": "stretch",
+   "programType": "stretch",
+   "exerciseIds": [
+    "st_latissimus",
+    "st_brust",
+    "st_trizeps",
+    "st_schulter",
+    "st_bizeps",
+    "st_rotation",
+    "st_cobra",
+    "st_catcow",
+    "st_seitbeuge",
+    "st_child",
+    "st_schulterblatt",
+    "st_thread",
+    "st_brustoeffner",
+    "st_nacken",
+    "st_levator",
+    "m_chair_ext",
+    "m_wall_rotation",
+    "m_shoulder_cars",
+    "m_arm_circles",
+    "m_cossack",
+    "m_9090_switch",
+    "m_frog",
+    "m_adductor_rock",
+    "m_wgs",
+    "m_ankle_circles"
+   ],
+   "completed": false,
+   "durationSec": 468,
+   "t": 1795550877695
   }
  ],
  "favorites": [],
