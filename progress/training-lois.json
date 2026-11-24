@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795546715725,
+ "updatedAt": 1795547944845,
  "settings": {
   "areas": [
    "full"
@@ -259,7 +259,7 @@
    ],
    "completed": true,
    "durationSec": 1205,
-   "t": 1795546715724,
+   "t": 1795546804503,
    "ref": {
     "mode": "Kieser 90 Sekunden",
     "secs": {
@@ -276,12 +276,76 @@
      "glute_bridge": 90,
      "ausfallschritt": 90
     },
-    "felt": {}
+    "felt": {
+     "knie_liegestuetz": "schwer",
+     "schulterdruecken": "richtig",
+     "bent_over_row": "richtig",
+     "trizeps_ueberkopf": "richtig",
+     "plank": "richtig",
+     "dead_bug": "richtig",
+     "superman": "richtig",
+     "side_plank": "schwer",
+     "kniebeuge": "leicht",
+     "romanian_deadlift": "leicht",
+     "glute_bridge": "richtig",
+     "ausfallschritt": "leicht"
+    }
+   },
+   "kg": {
+    "schulterdruecken": 3,
+    "bent_over_row": 4,
+    "trizeps_ueberkopf": 2,
+    "romanian_deadlift": 3
    }
+  },
+  {
+   "id": "s1795546817310g4ch",
+   "date": "2026-11-24T19:00:17.310Z",
+   "kind": "stretch",
+   "areaIds": [],
+   "modeId": "stretch",
+   "programType": "stretch",
+   "exerciseIds": [
+    "st_latissimus",
+    "st_brust",
+    "st_bizeps",
+    "st_trizeps",
+    "st_schulter",
+    "st_waden",
+    "st_hamstring",
+    "st_gesaess",
+    "st_quad",
+    "st_hueftbeuger",
+    "st_catcow",
+    "st_seitbeuge",
+    "st_rotation",
+    "st_cobra",
+    "st_child"
+   ],
+   "completed": true,
+   "durationSec": 1128,
+   "t": 1795547944844
   }
  ],
  "favorites": [],
- "weights": {},
+ "weights": {
+  "schulterdruecken": {
+   "kg": 3,
+   "t": 1795546743312
+  },
+  "bent_over_row": {
+   "kg": 4,
+   "t": 1795546751889
+  },
+  "trizeps_ueberkopf": {
+   "kg": 2,
+   "t": 1795546761797
+  },
+  "romanian_deadlift": {
+   "kg": 3,
+   "t": 1795546793067
+  }
+ },
  "ratings": {
   "side_plank": 5,
   "liegestuetz": 3,
@@ -317,7 +381,13 @@
   "m_wall_rotation": 4,
   "m_chair_ext": 2,
   "m_shoulder_cars": 5,
-  "m_arm_circles": 5
+  "m_arm_circles": 5,
+  "knie_liegestuetz": 5,
+  "trizeps_ueberkopf": 5,
+  "kniebeuge": 5,
+  "romanian_deadlift": 5,
+  "glute_bridge": 5,
+  "ausfallschritt": 5
  },
  "levels": {
   "liegestuetz": {
@@ -328,12 +398,12 @@
   "schulterdruecken": {
    "offset": 0,
    "last": "richtig",
-   "t": 1795379835056
+   "t": 1795546745847
   },
   "bent_over_row": {
    "offset": 0,
    "last": "richtig",
-   "t": 1795379842210
+   "t": 1795546754187
   },
   "kurzhantelrudern": {
    "offset": 0,
@@ -348,17 +418,17 @@
   "plank": {
    "offset": 0,
    "last": "richtig",
-   "t": 1795379856454
+   "t": 1795546767697
   },
   "dead_bug": {
    "offset": 5,
-   "last": "leicht",
-   "t": 1795379859589
+   "last": "richtig",
+   "t": 1795546770629
   },
   "superman": {
    "offset": 0,
    "last": "richtig",
-   "t": 1795379863354
+   "t": 1795546773551
   },
   "bird_dog": {
    "offset": 5,
@@ -366,9 +436,39 @@
    "t": 1795379872548
   },
   "side_plank": {
+   "offset": -5,
+   "last": "schwer",
+   "t": 1795546776071
+  },
+  "knie_liegestuetz": {
+   "offset": -5,
+   "last": "schwer",
+   "t": 1795546731370
+  },
+  "trizeps_ueberkopf": {
    "offset": 0,
    "last": "richtig",
-   "t": 1795379876612
+   "t": 1795546762877
+  },
+  "kniebeuge": {
+   "offset": 5,
+   "last": "leicht",
+   "t": 1795546784576
+  },
+  "romanian_deadlift": {
+   "offset": 5,
+   "last": "leicht",
+   "t": 1795546788578
+  },
+  "glute_bridge": {
+   "offset": 0,
+   "last": "richtig",
+   "t": 1795546797970
+  },
+  "ausfallschritt": {
+   "offset": 5,
+   "last": "leicht",
+   "t": 1795546804503
   }
  }
 }
