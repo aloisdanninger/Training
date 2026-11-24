@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795533373284,
+ "updatedAt": 1795533406052,
  "settings": {
   "areas": [
    "upper"
@@ -13,7 +13,7 @@
   "kneeFriendly": false,
   "wristFriendly": false,
   "gear": {
-   "KH": true,
+   "KH": false,
    "KB": true,
    "Band": false,
    "Stange": false,
@@ -21,7 +21,9 @@
   },
   "foamAreas": [
    "upper"
-  ]
+  ],
+  "circuitRounds": 1,
+  "circuitSeconds": 10
  },
  "sessions": [
   {
@@ -329,6 +331,26 @@
    "completed": true,
    "durationSec": 12,
    "t": 1795533373052
+  },
+  {
+   "id": "s17955334002472y0c",
+   "date": "2026-11-24T15:16:40.247Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "circuit",
+   "programType": "random",
+   "exerciseIds": [
+    "liegestuetz",
+    "kb_press",
+    "kb_high_pull",
+    "scapular_pushup",
+    "trizepsheben"
+   ],
+   "completed": true,
+   "durationSec": 6,
+   "t": 1795533406052
   }
  ],
  "favorites": [],
@@ -358,7 +380,7 @@
   "face_pull": 1,
   "trx_chest_press": 1,
   "pallof_press": 1,
-  "y_raise": 4
+  "y_raise": 5
  },
  "levels": {
   "liegestuetz": {
