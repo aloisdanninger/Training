@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795549242913,
+ "updatedAt": 1795549500939,
  "settings": {
   "areas": [
    "upper"
@@ -22,8 +22,8 @@
   "foamAreas": [
    "upper"
   ],
-  "circuitRounds": 1,
-  "circuitSeconds": 10
+  "circuitRounds": 3,
+  "circuitSeconds": 20
  },
  "sessions": [
   {
