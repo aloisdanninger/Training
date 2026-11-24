@@ -1,8 +1,10 @@
 {
  "version": 1,
- "updatedAt": 1795533706497,
+ "updatedAt": 1795548905060,
  "settings": {
-  "areas": [],
+  "areas": [
+   "upper"
+  ],
   "style": "circuit",
   "kieserSeconds": 120,
   "programType": "random",
@@ -11,7 +13,7 @@
   "kneeFriendly": false,
   "wristFriendly": false,
   "gear": {
-   "KH": false,
+   "KH": true,
    "KB": true,
    "Band": false,
    "Stange": false,
@@ -349,6 +351,26 @@
    "completed": true,
    "durationSec": 6,
    "t": 1795533406052
+  },
+  {
+   "id": "s1795548888849xjqi",
+   "date": "2026-11-24T19:34:48.849Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "circuit",
+   "programType": "random",
+   "exerciseIds": [
+    "schulterdruecken",
+    "liegestuetz",
+    "upright_row",
+    "wall_slide",
+    "trizeps_ueberkopf"
+   ],
+   "completed": true,
+   "durationSec": 16,
+   "t": 1795548904753
   }
  ],
  "favorites": [],
@@ -382,9 +404,9 @@
  },
  "levels": {
   "liegestuetz": {
-   "offset": -5,
+   "offset": -10,
    "last": "schwer",
-   "t": 1795379831597
+   "t": 1795548905060
   },
   "schulterdruecken": {
    "offset": 0,
