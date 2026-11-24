@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795532840240,
+ "updatedAt": 1795533373284,
  "settings": {
   "areas": [
    "upper"
@@ -10,8 +10,8 @@
   "programType": "random",
   "sound": true,
   "noJump": true,
-  "kneeFriendly": true,
-  "wristFriendly": true,
+  "kneeFriendly": false,
+  "wristFriendly": false,
   "gear": {
    "KH": true,
    "KB": true,
@@ -309,6 +309,26 @@
    "completed": true,
    "durationSec": 14,
    "t": 1795532840240
+  },
+  {
+   "id": "s1795533361466hvtf",
+   "date": "2026-11-24T15:16:01.466Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "circuit",
+   "programType": "random",
+   "exerciseIds": [
+    "wand_liegestuetz",
+    "negativ_liegestuetz",
+    "y_raise",
+    "reverse_fly",
+    "bizeps_curl"
+   ],
+   "completed": true,
+   "durationSec": 12,
+   "t": 1795533373052
   }
  ],
  "favorites": [],
@@ -337,7 +357,8 @@
   "trx_row": 1,
   "face_pull": 1,
   "trx_chest_press": 1,
-  "pallof_press": 1
+  "pallof_press": 1,
+  "y_raise": 4
  },
  "levels": {
   "liegestuetz": {
