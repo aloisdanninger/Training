@@ -234,7 +234,7 @@ App.Config = {
   /* Generator: vorhandenes Material (Standard) und Gewichtsauswahl am Trainingsende (kg) */
   gear: { KH: true, KB: true, Band: false, Stange: false, Stuhl: true },
   gearLabel: { KH: 'Kurzhanteln', KB: 'Kettlebell', Band: 'Gummiband', Stange: 'Klimmzugstange', Stuhl: 'Hocker / Bank / Stuhl' },
-  kg: { KH: [1, 2, 3, 4], KB: [8, 12, 16] },
+  kg: { KH: [1, 2, 3, 4], KB: [8, 10, 12, 16] },
   /* Kieser-Dauer: Standard und Reglerbereich (Sekunden) */
   kieser: { min: 60, max: 120, step: 5, def: 120 },
   /* Klassisch: Sätze und Sekunden pro Satz wählbar, Pause zwischen den Sätzen */
@@ -737,7 +737,7 @@ App.Data.REFERENCE = [
     'hip_extension', 'side_plank', 'russian_twist', 'side_plank_reach', 'hip_thrust', 'glute_bridge',
     'knie_liegestuetz', 'negativ_liegestuetz', 'floor_press', 'pullover', 'y_raise', 'crunch', 'slider_leg_curl', 'mountain_climber', 'shoulder_taps', 'burpee', 'inchworm',
     'liegestuetz_rotation', 'trizepsheben', 'scapular_pushup', 'push_up_plus', 'long_lever_plank', 'plank_walkout', 'bird_dog_row', 'copenhagen_plank', 'single_leg_glute_bridge', 'bear_crawl', 'lateral_bear_crawl', 'crab_walk'];
-  /* Empfohlene Gewichtsklasse (relativ): Kurzhanteln leicht 1–2 kg · mittel 3 kg · schwer 4 kg; Kettlebell leicht 8 · mittel 12 · schwer 16 kg.
+  /* Empfohlene Gewichtsklasse (relativ): Kurzhanteln leicht 1–2 kg · mittel 3 kg · schwer 4 kg; Kettlebell leicht 8–10 · mittel 12 · schwer 16 kg.
      Das tatsächlich verwendete Gewicht wird nach dem Training je Übung gespeichert (App.Store.weight). */
   const WEIGHT = { schulterdruecken: 'mittel', arnold_press: 'leicht', kurzhantelrudern: 'schwer', upright_row: 'leicht', bent_over_row: 'mittel',
     bizeps_curl: 'mittel', hammer_curl: 'mittel', trizeps_kickback: 'leicht', goblet_squat: 'schwer', romanian_deadlift: 'schwer',
@@ -2378,8 +2378,8 @@ App.SelfTest = (function () {
     let anchorOk = true;
     for (let i = 0; i < 200; i++) D.AREAS.forEach(a => { if (App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] }).exerciseIds.some(id => D.byId[id].needsAnchor)) anchorOk = false; });
     check('Zufallsmodus schlägt keine befestigten Band-Übungen vor', anchorOk && D.EXERCISES.filter(e => e.needsAnchor).length === 2 && !D.byId.band_pull_apart.needsAnchor);
-    check('Gewichtsauswahl: Hanteln 1–4 kg, Kettlebell 8/12/16 kg, sonst keine', App.Programs.kgOptions(D.byId.bizeps_curl).join() === '1,2,3,4' &&
-      App.Programs.kgOptions(D.byId.kb_press).join() === '8,12,16' && App.Programs.kgOptions(D.byId.goblet_squat).join() === '1,2,3,4,8,12,16' && App.Programs.kgOptions(D.byId.plank).length === 0);
+    check('Gewichtsauswahl: Hanteln 1–4 kg, Kettlebell 8/10/12/16 kg, sonst keine', App.Programs.kgOptions(D.byId.bizeps_curl).join() === '1,2,3,4' &&
+      App.Programs.kgOptions(D.byId.kb_press).join() === '8,10,12,16' && App.Programs.kgOptions(D.byId.goblet_squat).join() === '1,2,3,4,8,10,12,16' && App.Programs.kgOptions(D.byId.plank).length === 0);
     const rt = { liegestuetz: 5, schulterdruecken: 1 }; let hi = 0, lo = 0;
     for (let i = 0; i < 400; i++) { const ids = App.Programs.buildProgram({ areaIds: ['upper'], programType: 'random', history: [], ratings: rt }).exerciseIds; if (ids.indexOf('liegestuetz') >= 0) hi++; if (ids.indexOf('schulterdruecken') >= 0) lo++; }
     check('Hohe Bewertung kommt öfter als niedrige', hi > lo * 1.5, hi + ' vs ' + lo);

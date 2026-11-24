@@ -98,7 +98,7 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
 - Rahmenbedingungen auf der Startseite (Settings noJump/kneeFriendly/wristFriendly/gear): Ohne Springen, Knieschonend,
   Handgelenke schonen; Material KH/KB/Gummiband/Klimmzugstange/Hocker (Std: KH, KB, Hocker an). App.Programs.allowed.
   Zu wenig Übungen im Slot -> Auffüllen aus dem Bereich. Kein Zeitziel ("25 min") - Dauer ergibt sich aus Stil.
-- Gewicht je Übung am Trainingsende (Auswahlliste, KH 1-4 kg, KB 8/12/16 kg, Config.kg; App.Programs.kgOptions),
+- Gewicht je Übung am Trainingsende (Auswahlliste, KH 1-4 kg, KB 8/10/12/16 kg, Config.kg; App.Programs.kgOptions),
   Standard = zuletzt verwendet (Store.weight/setWeight, synchronisiert, Merge per Zeitstempel), Session.kg.
 - Pose-Option y (ganze Figur heben, z. B. Wadenheben), Props 'kb' und 'bar'. Thruster-Animation korrigiert.
 - Nicht umgesetzt: Short Foot, Toe Yoga, Pallof Hold/Step-out (Befestigung), Wall Angels (= Schulterblatt-Dehnung).

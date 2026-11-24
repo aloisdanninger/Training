@@ -432,7 +432,7 @@ App.Data.REFERENCE = [
     'hip_extension', 'side_plank', 'russian_twist', 'side_plank_reach', 'hip_thrust', 'glute_bridge',
     'knie_liegestuetz', 'negativ_liegestuetz', 'floor_press', 'pullover', 'y_raise', 'crunch', 'slider_leg_curl', 'mountain_climber', 'shoulder_taps', 'burpee', 'inchworm',
     'liegestuetz_rotation', 'trizepsheben', 'scapular_pushup', 'push_up_plus', 'long_lever_plank', 'plank_walkout', 'bird_dog_row', 'copenhagen_plank', 'single_leg_glute_bridge', 'bear_crawl', 'lateral_bear_crawl', 'crab_walk'];
-  /* Empfohlene Gewichtsklasse (relativ): Kurzhanteln leicht 1–2 kg · mittel 3 kg · schwer 4 kg; Kettlebell leicht 8 · mittel 12 · schwer 16 kg.
+  /* Empfohlene Gewichtsklasse (relativ): Kurzhanteln leicht 1–2 kg · mittel 3 kg · schwer 4 kg; Kettlebell leicht 8–10 · mittel 12 · schwer 16 kg.
      Das tatsächlich verwendete Gewicht wird nach dem Training je Übung gespeichert (App.Store.weight). */
   const WEIGHT = { schulterdruecken: 'mittel', arnold_press: 'leicht', kurzhantelrudern: 'schwer', upright_row: 'leicht', bent_over_row: 'mittel',
     bizeps_curl: 'mittel', hammer_curl: 'mittel', trizeps_kickback: 'leicht', goblet_squat: 'schwer', romanian_deadlift: 'schwer',

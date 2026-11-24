@@ -109,8 +109,8 @@ App.SelfTest = (function () {
     let anchorOk = true;
     for (let i = 0; i < 200; i++) D.AREAS.forEach(a => { if (App.Programs.buildProgram({ areaIds: [a.id], programType: 'random', history: [] }).exerciseIds.some(id => D.byId[id].needsAnchor)) anchorOk = false; });
     check('Zufallsmodus schlägt keine befestigten Band-Übungen vor', anchorOk && D.EXERCISES.filter(e => e.needsAnchor).length === 2 && !D.byId.band_pull_apart.needsAnchor);
-    check('Gewichtsauswahl: Hanteln 1–4 kg, Kettlebell 8/12/16 kg, sonst keine', App.Programs.kgOptions(D.byId.bizeps_curl).join() === '1,2,3,4' &&
-      App.Programs.kgOptions(D.byId.kb_press).join() === '8,12,16' && App.Programs.kgOptions(D.byId.goblet_squat).join() === '1,2,3,4,8,12,16' && App.Programs.kgOptions(D.byId.plank).length === 0);
+    check('Gewichtsauswahl: Hanteln 1–4 kg, Kettlebell 8/10/12/16 kg, sonst keine', App.Programs.kgOptions(D.byId.bizeps_curl).join() === '1,2,3,4' &&
+      App.Programs.kgOptions(D.byId.kb_press).join() === '8,10,12,16' && App.Programs.kgOptions(D.byId.goblet_squat).join() === '1,2,3,4,8,10,12,16' && App.Programs.kgOptions(D.byId.plank).length === 0);
     const rt = { liegestuetz: 5, schulterdruecken: 1 }; let hi = 0, lo = 0;
     for (let i = 0; i < 400; i++) { const ids = App.Programs.buildProgram({ areaIds: ['upper'], programType: 'random', history: [], ratings: rt }).exerciseIds; if (ids.indexOf('liegestuetz') >= 0) hi++; if (ids.indexOf('schulterdruecken') >= 0) lo++; }
     check('Hohe Bewertung kommt öfter als niedrige', hi > lo * 1.5, hi + ' vs ' + lo);
