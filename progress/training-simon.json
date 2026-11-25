@@ -1,0 +1,25 @@
+{
+ "version": 1,
+ "updatedAt": 0,
+ "settings": {
+  "areas": [
+   "upper"
+  ],
+  "style": "kieser",
+  "kieserSeconds": 120,
+  "classicSets": 3,
+  "classicSeconds": 30,
+  "circuitRounds": 3,
+  "circuitSeconds": 30,
+  "hiitRounds": 2,
+  "hiitWork": 30,
+  "hiitRest": 15,
+  "programType": "random",
+  "sound": false
+ },
+ "sessions": [],
+ "favorites": [],
+ "weights": {},
+ "ratings": {},
+ "levels": {}
+}
