@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795632815399,
+ "updatedAt": 1795632882188,
  "settings": {
   "areas": [
    "upper"
@@ -557,6 +557,24 @@
    "kg": {
     "schulterdruecken": 3
    }
+  },
+  {
+   "id": "s1795632874506uc15",
+   "date": "2026-11-25T18:54:34.506Z",
+   "kind": "stretch",
+   "areaIds": [],
+   "modeId": "stretch",
+   "programType": "stretch",
+   "exerciseIds": [
+    "st_brust",
+    "st_schulter",
+    "st_latissimus",
+    "st_trizeps",
+    "st_bizeps"
+   ],
+   "completed": true,
+   "durationSec": 7,
+   "t": 1795632881883
   }
  ],
  "favorites": [],
@@ -617,7 +635,8 @@
   "trizeps_ueberkopf": 5,
   "seitheben": 5,
   "scapular_pushup": 5,
-  "trizeps_kickback": 5
+  "trizeps_kickback": 5,
+  "enge_liegestuetz": 5
  },
  "levels": {
   "liegestuetz": {
@@ -626,9 +645,9 @@
    "t": 1795548905060
   },
   "schulterdruecken": {
-   "offset": -5,
-   "last": "schwer",
-   "t": 1795632815399
+   "offset": 0,
+   "last": "richtig",
+   "t": 1795632817026
   },
   "bent_over_row": {
    "offset": 0,
@@ -694,6 +713,16 @@
    "offset": 5,
    "last": "leicht",
    "t": 1795549200167
+  },
+  "enge_liegestuetz": {
+   "offset": 0,
+   "last": "richtig",
+   "t": 1795632820634
+  },
+  "y_raise": {
+   "offset": 0,
+   "last": "richtig",
+   "t": 1795632857666
   }
  }
 }
