@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795550877696,
+ "updatedAt": 1795632815399,
  "settings": {
   "areas": [
    "upper"
@@ -22,8 +22,10 @@
   "foamAreas": [
    "upper"
   ],
-  "circuitRounds": 6,
-  "circuitSeconds": 20
+  "circuitRounds": 3,
+  "circuitSeconds": 20,
+  "hiitRounds": 3,
+  "hiitWork": 30
  },
  "sessions": [
   {
@@ -532,6 +534,29 @@
    "completed": false,
    "durationSec": 468,
    "t": 1795550877695
+  },
+  {
+   "id": "s1795632757103wk3i",
+   "date": "2026-11-25T18:52:37.103Z",
+   "kind": "strength",
+   "areaIds": [
+    "upper"
+   ],
+   "modeId": "circuit",
+   "programType": "random",
+   "exerciseIds": [
+    "enge_liegestuetz",
+    "schulterdruecken",
+    "y_raise",
+    "wall_slide",
+    "hammer_curl"
+   ],
+   "completed": true,
+   "durationSec": 58,
+   "t": 1795632815051,
+   "kg": {
+    "schulterdruecken": 3
+   }
   }
  ],
  "favorites": [],
@@ -601,9 +626,9 @@
    "t": 1795548905060
   },
   "schulterdruecken": {
-   "offset": 0,
-   "last": "richtig",
-   "t": 1795548910342
+   "offset": -5,
+   "last": "schwer",
+   "t": 1795632815399
   },
   "bent_over_row": {
    "offset": 0,
