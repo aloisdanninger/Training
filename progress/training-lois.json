@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795551700795,
+ "updatedAt": 1795551734708,
  "settings": {
   "areas": [
    "full"
@@ -15,7 +15,7 @@
   "gear": {
    "KH": true,
    "KB": false,
-   "Band": false,
+   "Band": true,
    "Stange": false,
    "Stuhl": true
   }
