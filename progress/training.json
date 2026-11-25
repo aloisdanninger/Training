@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updatedAt": 1795632882188,
+ "updatedAt": 1795633062735,
  "settings": {
   "areas": [
    "upper"
@@ -19,11 +19,9 @@
    "Stange": false,
    "Stuhl": false
   },
-  "foamAreas": [
-   "upper"
-  ],
+  "foamAreas": [],
   "circuitRounds": 3,
-  "circuitSeconds": 20,
+  "circuitSeconds": 45,
   "hiitRounds": 3,
   "hiitWork": 30
  },
@@ -619,7 +617,7 @@
   "st_schulter": 5,
   "st_latissimus": 4,
   "st_trizeps": 5,
-  "st_bizeps": 3,
+  "st_bizeps": 4,
   "st_catcow": 5,
   "st_child": 5,
   "st_cobra": 5,
