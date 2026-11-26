@@ -107,9 +107,34 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 #home #start,#home #stretchStart,#home #foamStart{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:5;width:100%;margin-top:12px;box-shadow:0 4px 18px rgba(0,0,0,.18)}
 #home .tabpane>section:first-child>h2:first-child{margin-top:.4em}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;background:var(--card);border-top:1px solid var(--line);padding:4px max(6px,env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
-.tabbar button{appearance:none;flex:1;max-width:180px;border:0;background:none;color:var(--muted);font:inherit;font-size:.75rem;font-weight:600;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;border-radius:12px;touch-action:manipulation}
+.tabbar button{appearance:none;flex:1;min-width:0;max-width:160px;border:0;background:none;color:var(--muted);font:inherit;font-size:.75rem;font-weight:600;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;border-radius:12px;touch-action:manipulation}
 .tabbar button span{font-size:1.45rem;line-height:1.1;filter:grayscale(1);opacity:.65}
 .tabbar button[aria-selected=true]{color:var(--accent)}.tabbar button[aria-selected=true] span{filter:none;opacity:1}
+/* Verlauf & Statistik – Farben je Trainingsart (feste Reihenfolge, validierte Kategorienpalette) */
+:root{--c-kraft:#257de0;--c-hiit:#f47230;--c-stretch:#00b894;--c-foam:#f2a600;--c-ref:#ee7fac}
+@media (prefers-color-scheme:dark){:root{--c-kraft:#338ced;--c-hiit:#e76624;--c-stretch:#00a888;--c-foam:#d28e05;--c-ref:#e24d8b}}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.kpi b{display:block;font-size:1.5rem;line-height:1.2}.kpi span{font-size:.78rem;color:var(--muted)}
+.calnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}.calnav .chip{min-width:52px;font-size:1.3rem}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal .dow{font-size:.72rem;color:var(--muted);text-align:center;font-weight:700}
+.cal button{appearance:none;border:1px solid transparent;background:var(--card);color:var(--fg);font:inherit;font-size:.85rem;border-radius:8px;min-height:46px;padding:3px 0;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.cal button.today{border-color:var(--muted)}.cal button.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.cal button:disabled{background:none;cursor:default}
+.dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:90%}.dot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 1px var(--card)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin:8px 0;font-size:.8rem;color:var(--muted)}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.calday{font-size:.9rem}.calday ul{list-style:none;padding:0;margin:6px 0}.calday li{padding:6px 0;border-top:1px solid var(--line)}.calday small{display:block;color:var(--muted)}
+.wchart{display:flex;align-items:flex-end;gap:4px;height:150px;border-bottom:1px solid var(--line);padding-top:16px}
+.wchart .wcol{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;position:relative;cursor:pointer;padding:0 1px}
+.wchart .seg{display:block;border-radius:0;margin-top:2px;min-height:2px}.wchart .seg:first-child{border-radius:4px 4px 0 0}
+.wchart .wcol.sel{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:4px}
+.wchart .wl{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:.66rem;color:var(--muted);white-space:nowrap}
+#weekInfo{margin-top:24px}
+.stable{width:100%;border-collapse:collapse;font-size:.9rem}.stable td,.stable th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}.stable td:first-child,.stable th:first-child{text-align:left}.stable th{color:var(--muted);font-size:.78rem;font-weight:600}
+.toplist{list-style:none;padding:0;margin:0;font-size:.9rem}.toplist li{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:5px 0}
+.toplist .bar{grid-column:1/3;height:6px;border-radius:3px;background:var(--accent);opacity:.75}
+.gcount{display:block;font-size:.8rem;color:var(--muted);margin-top:2px}
 @media (max-width:500px){
   #home{font-size:15px}#home h1{font-size:1.6rem}#home .btn.big{min-height:56px;font-size:1.05rem}
   #home .choice{min-width:120px}#home .choice .ic{font-size:1.3rem}
@@ -157,6 +182,17 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
     <button id="foamStart" class="btn primary big" hidden></button></section>
   </div>
 
+  <!-- Reiter: Verlauf & Statistik -->
+  <div id="tab-verlauf" class="tabpane" hidden>
+  <div id="kpis" class="kpis"></div>
+  <section><h2>Kalender</h2>
+    <div class="calnav"><button id="calPrev" class="chip" aria-label="Voriger Monat">‹</button><b id="calTitle"></b><button id="calNext" class="chip" aria-label="Nächster Monat">›</button></div>
+    <div id="cal" class="cal"></div><div id="legend" class="legend"></div><div id="calDay" class="calday"></div></section>
+  <section><h2>Minuten pro Woche</h2><div id="weekChart" class="wchart" role="img"></div><p id="weekInfo" class="muted small">Letzte 12 Wochen · Balken antippen für Details</p></section>
+  <section><h2>Nach Trainingsart</h2><table id="kindTable" class="stable"></table></section>
+  <section><h2>Häufigste Übungen</h2><ol id="topEx" class="toplist"></ol></section>
+  </div>
+
   <!-- Reiter: Profil & Einstellungen -->
   <div id="tab-profil" class="tabpane" hidden>
   <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
@@ -171,7 +207,7 @@ summary{cursor:pointer;font-weight:600;padding:12px 0}
 
   <nav id="tabbar" class="tabbar" aria-label="Bereiche">
     <button data-tab="kraft"><span>💪</span>Kraft</button><button data-tab="dehnen"><span>🧘</span>Dehnen</button>
-    <button data-tab="faszien"><span>🧽</span>Faszien</button><button data-tab="profil"><span>👤</span>Profil</button>
+    <button data-tab="faszien"><span>🧽</span>Faszien</button><button data-tab="verlauf"><span>📊</span>Verlauf</button><button data-tab="profil"><span>👤</span>Profil</button>
   </nav>
 </main>
 
@@ -1866,6 +1902,93 @@ App.Sync = (function () {
 })();
 
 
+/* ===== 65-stats.js ===== */
+/* ==========================================================================
+   65-stats.js  –  Auswertung der Trainingshistorie (reine Funktionen, ohne DOM)
+   App.Stats : Art einer Einheit, durchgeführte Übungen, Zähler je Übung,
+               Kennzahlen, Kalender-Tage und Wochenminuten.
+   Eingang : Sessions aus App.Store.history() (je Profil getrennt)
+   ========================================================================== */
+App.Stats = (function () {
+  /** Trainingsarten in fester Reihenfolge (= feste Farbreihenfolge in der Anzeige). */
+  const KINDS = [
+    { id: 'kraft', label: 'Kraft', icon: '💪' },
+    { id: 'hiit', label: 'HIIT', icon: '🔥' },
+    { id: 'stretch', label: 'Dehnen', icon: '🧘' },
+    { id: 'foam', label: 'Faszien', icon: '🧽' },
+    { id: 'ref', label: 'Referenz', icon: '📋' }
+  ];
+  const kindById = id => KINDS.filter(k => k.id === id)[0] || KINDS[0];
+
+  function kindOf(s) {
+    if (s.programType === 'reference') return 'ref';
+    if (s.kind === 'stretch' || s.kind === 'foam') return s.kind;
+    const a = s.areaIds || [];
+    return a.length && a.every(x => x === 'hiit') ? 'hiit' : 'kraft';
+  }
+  /** Vollständig durchgeführte Übungen einer Einheit.
+      Neu: s.done. Ältere Einheiten: Referenz = gemessene Übungen, sonst bei abgeschlossenem Training das ganze Programm. */
+  function doneIds(s) {
+    if (Array.isArray(s.done)) return s.done;
+    if (s.ref && s.ref.secs) return Object.keys(s.ref.secs);
+    return s.completed ? (s.exerciseIds || []) : [];
+  }
+  function counts(sessions) {
+    const c = {};
+    sessions.forEach(s => doneIds(s).forEach(id => { c[id] = (c[id] || 0) + 1; }));
+    return c;
+  }
+  const pad = n => ('0' + n).slice(-2);
+  /** Lokaler Tag als 'JJJJ-MM-TT'. */
+  const dayKey = d => { d = new Date(d); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  /** Montag 0:00 der Woche (lokal). */
+  function weekStart(d) { d = new Date(d); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d; }
+  const mins = s => (s.durationSec || 0) / 60;
+
+  /** Sessions je Tag: { 'JJJJ-MM-TT': [session, ...] } */
+  function byDay(sessions) {
+    const m = {};
+    sessions.forEach(s => { const k = dayKey(s.date); (m[k] = m[k] || []).push(s); });
+    return m;
+  }
+  /** Minuten je Woche und Art für die letzten n Wochen (älteste zuerst). */
+  function weekly(sessions, n, now) {
+    const w0 = weekStart(now || Date.now()), out = [];
+    for (let i = n - 1; i >= 0; i--) { const st = new Date(w0); st.setDate(st.getDate() - 7 * i); out.push({ start: st, min: {}, total: 0, count: 0 }); }
+    sessions.forEach(function (s) {
+      const ws = weekStart(s.date).getTime(), w = out.filter(x => x.start.getTime() === ws)[0];
+      if (!w) return;
+      const k = kindOf(s); w.min[k] = (w.min[k] || 0) + mins(s); w.total += mins(s); w.count++;
+    });
+    return out;
+  }
+  /** Wochen in Folge mit mindestens einer Einheit (die laufende Woche zählt mit, bricht die Serie aber noch nicht). */
+  function streakWeeks(sessions, now) {
+    const set = {}; sessions.forEach(s => { set[weekStart(s.date).getTime()] = 1; });
+    const w = weekStart(now || Date.now()); let n = 0;
+    if (!set[w.getTime()]) w.setDate(w.getDate() - 7);
+    while (set[w.getTime()]) { n++; w.setDate(w.getDate() - 7); }
+    return n;
+  }
+  function summary(sessions, now) {
+    now = now || Date.now();
+    const since = d => sessions.filter(s => new Date(s.date).getTime() > now - d * 864e5);
+    const s30 = since(30), wk = weekly(sessions, 8, now);
+    const perKind = {};
+    KINDS.forEach(k => { perKind[k.id] = { count: 0, min: 0 }; });
+    sessions.forEach(s => { const p = perKind[kindOf(s)]; p.count++; p.min += mins(s); });
+    return {
+      total: sessions.length, last7: since(7).length, last30: s30.length,
+      minTotal: Math.round(sessions.reduce((a, s) => a + mins(s), 0)), min30: Math.round(s30.reduce((a, s) => a + mins(s), 0)),
+      days30: Object.keys(byDay(s30)).length, streak: streakWeeks(sessions, now),
+      avgWeek: Math.round(wk.reduce((a, w) => a + w.count, 0) / 8 * 10) / 10, perKind: perKind
+    };
+  }
+  return { KINDS: KINDS, kindById: kindById, kindOf: kindOf, doneIds: doneIds, counts: counts, dayKey: dayKey, weekStart: weekStart,
+    byDay: byDay, weekly: weekly, streakWeeks: streakWeeks, summary: summary };
+})();
+
+
 /* ===== 70-ui.js ===== */
 /* ==========================================================================
    70-ui.js  –  UI: Startbildschirm, Trainingsbildschirm, Ende, Katalog
@@ -1895,7 +2018,7 @@ App.UI = (function () {
 
   const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); };
   /* Startseite in Reitern (Tab-Leiste unten); zuletzt gewählter Reiter wird gemerkt */
-  const TABS = { kraft: 'Krafttraining', dehnen: 'Dehnen', faszien: 'Faszienrolle', profil: 'Profil & Einstellungen' }, TAB_KEY = 'training-tab';
+  const TABS = { kraft: 'Krafttraining', dehnen: 'Dehnen', faszien: 'Faszienrolle', verlauf: 'Verlauf & Statistik', profil: 'Profil & Einstellungen' }, TAB_KEY = 'training-tab';
   function curTab() { try { const t = localStorage.getItem(TAB_KEY); return TABS[t] ? t : 'kraft'; } catch (e) { return 'kraft'; } }
   function setTab(t) {
     if (!TABS[t]) t = 'kraft';
@@ -1903,7 +2026,71 @@ App.UI = (function () {
     Object.keys(TABS).forEach(k => { $('tab-' + k).hidden = k !== t; });
     document.querySelectorAll('#tabbar button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
     $('homeTitle').textContent = TABS[t]; window.scrollTo(0, 0);
+    if (t === 'verlauf') renderStats();
   }
+  /* ---------------- Verlauf & Statistik (Reiter „Verlauf“) ---------------- */
+  let calMonth = null, calSel = null, weekSel = -1;
+  const MONTHS = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  const kindColor = k => 'var(--c-' + k + ')';
+  const hm = d => { d = new Date(d); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); };
+  const dm = d => { d = new Date(d); return d.getDate() + '.' + (d.getMonth() + 1) + '.'; };
+  function renderStats() {
+    const ST = App.Stats, H = S.history(), sm = ST.summary(H), days = ST.byDay(H);
+    // Kennzahlen
+    $('kpis').innerHTML = [[sm.total, 'Einheiten gesamt'], [sm.last7, 'letzte 7 Tage'], [sm.last30, 'letzte 30 Tage'],
+      [sm.min30, 'Minuten (30 Tage)'], [sm.streak, sm.streak === 1 ? 'Woche in Folge' : 'Wochen in Folge'], [String(sm.avgWeek).replace('.', ','), 'Ø Einheiten/Woche (8 Wo.)']]
+      .map(k => '<div class="kpi"><b>' + k[0] + '</b><span>' + k[1] + '</span></div>').join('');
+    // Kalender
+    if (!calMonth) { calMonth = new Date(); calMonth.setDate(1); calMonth.setHours(0, 0, 0, 0); }
+    $('calTitle').textContent = MONTHS[calMonth.getMonth()] + ' ' + calMonth.getFullYear();
+    const cal = $('cal'), today = ST.dayKey(Date.now()); cal.textContent = '';
+    ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(d => { const e = document.createElement('div'); e.className = 'dow'; e.textContent = d; cal.appendChild(e); });
+    const first = (calMonth.getDay() + 6) % 7, nDays = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
+    for (let i = 0; i < first; i++) { const b = document.createElement('button'); b.disabled = true; cal.appendChild(b); }
+    for (let d = 1; d <= nDays; d++) {
+      const key = ST.dayKey(new Date(calMonth.getFullYear(), calMonth.getMonth(), d)), list = days[key] || [], b = document.createElement('button');
+      b.className = (key === today ? 'today ' : '') + (key === calSel ? 'sel' : '');
+      b.innerHTML = '<span>' + d + '</span><span class="dots">' + list.map(s => '<i class="dot" style="background:' + kindColor(ST.kindOf(s)) + '"></i>').join('') + '</span>';
+      b.setAttribute('aria-label', d + '. ' + MONTHS[calMonth.getMonth()] + ': ' + (list.length ? list.length + ' Einheit(en)' : 'kein Training'));
+      b.onclick = () => { calSel = key; renderStats(); };
+      cal.appendChild(b);
+    }
+    $('legend').innerHTML = ST.KINDS.map(k => '<span><i style="background:' + kindColor(k.id) + '"></i>' + k.label + '</span>').join('');
+    // Details zum gewählten Tag
+    const sel = calSel ? days[calSel] || [] : null, cd = $('calDay');
+    if (!sel) cd.innerHTML = '<p class="muted small">Tag antippen, um die Trainings anzuzeigen.</p>';
+    else if (!sel.length) cd.innerHTML = '<p class="muted small">' + fmtDate(calSel) + ': kein Training.</p>';
+    else cd.innerHTML = '<b>' + fmtDate(sel[0].date) + '</b><ul>' + sel.map(function (s) {
+      const k = ST.kindById(ST.kindOf(s)), done = ST.doneIds(s);
+      return '<li><i class="dot" style="display:inline-block;background:' + kindColor(k.id) + '"></i> <b>' + hm(s.date) + ' · ' + k.icon + ' ' + k.label + '</b> · ' +
+        Math.round((s.durationSec || 0) / 60) + ' Min. · ' + done.length + '/' + (s.exerciseIds || []).length + ' Übungen' + (s.completed ? '' : ' (abgebrochen)') +
+        '<small>' + esc(done.map(id => D.byId[id] ? D.byId[id].name : id).join(', ')) + '</small></li>';
+    }).join('') + '</ul>';
+    // Minuten pro Woche (gestapelt nach Art)
+    const wk = ST.weekly(H, 12), max = Math.max(30, ...wk.map(w => w.total)), wc = $('weekChart'); wc.textContent = '';
+    wk.forEach(function (w, i) {
+      const col = document.createElement('div'); col.className = 'wcol' + (i === weekSel ? ' sel' : '');
+      ST.KINDS.slice().reverse().forEach(k => { if (w.min[k.id]) col.insertAdjacentHTML('beforeend', '<span class="seg" style="height:' + (w.min[k.id] / max * 100) + '%;background:' + kindColor(k.id) + '"></span>'); });
+      const tip = 'Woche ab ' + dm(w.start) + ': ' + Math.round(w.total) + ' Min., ' + w.count + ' Einheit(en)' +
+        (w.total ? ' – ' + ST.KINDS.filter(k => w.min[k.id]).map(k => k.label + ' ' + Math.round(w.min[k.id])).join(', ') : '');
+      col.title = tip;
+      if (i % 3 === 2 || i === wk.length - 1) col.insertAdjacentHTML('beforeend', '<span class="wl">' + dm(w.start) + '</span>');
+      col.onclick = () => { weekSel = i; renderStats(); };
+      wc.appendChild(col);
+      if (i === weekSel) $('weekInfo').textContent = tip;
+    });
+    if (weekSel < 0) $('weekInfo').textContent = 'Letzte 12 Wochen · Balken antippen für Details';
+    wc.setAttribute('aria-label', 'Trainingsminuten der letzten 12 Wochen: ' + wk.map(w => dm(w.start) + ' ' + Math.round(w.total)).join(', '));
+    // Nach Trainingsart
+    $('kindTable').innerHTML = '<tr><th>Art</th><th>Einheiten</th><th>Minuten</th></tr>' + ST.KINDS.map(k => '<tr><td><i class="dot" style="display:inline-block;background:' + kindColor(k.id) +
+      '"></i> ' + k.icon + ' ' + k.label + '</td><td>' + sm.perKind[k.id].count + '</td><td>' + Math.round(sm.perKind[k.id].min) + '</td></tr>').join('') +
+      '<tr><td><b>Gesamt</b></td><td><b>' + sm.total + '</b></td><td><b>' + sm.minTotal + '</b></td></tr>';
+    // Häufigste Übungen
+    const cnt = ST.counts(H), top = Object.keys(cnt).filter(id => D.byId[id]).sort((a, b) => cnt[b] - cnt[a]).slice(0, 10), tmax = top.length ? cnt[top[0]] : 1;
+    $('topEx').innerHTML = top.length ? top.map(id => '<li><span>' + esc(D.byId[id].name) + '</span><b>' + cnt[id] + '×</b><span class="bar" style="width:' + (cnt[id] / tmax * 100) + '%"></span></li>').join('')
+      : '<li class="muted">Noch keine Übungen durchgeführt.</li>';
+  }
+
   function show(id) { ['home', 'preview', 'train', 'done', 'gallery'].forEach(n => { $(n).hidden = n !== id; }); window.scrollTo(0, 0); }
   function btn(label, cls, pressed, onClick, html) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls;
@@ -1993,6 +2180,7 @@ App.UI = (function () {
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
     $('profileBtn').textContent = '👤 ' + App.Profile.label();
+    if (!$('tab-verlauf').hidden) renderStats();
     $('syncBtn').textContent = App.Sync.hasToken() ? '☁ Jetzt synchronisieren' : '🔑 GitHub-Sync';
   }
 
@@ -2047,7 +2235,7 @@ App.UI = (function () {
       ul.appendChild(li);
     });
     // Übungsliste, gruppiert nach Bereich (nur bei Kraftprogrammen)
-    const ol = $('pvList'); ol.textContent = ''; let lastCat = null;
+    const ol = $('pvList'), cnt = App.Stats.counts(S.history()); ol.textContent = ''; let lastCat = null;
     program.exerciseIds.forEach(function (id, i) {
       const ex = D.byId[id];
       const cat = program.areaOf ? program.areaOf[i] : ex.category;
@@ -2057,7 +2245,7 @@ App.UI = (function () {
       const li = document.createElement('li'), kt = kgTxt(ex);
       const w = (kt ? ' · ' + kt : '') + (kind === 'strength' && S.offsets()[id] ? ' · ' + (S.offsets()[id] > 0 ? '+' : '−') + Math.abs(S.offsets()[id]) + ' s angepasst' : '');
       const what = cat === 'full' && ex.pattern ? D.PATTERN_LABEL[ex.pattern] : ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.category === 'foam' ? 'Faszienrolle · ' + ex.subCategory : ex.subCategory;
-      li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(what) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
+      li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(what) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + ' · ' + (cnt[id] ? cnt[id] + '× gemacht' : 'neu') + '</small>';
       ol.appendChild(li);
     });
     $('pvReroll').hidden = !((kind === 'strength' && program.type === 'random') || (kind === 'stretch' && program.programIds) || (kind === 'foam' && program.foamAreas));
@@ -2124,7 +2312,7 @@ App.UI = (function () {
     const secs = Math.round((Date.now() - session.startedAt.getTime()) / 1000), p = session.program;
     if (session.doneCount > 0) {
       const rec = { id: 's' + session.startedAt.getTime() + Math.random().toString(36).slice(2, 6), date: session.startedAt.toISOString(),
-        kind: session.kind, areaIds: p.areaIds, modeId: session.mode.id, programType: p.type, exerciseIds: p.exerciseIds,
+        kind: session.kind, areaIds: p.areaIds, modeId: session.mode.id, programType: p.type, exerciseIds: p.exerciseIds, done: session.completed.slice(),
         completed: completed, durationSec: secs, t: Date.now() };
       // Referenztraining: Belastungszeit je vollständig absolvierter Übung + Empfinden (wird bei der Bewertung ergänzt)
       if (p.type === 'reference') {
@@ -2178,7 +2366,11 @@ App.UI = (function () {
 
   /* ---------------- Katalog (Kontrolle aller Animationen) ---------------- */
   function renderGallery() {
-    const grid = $('galleryGrid'); if (grid.firstChild) return;
+    const grid = $('galleryGrid');
+    const cnt = App.Stats.counts(S.history()), paint = () => Array.prototype.forEach.call(grid.querySelectorAll('.gcount'), el => {
+      const n = cnt[el.dataset.id] || 0; el.textContent = n ? n + '× durchgeführt' : 'noch nicht durchgeführt';
+    });
+    if (grid.firstChild) { paint(); return; }
     D.EXERCISES.concat(D.STRETCHES, D.FOAM).forEach(ex => {
       const c = document.createElement('div'); c.className = 'gcell';
       const sc = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.category === 'foam' ? 'Faszienrolle · ' + ex.subCategory : ex.subCategory;
@@ -2190,8 +2382,10 @@ App.UI = (function () {
         const pl = App.Animation.createPlayer(s); pl.setExercise(ex); pl.render(k); c.appendChild(s);
       });
       const sw = starsEl(ex.id); sw.className += ' small'; c.appendChild(sw);
+      const gc = document.createElement('small'); gc.className = 'gcount'; gc.dataset.id = ex.id; c.appendChild(gc);
       grid.appendChild(c);
     });
+    paint();
   }
   /* ---------------- Bewertung (Sterne) ---------------- */
   /** Sterne-Element; ein Tipp auf den aktuellen Wert setzt zurück auf 0 (unbewertet). */
@@ -2355,6 +2549,8 @@ App.UI = (function () {
     };
     document.querySelectorAll('#tabbar button').forEach(b => { b.onclick = () => setTab(b.dataset.tab); });
     setTab(curTab());
+    $('calPrev').onclick = () => { calMonth.setMonth(calMonth.getMonth() - 1); renderStats(); };
+    $('calNext').onclick = () => { calMonth.setMonth(calMonth.getMonth() + 1); renderStats(); };
     $('profileBtn2').onclick = () => $('profileBtn').onclick();
     $('profileBtn').onclick = function () {
       const n = prompt('Profilname (z. B. Lois oder Elke). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());
@@ -2606,6 +2802,21 @@ App.SelfTest = (function () {
       old ? localStorage.setItem(App.Config.profileKey, old) : localStorage.removeItem(App.Config.profileKey);
       return r.Lois === 'progress/training-lois.json' && r.Test === 'progress/training.json' && r.Elke === 'progress/training-elke.json';
     })());
+    (function () {   // Statistik: Art, durchgeführte Übungen (neu/alt), Zähler, Serie, Wochenminuten
+      const ST = App.Stats, now = new Date(2026, 10, 26, 12).getTime(), d = n => new Date(now - n * 864e5).toISOString();
+      const H = [
+        { date: d(0), kind: 'strength', areaIds: ['upper'], exerciseIds: ['plank', 'dead_bug'], done: ['plank'], completed: false, durationSec: 600 },
+        { date: d(1), kind: 'strength', areaIds: ['hiit'], exerciseIds: ['hampelmann'], completed: true, durationSec: 300 },
+        { date: d(8), kind: 'stretch', exerciseIds: ['st_child'], completed: true, durationSec: 420 },
+        { date: d(9), kind: 'strength', programType: 'reference', exerciseIds: ['plank', 'dead_bug'], ref: { secs: { plank: 90 } }, completed: true, durationSec: 900 },
+        { date: d(40), kind: 'foam', exerciseIds: ['plank'], completed: false, durationSec: 60 }];
+      const c = ST.counts(H), sm = ST.summary(H, now), wk = ST.weekly(H, 12, now);
+      check('Statistik: Arten, Zähler je Übung, Kennzahlen, Wochen',
+        H.map(ST.kindOf).join() === 'kraft,hiit,stretch,ref,foam' && c.plank === 2 && c.hampelmann === 1 && !c.dead_bug && c.st_child === 1 &&
+        sm.total === 5 && sm.last7 === 2 && sm.last30 === 4 && sm.streak === 2 && sm.perKind.ref.count === 1 && sm.min30 === 37 &&
+        wk.length === 12 && Math.round(wk[11].total) === 15 && ST.dayKey(new Date(2026, 0, 5)) === '2026-01-05' && ST.weekStart(new Date(2026, 10, 26)).getDay() === 1,
+        JSON.stringify({ c: c, sm: sm, w: wk[11].total }));
+    })();
     check('Profil Lois = Standarddaten, Elke eigene', App.Profile.slugOf('Elke') === 'elke' && App.Profile.slugOf('Lois') === 'lois');
 
     // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag

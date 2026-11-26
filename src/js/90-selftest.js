@@ -220,6 +220,21 @@ App.SelfTest = (function () {
       old ? localStorage.setItem(App.Config.profileKey, old) : localStorage.removeItem(App.Config.profileKey);
       return r.Lois === 'progress/training-lois.json' && r.Test === 'progress/training.json' && r.Elke === 'progress/training-elke.json';
     })());
+    (function () {   // Statistik: Art, durchgeführte Übungen (neu/alt), Zähler, Serie, Wochenminuten
+      const ST = App.Stats, now = new Date(2026, 10, 26, 12).getTime(), d = n => new Date(now - n * 864e5).toISOString();
+      const H = [
+        { date: d(0), kind: 'strength', areaIds: ['upper'], exerciseIds: ['plank', 'dead_bug'], done: ['plank'], completed: false, durationSec: 600 },
+        { date: d(1), kind: 'strength', areaIds: ['hiit'], exerciseIds: ['hampelmann'], completed: true, durationSec: 300 },
+        { date: d(8), kind: 'stretch', exerciseIds: ['st_child'], completed: true, durationSec: 420 },
+        { date: d(9), kind: 'strength', programType: 'reference', exerciseIds: ['plank', 'dead_bug'], ref: { secs: { plank: 90 } }, completed: true, durationSec: 900 },
+        { date: d(40), kind: 'foam', exerciseIds: ['plank'], completed: false, durationSec: 60 }];
+      const c = ST.counts(H), sm = ST.summary(H, now), wk = ST.weekly(H, 12, now);
+      check('Statistik: Arten, Zähler je Übung, Kennzahlen, Wochen',
+        H.map(ST.kindOf).join() === 'kraft,hiit,stretch,ref,foam' && c.plank === 2 && c.hampelmann === 1 && !c.dead_bug && c.st_child === 1 &&
+        sm.total === 5 && sm.last7 === 2 && sm.last30 === 4 && sm.streak === 2 && sm.perKind.ref.count === 1 && sm.min30 === 37 &&
+        wk.length === 12 && Math.round(wk[11].total) === 15 && ST.dayKey(new Date(2026, 0, 5)) === '2026-01-05' && ST.weekStart(new Date(2026, 10, 26)).getDay() === 1,
+        JSON.stringify({ c: c, sm: sm, w: wk[11].total }));
+    })();
     check('Profil Lois = Standarddaten, Elke eigene', App.Profile.slugOf('Elke') === 'elke' && App.Profile.slugOf('Lois') === 'lois');
 
     // 5a. Schwierigkeitsstufen: je Übung gewinnt der jüngere Eintrag

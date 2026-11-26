@@ -26,7 +26,7 @@ App.UI = (function () {
 
   const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); };
   /* Startseite in Reitern (Tab-Leiste unten); zuletzt gewählter Reiter wird gemerkt */
-  const TABS = { kraft: 'Krafttraining', dehnen: 'Dehnen', faszien: 'Faszienrolle', profil: 'Profil & Einstellungen' }, TAB_KEY = 'training-tab';
+  const TABS = { kraft: 'Krafttraining', dehnen: 'Dehnen', faszien: 'Faszienrolle', verlauf: 'Verlauf & Statistik', profil: 'Profil & Einstellungen' }, TAB_KEY = 'training-tab';
   function curTab() { try { const t = localStorage.getItem(TAB_KEY); return TABS[t] ? t : 'kraft'; } catch (e) { return 'kraft'; } }
   function setTab(t) {
     if (!TABS[t]) t = 'kraft';
@@ -34,7 +34,71 @@ App.UI = (function () {
     Object.keys(TABS).forEach(k => { $('tab-' + k).hidden = k !== t; });
     document.querySelectorAll('#tabbar button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
     $('homeTitle').textContent = TABS[t]; window.scrollTo(0, 0);
+    if (t === 'verlauf') renderStats();
   }
+  /* ---------------- Verlauf & Statistik (Reiter „Verlauf“) ---------------- */
+  let calMonth = null, calSel = null, weekSel = -1;
+  const MONTHS = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  const kindColor = k => 'var(--c-' + k + ')';
+  const hm = d => { d = new Date(d); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); };
+  const dm = d => { d = new Date(d); return d.getDate() + '.' + (d.getMonth() + 1) + '.'; };
+  function renderStats() {
+    const ST = App.Stats, H = S.history(), sm = ST.summary(H), days = ST.byDay(H);
+    // Kennzahlen
+    $('kpis').innerHTML = [[sm.total, 'Einheiten gesamt'], [sm.last7, 'letzte 7 Tage'], [sm.last30, 'letzte 30 Tage'],
+      [sm.min30, 'Minuten (30 Tage)'], [sm.streak, sm.streak === 1 ? 'Woche in Folge' : 'Wochen in Folge'], [String(sm.avgWeek).replace('.', ','), 'Ø Einheiten/Woche (8 Wo.)']]
+      .map(k => '<div class="kpi"><b>' + k[0] + '</b><span>' + k[1] + '</span></div>').join('');
+    // Kalender
+    if (!calMonth) { calMonth = new Date(); calMonth.setDate(1); calMonth.setHours(0, 0, 0, 0); }
+    $('calTitle').textContent = MONTHS[calMonth.getMonth()] + ' ' + calMonth.getFullYear();
+    const cal = $('cal'), today = ST.dayKey(Date.now()); cal.textContent = '';
+    ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(d => { const e = document.createElement('div'); e.className = 'dow'; e.textContent = d; cal.appendChild(e); });
+    const first = (calMonth.getDay() + 6) % 7, nDays = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
+    for (let i = 0; i < first; i++) { const b = document.createElement('button'); b.disabled = true; cal.appendChild(b); }
+    for (let d = 1; d <= nDays; d++) {
+      const key = ST.dayKey(new Date(calMonth.getFullYear(), calMonth.getMonth(), d)), list = days[key] || [], b = document.createElement('button');
+      b.className = (key === today ? 'today ' : '') + (key === calSel ? 'sel' : '');
+      b.innerHTML = '<span>' + d + '</span><span class="dots">' + list.map(s => '<i class="dot" style="background:' + kindColor(ST.kindOf(s)) + '"></i>').join('') + '</span>';
+      b.setAttribute('aria-label', d + '. ' + MONTHS[calMonth.getMonth()] + ': ' + (list.length ? list.length + ' Einheit(en)' : 'kein Training'));
+      b.onclick = () => { calSel = key; renderStats(); };
+      cal.appendChild(b);
+    }
+    $('legend').innerHTML = ST.KINDS.map(k => '<span><i style="background:' + kindColor(k.id) + '"></i>' + k.label + '</span>').join('');
+    // Details zum gewählten Tag
+    const sel = calSel ? days[calSel] || [] : null, cd = $('calDay');
+    if (!sel) cd.innerHTML = '<p class="muted small">Tag antippen, um die Trainings anzuzeigen.</p>';
+    else if (!sel.length) cd.innerHTML = '<p class="muted small">' + fmtDate(calSel) + ': kein Training.</p>';
+    else cd.innerHTML = '<b>' + fmtDate(sel[0].date) + '</b><ul>' + sel.map(function (s) {
+      const k = ST.kindById(ST.kindOf(s)), done = ST.doneIds(s);
+      return '<li><i class="dot" style="display:inline-block;background:' + kindColor(k.id) + '"></i> <b>' + hm(s.date) + ' · ' + k.icon + ' ' + k.label + '</b> · ' +
+        Math.round((s.durationSec || 0) / 60) + ' Min. · ' + done.length + '/' + (s.exerciseIds || []).length + ' Übungen' + (s.completed ? '' : ' (abgebrochen)') +
+        '<small>' + esc(done.map(id => D.byId[id] ? D.byId[id].name : id).join(', ')) + '</small></li>';
+    }).join('') + '</ul>';
+    // Minuten pro Woche (gestapelt nach Art)
+    const wk = ST.weekly(H, 12), max = Math.max(30, ...wk.map(w => w.total)), wc = $('weekChart'); wc.textContent = '';
+    wk.forEach(function (w, i) {
+      const col = document.createElement('div'); col.className = 'wcol' + (i === weekSel ? ' sel' : '');
+      ST.KINDS.slice().reverse().forEach(k => { if (w.min[k.id]) col.insertAdjacentHTML('beforeend', '<span class="seg" style="height:' + (w.min[k.id] / max * 100) + '%;background:' + kindColor(k.id) + '"></span>'); });
+      const tip = 'Woche ab ' + dm(w.start) + ': ' + Math.round(w.total) + ' Min., ' + w.count + ' Einheit(en)' +
+        (w.total ? ' – ' + ST.KINDS.filter(k => w.min[k.id]).map(k => k.label + ' ' + Math.round(w.min[k.id])).join(', ') : '');
+      col.title = tip;
+      if (i % 3 === 2 || i === wk.length - 1) col.insertAdjacentHTML('beforeend', '<span class="wl">' + dm(w.start) + '</span>');
+      col.onclick = () => { weekSel = i; renderStats(); };
+      wc.appendChild(col);
+      if (i === weekSel) $('weekInfo').textContent = tip;
+    });
+    if (weekSel < 0) $('weekInfo').textContent = 'Letzte 12 Wochen · Balken antippen für Details';
+    wc.setAttribute('aria-label', 'Trainingsminuten der letzten 12 Wochen: ' + wk.map(w => dm(w.start) + ' ' + Math.round(w.total)).join(', '));
+    // Nach Trainingsart
+    $('kindTable').innerHTML = '<tr><th>Art</th><th>Einheiten</th><th>Minuten</th></tr>' + ST.KINDS.map(k => '<tr><td><i class="dot" style="display:inline-block;background:' + kindColor(k.id) +
+      '"></i> ' + k.icon + ' ' + k.label + '</td><td>' + sm.perKind[k.id].count + '</td><td>' + Math.round(sm.perKind[k.id].min) + '</td></tr>').join('') +
+      '<tr><td><b>Gesamt</b></td><td><b>' + sm.total + '</b></td><td><b>' + sm.minTotal + '</b></td></tr>';
+    // Häufigste Übungen
+    const cnt = ST.counts(H), top = Object.keys(cnt).filter(id => D.byId[id]).sort((a, b) => cnt[b] - cnt[a]).slice(0, 10), tmax = top.length ? cnt[top[0]] : 1;
+    $('topEx').innerHTML = top.length ? top.map(id => '<li><span>' + esc(D.byId[id].name) + '</span><b>' + cnt[id] + '×</b><span class="bar" style="width:' + (cnt[id] / tmax * 100) + '%"></span></li>').join('')
+      : '<li class="muted">Noch keine Übungen durchgeführt.</li>';
+  }
+
   function show(id) { ['home', 'preview', 'train', 'done', 'gallery'].forEach(n => { $(n).hidden = n !== id; }); window.scrollTo(0, 0); }
   function btn(label, cls, pressed, onClick, html) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls;
@@ -124,6 +188,7 @@ App.UI = (function () {
     const h = S.history(), week = Date.now() - 7 * 864e5;
     $('stats').textContent = h.length + ' Einheiten insgesamt · ' + h.filter(s => new Date(s.date).getTime() > week).length + ' in den letzten 7 Tagen';
     $('profileBtn').textContent = '👤 ' + App.Profile.label();
+    if (!$('tab-verlauf').hidden) renderStats();
     $('syncBtn').textContent = App.Sync.hasToken() ? '☁ Jetzt synchronisieren' : '🔑 GitHub-Sync';
   }
 
@@ -178,7 +243,7 @@ App.UI = (function () {
       ul.appendChild(li);
     });
     // Übungsliste, gruppiert nach Bereich (nur bei Kraftprogrammen)
-    const ol = $('pvList'); ol.textContent = ''; let lastCat = null;
+    const ol = $('pvList'), cnt = App.Stats.counts(S.history()); ol.textContent = ''; let lastCat = null;
     program.exerciseIds.forEach(function (id, i) {
       const ex = D.byId[id];
       const cat = program.areaOf ? program.areaOf[i] : ex.category;
@@ -188,7 +253,7 @@ App.UI = (function () {
       const li = document.createElement('li'), kt = kgTxt(ex);
       const w = (kt ? ' · ' + kt : '') + (kind === 'strength' && S.offsets()[id] ? ' · ' + (S.offsets()[id] > 0 ? '+' : '−') + Math.abs(S.offsets()[id]) + ' s angepasst' : '');
       const what = cat === 'full' && ex.pattern ? D.PATTERN_LABEL[ex.pattern] : ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.category === 'foam' ? 'Faszienrolle · ' + ex.subCategory : ex.subCategory;
-      li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(what) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + '</small>';
+      li.innerHTML = '<b>' + esc(ex.name) + '</b> <span class="muted">· ' + fmt(perEx[i]) + ' min</span><small>' + esc(what) + ' · ' + esc(ex.targetMuscles.join(', ')) + esc(w) + ' · ' + (cnt[id] ? cnt[id] + '× gemacht' : 'neu') + '</small>';
       ol.appendChild(li);
     });
     $('pvReroll').hidden = !((kind === 'strength' && program.type === 'random') || (kind === 'stretch' && program.programIds) || (kind === 'foam' && program.foamAreas));
@@ -255,7 +320,7 @@ App.UI = (function () {
     const secs = Math.round((Date.now() - session.startedAt.getTime()) / 1000), p = session.program;
     if (session.doneCount > 0) {
       const rec = { id: 's' + session.startedAt.getTime() + Math.random().toString(36).slice(2, 6), date: session.startedAt.toISOString(),
-        kind: session.kind, areaIds: p.areaIds, modeId: session.mode.id, programType: p.type, exerciseIds: p.exerciseIds,
+        kind: session.kind, areaIds: p.areaIds, modeId: session.mode.id, programType: p.type, exerciseIds: p.exerciseIds, done: session.completed.slice(),
         completed: completed, durationSec: secs, t: Date.now() };
       // Referenztraining: Belastungszeit je vollständig absolvierter Übung + Empfinden (wird bei der Bewertung ergänzt)
       if (p.type === 'reference') {
@@ -309,7 +374,11 @@ App.UI = (function () {
 
   /* ---------------- Katalog (Kontrolle aller Animationen) ---------------- */
   function renderGallery() {
-    const grid = $('galleryGrid'); if (grid.firstChild) return;
+    const grid = $('galleryGrid');
+    const cnt = App.Stats.counts(S.history()), paint = () => Array.prototype.forEach.call(grid.querySelectorAll('.gcount'), el => {
+      const n = cnt[el.dataset.id] || 0; el.textContent = n ? n + '× durchgeführt' : 'noch nicht durchgeführt';
+    });
+    if (grid.firstChild) { paint(); return; }
     D.EXERCISES.concat(D.STRETCHES, D.FOAM).forEach(ex => {
       const c = document.createElement('div'); c.className = 'gcell';
       const sc = ex.category === 'stretch' ? (ex.dynamic ? 'Mobilität' : 'Dehnung') : ex.category === 'foam' ? 'Faszienrolle · ' + ex.subCategory : ex.subCategory;
@@ -321,8 +390,10 @@ App.UI = (function () {
         const pl = App.Animation.createPlayer(s); pl.setExercise(ex); pl.render(k); c.appendChild(s);
       });
       const sw = starsEl(ex.id); sw.className += ' small'; c.appendChild(sw);
+      const gc = document.createElement('small'); gc.className = 'gcount'; gc.dataset.id = ex.id; c.appendChild(gc);
       grid.appendChild(c);
     });
+    paint();
   }
   /* ---------------- Bewertung (Sterne) ---------------- */
   /** Sterne-Element; ein Tipp auf den aktuellen Wert setzt zurück auf 0 (unbewertet). */
@@ -486,6 +557,8 @@ App.UI = (function () {
     };
     document.querySelectorAll('#tabbar button').forEach(b => { b.onclick = () => setTab(b.dataset.tab); });
     setTab(curTab());
+    $('calPrev').onclick = () => { calMonth.setMonth(calMonth.getMonth() - 1); renderStats(); };
+    $('calNext').onclick = () => { calMonth.setMonth(calMonth.getMonth() + 1); renderStats(); };
     $('profileBtn2').onclick = () => $('profileBtn').onclick();
     $('profileBtn').onclick = function () {
       const n = prompt('Profilname (z. B. Lois oder Elke). Jedes Profil hat eigene Daten und eine eigene Sync-Datei. Aktuell: ' + App.Profile.label(), App.Profile.name());

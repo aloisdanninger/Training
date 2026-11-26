@@ -118,6 +118,9 @@ Neue Übung: eine Zeile in EXERCISE_ROWS (10-data-exercises.js). Neuer Stil: Ein
 - Trainingsbildschirm: Chips über dem Zeitkreis (links letztes Gewicht, rechts Empfinden der letzten Durchführung).
 - Startseite mit Tab-Leiste unten: Kraft | Dehnen | Faszien | Profil (letzter Reiter gemerkt, Start-Buttons sticky
   über der Leiste). Rahmenbedingungen, Material, Ton und Sync/Export/Import/Katalog liegen im Reiter Profil.
+- Reporting: Session speichert done = vollständig durchgeführte Übungen (ältere Sessions: ref.secs bzw. ganzes Programm,
+  wenn abgeschlossen). App.Stats (65-stats.js). Zähler "n× gemacht" in Vorschau und Katalog. Reiter "Verlauf":
+  Kennzahlen, Kalender, Minuten/Woche, nach Art, Top 10 Übungen. Je Profil getrennt.
 - Bildschirm wach halten: Wake Lock mit Neuanforderung + NoSleep-Fallback (stummes Canvas-Video); gilt bis Trainingsende, auch in der Pause.
 
 =====================================================================

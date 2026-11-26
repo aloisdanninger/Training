@@ -56,7 +56,7 @@ flowchart LR
 flowchart LR
   T["src/template.html"] --> B["build/build.py"]
   C["src/css/style.css"] --> B
-  J["src/js/00-…99-*.js<br/>(14 Module, alphabetisch)"] --> B
+  J["src/js/00-…99-*.js<br/>(15 Module, alphabetisch)"] --> B
   B --> O["docs/training.html<br/>(≈205 KB, alles inline)"]
   B --> I["docs/index.html<br/>(Weiterleitung)"]
 ```
@@ -85,6 +85,7 @@ flowchart TB
     ANI["40-animation.js<br/>App.Animation"]
     AUD["50-audio.js<br/>App.Audio"]
     STO["60-storage.js<br/>App.Profile · App.Store · App.Sync"]
+    STA["65-stats.js<br/>App.Stats"]
   end
   subgraph Logik
     PRG["20-logic-programs.js<br/>App.Programs"]
@@ -125,6 +126,7 @@ flowchart TB
 | `40-animation.js` | Dienst | SVG-Player: Figur zwischen zwei Posen interpolieren, Verankerung (Fuß, frei, Rolle), Requisiten | `createPlayer(svg)` → `setExercise`, `render(p)` |
 | `50-audio.js` | Dienst | Signaltöne per WebAudio (ohne Audiodateien), iOS-Entsperrung, Mischen mit Musik | `play(name)`, `unlock()`, `setEnabled`, `setVolume` |
 | `60-storage.js` | Dienst | Profile, lokaler Zustand, Merge, GitHub-Sync, Export/Import | `App.Profile`, `App.Store`, `App.Sync` |
+| `65-stats.js` | Logik | Auswertung der Historie (rein, ohne DOM): Trainingsart, durchgeführte Übungen, Zähler je Übung, Kennzahlen, Kalendertage, Wochenminuten | `App.Stats` |
 | `70-ui.js` | Präsentation | Bildschirme Start, Übersicht, Training, Abschluss, Katalog, Overlay; Ereignisse | `App.UI.init()` |
 | `90-selftest.js` | Test | 65 Prüfungen über Daten, Regeln, Timer, Animation und Sync-Pfade | `App.SelfTest.run()` |
 | `99-main.js` | Start | Initialisierung bei `DOMContentLoaded`, Selbsttest bei `#selftest` | – |
@@ -256,6 +258,7 @@ Die Leiste gehört zu `#home` und ist daher in Vorschau, Training, Bewertung und
 | 💪 Kraft | Referenz-fällig-Hinweis, Programmtyp, Trainingsbereiche, HIIT-/Stil-Regler, Zusammenfassung, Start |
 | 🧘 Dehnen | Dehnprogramme (Mehrfachauswahl) + Start |
 | 🧽 Faszien | Faszienbereiche + Start |
+| 📊 Verlauf | Kennzahlen (Einheiten 7/30 Tage, Minuten, Wochen-Serie, Ø/Woche), Monatskalender mit Punkten je Trainingsart und Tagesdetails, Minuten pro Woche (12 Wochen, gestapelt), Tabelle nach Art, häufigste Übungen |
 | 👤 Profil | Fortschritt, Benutzer wechseln, GitHub-Sync, Export/Import, Übungskatalog, Rahmenbedingungen, Material, Ton/Lautstärke |
 
 Die Start-Buttons kleben (sticky) direkt über der Tab-Leiste.

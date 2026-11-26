@@ -41,6 +41,17 @@
     <button id="foamStart" class="btn primary big" hidden></button></section>
   </div>
 
+  <!-- Reiter: Verlauf & Statistik -->
+  <div id="tab-verlauf" class="tabpane" hidden>
+  <div id="kpis" class="kpis"></div>
+  <section><h2>Kalender</h2>
+    <div class="calnav"><button id="calPrev" class="chip" aria-label="Voriger Monat">‹</button><b id="calTitle"></b><button id="calNext" class="chip" aria-label="Nächster Monat">›</button></div>
+    <div id="cal" class="cal"></div><div id="legend" class="legend"></div><div id="calDay" class="calday"></div></section>
+  <section><h2>Minuten pro Woche</h2><div id="weekChart" class="wchart" role="img"></div><p id="weekInfo" class="muted small">Letzte 12 Wochen · Balken antippen für Details</p></section>
+  <section><h2>Nach Trainingsart</h2><table id="kindTable" class="stable"></table></section>
+  <section><h2>Häufigste Übungen</h2><ol id="topEx" class="toplist"></ol></section>
+  </div>
+
   <!-- Reiter: Profil & Einstellungen -->
   <div id="tab-profil" class="tabpane" hidden>
   <section class="card"><h2>Fortschritt</h2><p id="stats" class="muted"></p>
@@ -55,7 +66,7 @@
 
   <nav id="tabbar" class="tabbar" aria-label="Bereiche">
     <button data-tab="kraft"><span>💪</span>Kraft</button><button data-tab="dehnen"><span>🧘</span>Dehnen</button>
-    <button data-tab="faszien"><span>🧽</span>Faszien</button><button data-tab="profil"><span>👤</span>Profil</button>
+    <button data-tab="faszien"><span>🧽</span>Faszien</button><button data-tab="verlauf"><span>📊</span>Verlauf</button><button data-tab="profil"><span>👤</span>Profil</button>
   </nav>
 </main>
 
